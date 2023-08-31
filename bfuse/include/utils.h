@@ -3,14 +3,14 @@
 
 #include <cstdlib>
 #include <string>
+#include <vector>
+#include <map>
 
 #include "llvm/Support/YAMLTraits.h"
 #include "bfuse.h"
 //---------------------------------------------------------------------------
 namespace utils {
-/*
- * ReadYAMLInfo() - 
- */
+//---------------------------------------------------------------------------
 template <typename Info>
 Info readYAMLInfo(const std::string& Path)
 {
@@ -33,48 +33,53 @@ Info readYAMLInfo(const std::string& Path)
 
   return Infos;
 }
+//---------------------------------------------------------------------------
+void printFusionYAML(const std::vector<bfuse::FusionInfo>& Infos);
+//---------------------------------------------------------------------------
+void printKernelYAML(const std::map<std::string, bfuse::KernelInfo>& Infos);
+//---------------------------------------------------------------------------
 } // namespace utils
 //---------------------------------------------------------------------------
 template <>
 struct llvm::yaml::MappingTraits<bfuse::KernelInfo> {
-  static void mapping(llvm::yaml::IO &io, bfuse::KernelInfo &info)
+  static void mapping(llvm::yaml::IO &Io, bfuse::KernelInfo &Info)
   {
-    io.mapRequired("KernelName",  info.kernelName);
-    io.mapRequired("HasBarriers", info.hasBarriers);
-    io.mapRequired("GridDim",     info.gridDim);
-    io.mapRequired("BlockDim",    info.blockDim);
-    io.mapRequired("Reg",         info.reg);
+    Io.mapRequired("KernelName",  Info.kernelName);
+    Io.mapRequired("HasBarriers", Info.hasBarriers);
+    Io.mapRequired("GridDim",     Info.gridDim);
+    Io.mapRequired("BlockDim",    Info.blockDim);
+    Io.mapRequired("Reg",         Info.reg);
 
-    io.mapOptional("ExecTime", info.execTime, 0.0);
+    Io.mapOptional("ExecTime", Info.execTime, 0.0);
   }
 };
 //---------------------------------------------------------------------------
 template <>
 struct llvm::yaml::MappingTraits<bfuse::FusionInfo> {
-  static void mapping(llvm::yaml::IO &io, bfuse::FusionInfo &info)
+  static void mapping(llvm::yaml::IO &Io, bfuse::FusionInfo &Info)
   {
-    io.mapRequired("File",    info.filePath);
-    io.mapRequired("Kernels", info.kernels);
+    Io.mapRequired("File",    Info.filePath);
+    Io.mapRequired("Kernels", Info.kernels);
   }
 };
 //---------------------------------------------------------------------------
 template <>
 struct llvm::yaml::MappingTraits<bfuse::GridDim> {
-  static void mapping(llvm::yaml::IO &io, bfuse::GridDim &dim)
+  static void mapping(llvm::yaml::IO &Io, bfuse::GridDim &Dim)
   {
-    io.mapRequired("X", dim.x);
-    io.mapRequired("Y", dim.y);
-    io.mapRequired("Z", dim.z);
+    Io.mapRequired("X", Dim.x);
+    Io.mapRequired("Y", Dim.y);
+    Io.mapRequired("Z", Dim.z);
   }
 };
 //---------------------------------------------------------------------------
 template <>
 struct llvm::yaml::MappingTraits<bfuse::BlockDim> {
-  static void mapping(llvm::yaml::IO &io, bfuse::BlockDim &dim)
+  static void mapping(llvm::yaml::IO &Io, bfuse::BlockDim &Dim)
   {
-    io.mapRequired("X", dim.x);
-    io.mapRequired("Y", dim.y);
-    io.mapRequired("Z", dim.z);
+    Io.mapRequired("X", Dim.x);
+    Io.mapRequired("Y", Dim.y);
+    Io.mapRequired("Z", Dim.z);
   }
 };
 //---------------------------------------------------------------------------

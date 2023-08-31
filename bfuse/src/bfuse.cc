@@ -1,4 +1,5 @@
 
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -48,6 +49,7 @@ void bfuse(const char *ProgName, std::string FusionInfoPath,
     auto ExpectedParser = CommonOptionsParser::create(argc, argv, FusionToolCategory);
     if (!ExpectedParser) {
       llvm::errs() << ExpectedParser.takeError();
+      exit(0);
     }
 
     for (auto &name : info.kernels) {

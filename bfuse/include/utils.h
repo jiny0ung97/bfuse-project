@@ -18,8 +18,8 @@ Info readYAMLInfo(const std::string& Path)
 
   FileOrError Buffer = llvm::MemoryBuffer::getFile(Path.c_str());
   if (!Buffer) {
-    llvm::errs() << "failed to read configs.\n";
-    std::abort();
+    llvm::errs() << "BFUSE ERROR: failed to read configs\n";
+    std::exit(0);
   }
 
   Info Infos;
@@ -27,8 +27,8 @@ Info readYAMLInfo(const std::string& Path)
   Yaml >> Infos;
 
   if (Yaml.error()) {
-    llvm::errs() << "failed to get configs.\n";
-    std::abort();
+    llvm::errs() << "BFUSE ERROR: failed to get configs\n";
+    std::exit(0);
   }
 
   return Infos;

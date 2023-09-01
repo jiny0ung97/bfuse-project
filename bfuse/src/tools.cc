@@ -2,6 +2,7 @@
 #include <utility>
 #include <string>
 #include <vector>
+#include <map>
 #include <unordered_map>
 
 #include "bfuse.h"
@@ -23,7 +24,18 @@ Arguments::Arguments(const char *ProgName, string& Path)
 //---------------------------------------------------------------------------
 Arguments::~Arguments() { free(argv); }
 //---------------------------------------------------------------------------
-FusionTool::FusionTool(vector<KernelInfo> Infos)
+FusionTools FusionTools::create(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
+{
+  vector<KernelInfo> KInfoVector;
+  for (auto& KName : FInfo.kernels) {
+    KInfoVector.push_back(KInfo[KName]);
+  }
+  FusionTools tools(KInfoVector);
+
+  return tools;
+}
+//---------------------------------------------------------------------------
+FusionTools::FusionTools(vector<KernelInfo>& Infos)
 {
   unordered_map<string, int> CurBounds;
   unordered_map<string, int> EndBounds;

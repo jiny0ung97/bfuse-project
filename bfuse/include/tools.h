@@ -4,6 +4,7 @@
 #include <utility>
 #include <string>
 #include <vector>
+#include <map>
 #include <unordered_map>
 #include <tuple>
 
@@ -56,7 +57,7 @@ struct KernelContext {
   std::vector<int> otherBlocks;
 };
 //---------------------------------------------------------------------------
-class FusionTool {
+class FusionTools {
 private:
   /// The order of fused kernels
   std::vector<std::string> kernels;
@@ -73,8 +74,11 @@ public:
   ///
   constexpr static bool imBalancedThread = false;
 
+  /// Create FusionTools Object
+  static FusionTools create(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfo);
+
   /// The constructor
-  explicit FusionTool(std::vector<KernelInfo> Infos);
+  explicit FusionTools(std::vector<KernelInfo>& Infos);
 };
 //---------------------------------------------------------------------------
 } // namespace tools

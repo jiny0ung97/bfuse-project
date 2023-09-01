@@ -39,7 +39,7 @@ void bfuse(const char *ProgName, std::string FusionInfoPath,
     string NewPath {BasePath + "/" + info.filePath};
     Arguments Args {ProgName, BasePath};
 
-    // Create clang parser
+    // Create clang parser object
     auto [argc, argv]   = Args.getArguments();
     auto ExpectedParser = CommonOptionsParser::create(argc, argv, FusionToolCategory);
     if (!ExpectedParser) {
@@ -48,7 +48,11 @@ void bfuse(const char *ProgName, std::string FusionInfoPath,
     }
     CommonOptionsParser& OptionsParser = ExpectedParser.get();
 
+    // Create fusion tools object
+    auto Tools = FusionTools::create(info, KernelYAML);
+
     // Do fuse using clang tools
+
   }
 
   // tests

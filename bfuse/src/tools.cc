@@ -66,7 +66,8 @@ FusionTool::FusionTool(vector<KernelInfo> Infos)
 
   for (auto& info : Infos) {
     auto& KName = info.kernelName;
-    
+
+    // TODO: need to summarize using constructor...
     kernelContextMap[KName].info            = info;
     kernelContextMap[KName].threadBoundary  = info.blockDim.size();
     kernelContextMap[KName].blockBoundaries = BlockBoundaries[KName];

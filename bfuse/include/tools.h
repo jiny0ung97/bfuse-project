@@ -50,15 +50,15 @@ struct KernelContext {
   /// The kernel's threadIdx boundary information
   int threadIdxBoundary;
   /// The kernel's blockIdx boundary information
-  std::vector<std::pair<int, int>> blockBoundary;
+  std::vector<std::pair<int, int>> blockBoundaries;
   /// The kernel's base blockIdx boundary
   /// To be used when rewrite blockIdx variables
-  std::vector<int> blockLefts;
+  std::vector<int> base;
 
   /// The constructor
-  KernelContext(KernelInfo&& Info, std::pair<int, int>&& BlockBoundary, std::vector<int>&& BlockLefts)
+  KernelContext(KernelInfo&& Info, std::pair<int, int>&& BlockBoundaries, std::vector<int>&& Base)
     : name{Info.kernelName}, info{Info}, threadIdxBoundary{Info.blockDim.size()},
-      blockBoundary{BlockBoundary}, blockLefts{BlockLefts} {}
+      blockBoundaries{BlockBoundaries}, base{Base} {}
 };
 //---------------------------------------------------------------------------
 class FusionTool {

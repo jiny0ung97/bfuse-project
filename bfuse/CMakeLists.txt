@@ -1,0 +1,40 @@
+
+# Sources
+set(BFUSE_SOURCE_DIR src)
+set(BFUSE_SOURCES
+  ${BFUSE_SOURCE_DIR}/bfuse.cc
+  ${BFUSE_SOURCE_DIR}/utils.cc
+  ${BFUSE_SOURCE_DIR}/tools.cc
+  # Add your sources here
+  # ${BFUSE_SOURCE_DIR}/foo/bar/your_source.cc
+)
+
+# Headers
+set(BFUSE_HEADER_DIR include)
+set(BFUSE_HEADERS
+  ${BFUSE_HEADER_DIR}/bfuse.h
+  ${BFUSE_HEADER_DIR}/utils.h
+  ${BFUSE_HEADER_DIR}/tools.h
+  # Add your headers here
+  # ${BFUSE_HEADER_DIR}/foo/bar/your_header.h
+)
+
+# ------------------------------------------------------------------
+# Link with add_clang_library function()
+set(LLVM_LINK_COMPONENTS support)
+add_clang_library(bfuse STATIC ${BFUSE_HEADERS} ${BFUSE_SOURCES})
+
+target_include_directories(bfuse
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/${BFUSE_HEADER_DIR}
+)
+
+# Link against Clang libraries
+target_link_libraries(bfuse
+PRIVATE
+  clangAST
+  clangASTMatchers
+  clangBasic
+  clangFrontend
+  clangSerialization
+  clangTooling
+)

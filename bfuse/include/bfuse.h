@@ -12,7 +12,7 @@ struct GridDim {
   /// Grid's x, y, z dimension
   int x, y, z;
   /// The size of grid dimension
-  int size() const { return x * y * z; }
+  inline int size() const { return x * y * z; }
 
 };
 //---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ struct BlockDim {
   /// Block's x, y, z dimension
   int x, y, z;
   /// The size of block dimension
-  int size() const { return x * y * z; }
+  inline int size() const { return x * y * z; }
 };
 //---------------------------------------------------------------------------
 struct KernelInfo {
@@ -32,7 +32,7 @@ struct KernelInfo {
   GridDim gridDim;
   /// The kernel's block dimension
   BlockDim blockDim;
-  /// The kernel's # of registers
+  /// The kernel code's # of registers
   int reg;
   /// The kernel's execution time
   double execTime;

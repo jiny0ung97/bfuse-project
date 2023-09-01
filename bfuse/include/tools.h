@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <utility>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -22,7 +23,7 @@ private:
 
 public:
   /// Get argc, argv parameter
-  std::tuple<int, const char **>getArguments() const { return std::make_tuple(argc, argv); }
+  inline std::tuple<int, const char **>getArguments() const { return std::make_tuple(argc, argv); }
 
   /// The constructor
   Arguments(const char *ProgName, std::string& Path);
@@ -41,16 +42,44 @@ public:
   Arguments& operator=(Arguments&& other) = delete;
 };
 //---------------------------------------------------------------------------
-class Parser {
+struct KernelContext {
+  /// The kernel's name
+  std::string name;
+  /// The kernel's information
+  KernelInfo info;
+  /// The kernel's threadIdx boundary information
+  int threadIdxBoundary;
+  /// The kernel's blockIdx boundary information
+  std::vector<std::pair<int, int>> blockBoundary;
+  /// The kernel's base blockIdx boundary
+  /// To be used when rewrite blockIdx variables
+  std::vector<int> blockLefts;
+
+  /// The constructor
+  KernelContext(KernelInfo&& Info, std::pair<int, int>&& BlockBoundary, std::vector<int>&& BlockLefts)
+    : name{Info.kernelName}, info{Info}, threadIdxBoundary{Info.blockDim.size()},
+      blockBoundary{BlockBoundary}, blockLefts{BlockLefts} {}
+};
+//---------------------------------------------------------------------------
+class FusionTool {
 private:
-  ///
-  std::unordered_map<std::string, KernelInfo> kernelMap;
-  ///
-  std::unordered_map<std::string, std::pair<unsigned, unsigned>> bounds;
+  /// The order of fused kernels
+  std::vector<std::string> kernels;
+  /// The unordered map to contain kernel context
+  std::unordered_map<std::string, KernelContext> kernelContextMap;
 
 public:
+  /// 
+  constexpr static bool baseLine = false;
+  ///
+  constexpr static bool isBarSyncEnabled = false;
+  ///
+  constexpr static bool launchBound = false;
+  ///
+  constexpr static bool imBalancedThread = false;
+
   /// The constructor
-  Parser(int argc, const char** argv, const std::vector<KernelInfo>& Infos);
+  explicit FusionTool(const std::vector<KernelInfo> Infos);
 };
 //---------------------------------------------------------------------------
 } // namespace tools

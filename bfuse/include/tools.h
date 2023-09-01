@@ -43,22 +43,17 @@ public:
 };
 //---------------------------------------------------------------------------
 struct KernelContext {
-  /// The kernel's name
-  std::string name;
+  using BlockIdxBoundaryVector = std::vector<std::pair<int, int>>;
+
   /// The kernel's information
   KernelInfo info;
-  /// The kernel's threadIdx boundary information
-  int threadIdxBoundary;
-  /// The kernel's blockIdx boundary information
-  std::vector<std::pair<int, int>> blockBoundaries;
-  /// The kernel's base blockIdx boundary
-  /// To be used when rewrite blockIdx variables
-  std::vector<int> base;
-
-  /// The constructor
-  KernelContext(KernelInfo&& Info, std::pair<int, int>&& BlockBoundaries, std::vector<int>&& Base)
-    : name{Info.kernelName}, info{Info}, threadIdxBoundary{Info.blockDim.size()},
-      blockBoundaries{BlockBoundaries}, base{Base} {}
+  /// The kernel's threadIdx boudnary
+  int threadBoundary;
+  /// The kernel's blockIdx boundary
+  BlockIdxBoundaryVector blockBoundaries;
+  /// # of blocks from other fused kernels
+  /// To rewrite blockIdx variables
+  std::vector<int> otherBlocks;
 };
 //---------------------------------------------------------------------------
 class FusionTool {
@@ -79,7 +74,7 @@ public:
   constexpr static bool imBalancedThread = false;
 
   /// The constructor
-  explicit FusionTool(const std::vector<KernelInfo> Infos);
+  explicit FusionTool(std::vector<KernelInfo> Infos);
 };
 //---------------------------------------------------------------------------
 } // namespace tools

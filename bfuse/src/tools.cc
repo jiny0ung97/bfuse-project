@@ -23,30 +23,54 @@ Arguments::Arguments(const char *ProgName, string& Path)
 //---------------------------------------------------------------------------
 Arguments::~Arguments() { free(argv); }
 //---------------------------------------------------------------------------
-FusionTool::FusionTool(const vector<KernelInfo> Infos)
+FusionTool::FusionTool(vector<KernelInfo> Infos)
 {
-  unordered_map<string, int> Bounds;
+  unordered_map<string, int> CurBounds;
+  unordered_map<string, int> EndBounds;
+
   for (auto& info : Infos) {
     kernels.push_back(info.kernelName);
-    Bounds[info.kernelName] = info.gridDim.size();
+
+    CurBounds[info.kernelName] = 0;
+    EndBounds[info.kernelName] = info.gridDim.size();
   }
 
   unordered_map<string, vector<pair<int, int>>> BlockBoundaries;
-  unordered_map<string, vector<int>>    Base;
-  int Idx      = 0;
-  int CurBound = 0;
-  constexpr int TotalSM = 84;
+  unordered_map<string, vector<int>> OtherBlocks;
+  const int TotalSM  = 84;
+  int Idx            = 0;
+  int TotalBounds    = 0;
+  bool LastLoop      = false;
 
-  
   while(true) {
     auto& KName = kernels[Idx];
-    int Stride  = Bounds[KName] > TotalSM ? TotalSM : Bounds[KName];
+    int Stride  = EndBounds[KName] - CurBounds[KName];
 
-    BlockBoundaries[KName].emplace_back(CurBound, CurBound + Stride);
-    CurBound += Stride;
-    Bounds[KName] -= Stride;
+    if (!LastLoop && Stride > TotalSM)
+      Stride = TotalSM;
+    
+    BlockBoundaries[KName].emplace_back(TotalBounds, TotalBounds + Stride);
+    OtherBlocks[KName].push_back(TotalBounds - CurBounds[KName]);
+
+    if (LastLoop)
+      break;
+
+    CurBounds[KName] += Stride;
+    TotalBounds      += Stride;
+
+    if (CurBounds[KName] == EndBounds[KName])
+      LastLoop = true;
+
     Idx = (Idx + 1) % kernels.size();
-    Base[kernels[Idx]].push_back(Stride);
+  }
+
+  for (auto& info : Infos) {
+    auto& KName = info.kernelName;
+    
+    kernelContextMap[KName].info            = info;
+    kernelContextMap[KName].threadBoundary  = info.blockDim.size();
+    kernelContextMap[KName].blockBoundaries = BlockBoundaries[KName];
+    kernelContextMap[KName].otherBlocks     = OtherBlocks[KName];
   }
 }
 //---------------------------------------------------------------------------

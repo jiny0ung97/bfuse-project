@@ -38,6 +38,43 @@ void printKernelYAML(const map<std::string, KernelInfo>& Infos)
   }
 }
 //---------------------------------------------------------------------------
+void printKernelContexts(const vector<tools::KernelContext>& Contexts)
+{
+  cout << "\n========= Fusion's Context Info =========";
+  for (auto& Context : Contexts) {
+    cout << "\n> KernelContext Info\n";
+
+    auto& Info = Context.info;
+    cout << "  <Kernel Info>\n";
+    cout << "  - Name: " << Info.kernelName << "\n";
+    cout << "  - Barriers: " << Info.hasBarriers << "\n";
+    cout << "  - GridDim: " << Info.gridDim.size() << "\n";
+    cout << "  - BlockDim: " << Info.blockDim.size() << "\n";
+    cout << "  - Registers: " << Info.reg << "\n";
+    cout << "  - ExecTime: " << Info.execTime << "\n";
+
+    auto& ThreadIdxInfo = Context.threadIdxInfo;
+    cout << "  <ThreadIdx Info>\n";
+    cout << "  - Boundary:\n";
+    cout << "              [" << ThreadIdxInfo.first << " ~ " << ThreadIdxInfo.second << ")\n";
+
+    auto& BlockIdxInfo = Context.blockIdxInfo;
+    cout << "  <BlockIdx Info>\n";
+    cout << "  - Boundary:\n";
+    for (auto& info : BlockIdxInfo) {
+      cout << "              [" << info.first << " ~ " << info.second << ")\n";
+    }
+
+    auto& OtherBlocks = Context.otherBlocks;
+    cout << "  <Other Blocks>\n";
+    cout << "  - Left: ";
+    for (auto n : OtherBlocks) {
+      cout << n << " ";
+    }
+    cout << "\n";
+  }
+}
+//---------------------------------------------------------------------------
 } // namespace utils
 } // namespace bfuse
 //---------------------------------------------------------------------------

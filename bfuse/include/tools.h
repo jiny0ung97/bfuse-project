@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <unordered_map>
 #include <tuple>
 
 #include "bfuse.h"
@@ -44,25 +43,32 @@ public:
 };
 //---------------------------------------------------------------------------
 struct KernelContext {
-  using BlockIdxBoundaryVector = std::vector<std::pair<int, int>>;
+  using IdxBoundPair = std::pair<int, int>;
 
   /// The kernel's information
   KernelInfo info;
   /// The kernel's threadIdx boudnary
-  int threadBoundary;
+  IdxBoundPair threadIdxInfo;
   /// The kernel's blockIdx boundary
-  BlockIdxBoundaryVector blockBoundaries;
+  std::vector<IdxBoundPair> blockIdxInfo;
   /// # of blocks from other fused kernels
   /// To rewrite blockIdx variables
   std::vector<int> otherBlocks;
+
+  /// The constructor
+  KernelContext(KernelInfo& Info, IdxBoundPair& ThreadIdxInfo,
+                std::vector<IdxBoundPair>& BlockIdxInfo, std::vector<int>& OtherBlocks)
+                : info{Info}, threadIdxInfo{ThreadIdxInfo},
+                  blockIdxInfo{BlockIdxInfo}, otherBlocks{OtherBlocks} {}
 };
 //---------------------------------------------------------------------------
 class FusionTools {
+public:
+  using IdxBoundPair = KernelContext::IdxBoundPair;
+
 private:
-  /// The order of fused kernels
-  std::vector<std::string> kernels;
-  /// The unordered map to contain kernel context
-  std::unordered_map<std::string, KernelContext> kernelContextMap;
+  /// The vector to contain kernel contexts
+  std::vector<KernelContext> kernelContexts;
 
 public:
   /// 
@@ -76,6 +82,8 @@ public:
 
   /// Create FusionTools Object
   static FusionTools create(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfo);
+  /// Get kernel contexts
+  std::vector<KernelContext> getKernelContexts() { return kernelContexts; }
 
   /// The constructor
   explicit FusionTools(std::vector<KernelInfo>& Infos);

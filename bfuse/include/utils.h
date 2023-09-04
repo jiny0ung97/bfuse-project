@@ -9,6 +9,7 @@
 #include "llvm/Support/YAMLTraits.h"
 
 #include "bfuse.h"
+#include "tools.h"
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace utils {
@@ -39,6 +40,8 @@ Info readYAMLInfo(const std::string& Path)
 void printFusionYAML(const std::vector<bfuse::FusionInfo>& Infos);
 //---------------------------------------------------------------------------
 void printKernelYAML(const std::map<std::string, bfuse::KernelInfo>& Infos);
+//---------------------------------------------------------------------------
+void printKernelContexts(const std::vector<tools::KernelContext>& Contexts);
 //---------------------------------------------------------------------------
 } // namespace utils
 } // namespace bfuse

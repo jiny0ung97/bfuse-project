@@ -51,13 +51,16 @@ void bfuse(const char *ProgName, std::string FusionInfoPath,
     // Create fusion tools object
     auto Tools = FusionTools::create(info, KernelYAML);
 
+    // tests
+    printKernelContexts(Tools.getKernelContexts());
+
     // Do fuse using clang tools
 
   }
 
   // tests
-  printFusionYAML(FusionYAML);
-  printKernelYAML(KernelYAML);
+  // printFusionYAML(FusionYAML);
+  // printKernelYAML(KernelYAML);
 }
 //---------------------------------------------------------------------------
 } // namespace bfuse

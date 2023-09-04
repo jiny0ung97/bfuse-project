@@ -30,9 +30,7 @@ FusionTools FusionTools::create(FusionInfo& FInfo, map<string, KernelInfo>& KInf
   for (auto& KName : FInfo.kernels) {
     KInfoVector.push_back(KInfo[KName]);
   }
-  FusionTools tools(KInfoVector);
-
-  return tools;
+  return FusionTools{KInfoVector};
 }
 //---------------------------------------------------------------------------
 FusionTools::FusionTools(vector<KernelInfo>& Infos)
@@ -40,28 +38,31 @@ FusionTools::FusionTools(vector<KernelInfo>& Infos)
   unordered_map<string, int> CurBounds;
   unordered_map<string, int> EndBounds;
 
-  for (auto& info : Infos) {
-    kernels.push_back(info.kernelName);
+  unordered_map<string, IdxBoundPair>         ThreadIdxInfo;
+  unordered_map<string, vector<IdxBoundPair>> BlockIdxInfo;
+  unordered_map<string, vector<int>>          OtherBlocks;
 
-    CurBounds[info.kernelName] = 0;
-    EndBounds[info.kernelName] = info.gridDim.size();
-  }
-
-  unordered_map<string, vector<pair<int, int>>> BlockBoundaries;
-  unordered_map<string, vector<int>> OtherBlocks;
   const int TotalSM  = 84;
   int Idx            = 0;
   int TotalBounds    = 0;
   bool LastLoop      = false;
 
+  for (auto& info : Infos) {
+    auto& KName = info.kernelName;
+
+    CurBounds[KName]     = 0;
+    EndBounds[KName]     = info.gridDim.size();
+    ThreadIdxInfo[KName] = make_pair(0, info.blockDim.size());
+  }
+
   while(true) {
-    auto& KName = kernels[Idx];
+    auto& KName = Infos[Idx].kernelName;
     int Stride  = EndBounds[KName] - CurBounds[KName];
 
     if (!LastLoop && Stride > TotalSM)
       Stride = TotalSM;
     
-    BlockBoundaries[KName].emplace_back(TotalBounds, TotalBounds + Stride);
+    BlockIdxInfo[KName].emplace_back(TotalBounds, TotalBounds + Stride);
     OtherBlocks[KName].push_back(TotalBounds - CurBounds[KName]);
 
     if (LastLoop)
@@ -73,17 +74,13 @@ FusionTools::FusionTools(vector<KernelInfo>& Infos)
     if (CurBounds[KName] == EndBounds[KName])
       LastLoop = true;
 
-    Idx = (Idx + 1) % kernels.size();
+    Idx = (Idx + 1) % Infos.size();
   }
 
   for (auto& info : Infos) {
     auto& KName = info.kernelName;
-
-    // TODO: need to summarize using constructor...
-    kernelContextMap[KName].info            = info;
-    kernelContextMap[KName].threadBoundary  = info.blockDim.size();
-    kernelContextMap[KName].blockBoundaries = BlockBoundaries[KName];
-    kernelContextMap[KName].otherBlocks     = OtherBlocks[KName];
+    kernelContexts.emplace_back(info, ThreadIdxInfo[KName],
+                                BlockIdxInfo[KName], OtherBlocks[KName]);
   }
 }
 //---------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 #include <string>
 #include <getopt.h>
 
-#include "bfuse.h"
+#include "bfuse/Bfuse.h"
 
 using namespace std;
 //---------------------------------------------------------------------------

@@ -12,7 +12,7 @@ struct GridDim {
   /// Grid's x, y, z dimension
   int x, y, z;
   /// The size of grid dimension
-  inline int size() const { return x * y * z; }
+  int size() const { return x * y * z; }
 
 };
 //---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ struct BlockDim {
   /// Block's x, y, z dimension
   int x, y, z;
   /// The size of block dimension
-  inline int size() const { return x * y * z; }
+  int size() const { return x * y * z; }
 };
 //---------------------------------------------------------------------------
 struct KernelInfo {

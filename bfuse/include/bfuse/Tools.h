@@ -5,9 +5,12 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <tuple>
 
-#include "bfuse.h"
+#include "clang/Tooling/CommonOptionsParser.h"
+
+#include "bfuse/Bfuse.h"
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace tools {
@@ -23,7 +26,7 @@ private:
 
 public:
   /// Get argc, argv parameter
-  inline std::tuple<int, const char **>getArguments() const { return std::make_tuple(argc, argv); }
+  std::tuple<int, const char **>getArguments() const { return std::make_tuple(argc, argv); }
 
   /// The constructor
   Arguments(const char *ProgName, std::string& Path);
@@ -56,21 +59,28 @@ struct KernelContext {
   std::vector<int> otherBlocks;
 
   /// The constructor
-  KernelContext(KernelInfo& Info, IdxBoundPair& ThreadIdxInfo,
-                std::vector<IdxBoundPair>& BlockIdxInfo, std::vector<int>& OtherBlocks)
-                : info{Info}, threadIdxInfo{ThreadIdxInfo},
-                  blockIdxInfo{BlockIdxInfo}, otherBlocks{OtherBlocks} {}
+  KernelContext(const KernelInfo& Info, IdxBoundPair&& ThreadIdxInfo)
+               : info{Info}, threadIdxInfo{std::move(ThreadIdxInfo)}, blockIdxInfo{}, otherBlocks{} {}
+
+  /// The default constructor
+  KernelContext() = default;
+  /// Delete copy constructor
+  KernelContext(const KernelContext& other) = default;
+  /// Delete move constructor
+  KernelContext(KernelContext&& other) = default;
+  /// Delete copy assignment operator
+  KernelContext& operator=(const KernelContext& other) = default;
+  /// Delete move assignment operator
+  KernelContext& operator=(KernelContext&& other) = default;
 };
 //---------------------------------------------------------------------------
 class FusionTools {
 public:
   using IdxBoundPair = KernelContext::IdxBoundPair;
 
-private:
   /// The vector to contain kernel contexts
-  std::vector<KernelContext> kernelContexts;
+  std::unordered_map<std::string, KernelContext> kernelContexts;
 
-public:
   /// 
   constexpr static bool baseLine = false;
   ///
@@ -80,10 +90,17 @@ public:
   ///
   constexpr static bool imBalancedThread = false;
 
-  /// Create FusionTools Object
+  /// Create class FusionTools' object
   static FusionTools create(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfo);
-  /// Get kernel contexts
-  std::vector<KernelContext> getKernelContexts() { return kernelContexts; }
+
+  /// LibTooling : expand macros
+  void expandMacros(clang::tooling::CommonOptionsParser& OptionParser);
+  /// LibTooling : rename parameters
+  void renameParameters(clang::tooling::CommonOptionsParser& OptionParser);
+  /// LibTooling : rewrite thread info
+  void rewriteThreadInfo(clang::tooling::CommonOptionsParser& OptionParser);
+  /// LibTooling : barrier rewriter
+  void barrierRewriter(clang::tooling::CommonOptionsParser& OptionParser);
 
   /// The constructor
   explicit FusionTools(std::vector<KernelInfo>& Infos);

@@ -2,9 +2,10 @@
 # Sources
 set(BFUSE_SOURCE_DIR src)
 set(BFUSE_SOURCES
-  ${BFUSE_SOURCE_DIR}/bfuse.cc
-  ${BFUSE_SOURCE_DIR}/utils.cc
-  ${BFUSE_SOURCE_DIR}/tools.cc
+  ${BFUSE_SOURCE_DIR}/Bfuse.cc
+  ${BFUSE_SOURCE_DIR}/Utils.cc
+  ${BFUSE_SOURCE_DIR}/Tools.cc
+  ${BFUSE_SOURCE_DIR}/MatchFinders.cc
   # Add your sources here
   # ${BFUSE_SOURCE_DIR}/foo/bar/your_source.cc
 )
@@ -12,9 +13,10 @@ set(BFUSE_SOURCES
 # Headers
 set(BFUSE_HEADER_DIR include)
 set(BFUSE_HEADERS
-  ${BFUSE_HEADER_DIR}/bfuse.h
-  ${BFUSE_HEADER_DIR}/utils.h
-  ${BFUSE_HEADER_DIR}/tools.h
+  ${BFUSE_HEADER_DIR}/bfuse/Bfuse.h
+  ${BFUSE_HEADER_DIR}/bfuse/Utils.h
+  ${BFUSE_HEADER_DIR}/bfuse/Tools.h
+  ${BFUSE_HEADER_DIR}/bfuse/MatchFinders.h
   # Add your headers here
   # ${BFUSE_HEADER_DIR}/foo/bar/your_header.h
 )

@@ -2,14 +2,25 @@
 #pragma once
 
 #include <cstdlib>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
 
 #include "llvm/Support/YAMLTraits.h"
 
-#include "bfuse.h"
-#include "tools.h"
+#include "bfuse/Bfuse.h"
+#include "bfuse/Tools.h"
+
+// TODO: need to be changed by cxx style.
+#define CHECK_ERROR(m)             \
+  do                               \
+  {                                \
+    std::cerr << "bfuse ERROR ("   \
+              << __FILE__ << ":"   \
+              << __LINE__ << "): " \
+              << m << "\n";        \
+  } while (0)
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace utils {
@@ -21,7 +32,7 @@ Info readYAMLInfo(const std::string& Path)
 
   FileOrError Buffer = llvm::MemoryBuffer::getFile(Path.c_str());
   if (!Buffer) {
-    llvm::errs() << "BFUSE ERROR: failed to read configs\n";
+    llvm::errs() << "[bfuse ERROR]: failed to read configs\n";
     std::exit(0);
   }
 
@@ -30,7 +41,7 @@ Info readYAMLInfo(const std::string& Path)
   Yaml >> Infos;
 
   if (Yaml.error()) {
-    llvm::errs() << "BFUSE ERROR: failed to get configs\n";
+    llvm::errs() << "[bfuse ERROR]: failed to get configs\n";
     std::exit(0);
   }
 

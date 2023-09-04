@@ -12,9 +12,9 @@
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/CommandLine.h"
 
-#include "bfuse.h"
-#include "utils.h"
-#include "tools.h"
+#include "bfuse/Bfuse.h"
+#include "bfuse/Utils.h"
+#include "bfuse/Tools.h"
 
 using namespace std;
 using namespace clang::tooling;
@@ -27,17 +27,16 @@ static llvm::cl::extrahelp      MoreHelp{"\nMore help text...\n"};
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
-void bfuse(const char *ProgName, std::string FusionInfoPath,
-           std::string KernelInfoPath, std::string BasePath)
+void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, string BasePath)
 {
   // Extract information from yaml files
   auto FusionYAML = readYAMLInfo<vector<FusionInfo>>(FusionInfoPath);
   auto KernelYAML = readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
 
   // Run block-level fusion
-  for (auto& info : FusionYAML) {
-    string NewPath {BasePath + "/" + info.filePath};
-    Arguments Args {ProgName, BasePath};
+  for (auto& Info : FusionYAML) {
+    string NewPath {BasePath + "/" + Info.filePath};
+    Arguments Args {ProgName, NewPath};
 
     // Create clang parser object
     auto [argc, argv]   = Args.getArguments();
@@ -49,16 +48,19 @@ void bfuse(const char *ProgName, std::string FusionInfoPath,
     CommonOptionsParser& OptionsParser = ExpectedParser.get();
 
     // Create fusion tools object
-    auto Tools = FusionTools::create(info, KernelYAML);
+    auto Tools = FusionTools::create(Info, KernelYAML);
 
-    // tests
-    printKernelContexts(Tools.getKernelContexts());
+    // [Tests]
+    // printKernelContexts(Tools.getKernelContexts());
 
     // Do fuse using clang tools
-
+    Tools.expandMacros(OptionsParser);
+    Tools.renameParameters(OptionsParser);
+    Tools.rewriteThreadInfo(OptionsParser);
+    Tools.barrierRewriter(OptionsParser);
   }
 
-  // tests
+  // [Tests]
   // printFusionYAML(FusionYAML);
   // printKernelYAML(KernelYAML);
 }

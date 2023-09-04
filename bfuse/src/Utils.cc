@@ -4,8 +4,8 @@
 #include <vector>
 #include <map>
 
-#include "bfuse.h"
-#include "utils.h"
+#include "bfuse/Bfuse.h"
+#include "bfuse/Utils.h"
 
 using namespace std;
 //---------------------------------------------------------------------------

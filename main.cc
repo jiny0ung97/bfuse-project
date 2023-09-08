@@ -4,7 +4,9 @@
 #include <string>
 #include <getopt.h>
 
+#ifdef USE_BFUSE
 #include "bfuse/Bfuse.h"
+#endif
 
 using namespace std;
 //---------------------------------------------------------------------------
@@ -67,7 +69,10 @@ int main(int argc, char* argv[])
   }
   
   parse_opt(argc, argv);
+
+#ifdef USE_BFUSE
   bfuse::bfuse(argv[0], FusionInfoPath, KernelInfoPath, BasePath);
+#endif
 
   return 0;
 }

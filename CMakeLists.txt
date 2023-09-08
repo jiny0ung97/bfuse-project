@@ -33,19 +33,30 @@ include(HandleLLVMOptions)
 include(AddClang)
 
 # ------------------------------------------------------------------
+# Build
+add_executable(${CMAKE_PROJECT_NAME} main.cc)
+
+# ------------------------------------------------------------------
 # Options for libraries
-option(USE_BFUSE "Use the BFuse library" ON)
+option(USE_BFUSE "Use the bfuse library" OFF)
+option(USE_TEST "Use the test library" ON)
 
 # BFuse project library
 if(USE_BFUSE)
   add_subdirectory(bfuse)
   list(APPEND EXTRA_LIBS bfuse)
+  target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "USE_BFUSE")
+endif()
+
+# Test
+if(USE_TEST)
+  add_subdirectory(test)
 endif()
 
 # ------------------------------------------------------------------
-# Build & Link
-add_executable(${CMAKE_PROJECT_NAME} main.cc)
+# Link libraries
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${EXTRA_LIBS})
 
 # Include configure files
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR})
+# ------------------------------------------------------------------

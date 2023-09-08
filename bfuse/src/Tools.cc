@@ -4,27 +4,13 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <unordered_map>
-
-#include "clang/ASTMatchers/ASTMatchers.h"
-#include "clang/ASTMatchers/ASTMatchFinder.h"
-#include "clang/Frontend/FrontendActions.h"
-#include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Tooling/Refactoring.h"
-#include "clang/Tooling/Tooling.h"
 
 #include "bfuse/Bfuse.h"
 #include "bfuse/Utils.h"
 #include "bfuse/Tools.h"
-#include "bfuse/MatchFinders.h"
+// #include "bfuse/MatchFinders.h"
 
 using namespace std;
-using namespace clang::tooling;
-using namespace clang::attr;
-using namespace clang::ast_matchers;
-//---------------------------------------------------------------------------
-static DeclarationMatcher MacroExpandMatcher = functionDecl(hasAttr(CUDAGlobal))
-                                                           .bind(bfuse::match_finders::macroExpandMatcher);
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace tools {
@@ -40,37 +26,34 @@ Arguments::Arguments(const char *ProgName, string& Path)
 //---------------------------------------------------------------------------
 Arguments::~Arguments() { free(argv); }
 //---------------------------------------------------------------------------
-FusionTools FusionTools::create(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
+FusionTools::FusionTools(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
 {
-  vector<KernelInfo> KInfoVector;
-  for (auto& KName : FInfo.kernels) {
-    KInfoVector.push_back(KInfo[KName]);
-  }
-  return FusionTools{KInfoVector};
-}
-//---------------------------------------------------------------------------
-FusionTools::FusionTools(vector<KernelInfo>& Infos)
-{
-  unordered_map<string, int> CurBounds;
-  unordered_map<string, int> EndBounds;
+  vector<string> Order;
+  map<string, int> CurBounds;
+  map<string, int> EndBounds;
+  map<string, KernelContext> KernelContextMap;
 
   const int TotalSM  = 84;
   int Idx            = 0;
   int TotalBounds    = 0;
   bool LastLoop      = false;
 
-  for (auto& info : Infos) {
-    auto& KName = info.kernelName;
-    CurBounds[KName] = 0;
-    EndBounds[KName] = info.gridDim.size();
+  for (auto& KName : FInfo.kernels) {
+    auto& Info = KInfo.find(KName)->second;
 
-    auto Pair = make_pair(0, info.blockDim.size());
-    kernelContexts[KName] = KernelContext(info, move(Pair));
+    Order.push_back(KName);
+    CurBounds[KName]     = 0;
+    EndBounds[KName]     = Info.gridDim.size();
+    kernelInfoMap[KName] = Info;
+
+    KernelContext Context;
+    Context.threadIdxInfo   = make_pair(0, Info.blockDim.size());
+    KernelContextMap[KName] = move(Context);
   }
 
   while(true) {
-    auto& KName   = Infos[Idx].kernelName;
-    auto& Context = kernelContexts.find(KName)->second;
+    auto& KName         = Order[Idx];
+    auto& Context       = KernelContextMap.find(KName)->second;
     auto& BlockIdxInfo  = Context.blockIdxInfo;
     auto& OtherBlocks   = Context.otherBlocks;
 
@@ -91,40 +74,31 @@ FusionTools::FusionTools(vector<KernelInfo>& Infos)
     if (CurBounds[KName] == EndBounds[KName])
       LastLoop = true;
 
-    Idx = (Idx + 1) % Infos.size();
+    Idx = (Idx + 1) % Order.size();
   }
+
+  kernelContextMap = move(KernelContextMap);
 }
 //---------------------------------------------------------------------------
-void FusionTools::expandMacros(CommonOptionsParser& OptionParser)
+KernelInfo FusionTools::getKernelInfo(const string& KName) const
 {
-  RefactoringTool Tool(OptionParser.getCompilations(),
-                       OptionParser.getSourcePathList());
-
-  match_finders::MacroExpander Expander(Tool.getReplacements(), kernelContexts);
-  MatchFinder Finder;
-  Finder.addMatcher(MacroExpandMatcher, &Expander);
-
-  if (!Tool.run(newFrontendActionFactory(&Finder).get())) {
-    CHECK_ERROR("cannot run MacroExpander tools.");
+  auto KernelInfoMapIter = kernelInfoMap.find(KName);
+  if (KernelInfoMapIter == kernelInfoMap.end()) {
+    CHECK_ERROR("Cannot find KernelInfo with given name.");
     exit(0);
   }
+  return KernelInfoMapIter->second;
 }
 //---------------------------------------------------------------------------
-void FusionTools::renameParameters(CommonOptionsParser& OptionParser)
+KernelContext FusionTools::getKernelContext(const string& KName) const
 {
-
+  auto KernelContextMapIter = kernelContextMap.find(KName);
+  if (KernelContextMapIter == kernelContextMap.end()) {
+    CHECK_ERROR("Cannot find KernelContext with given name.");
+    exit(0);
+  }
+  return KernelContextMapIter->second;
 }
-//---------------------------------------------------------------------------
-void FusionTools::rewriteThreadInfo(CommonOptionsParser& OptionParser)
-{
-
-}
-//---------------------------------------------------------------------------
-void FusionTools::barrierRewriter(CommonOptionsParser& OptionParser)
-{
-
-}
-//---------------------------------------------------------------------------
 } // namespace tools
 } // namespace bfuse
 //---------------------------------------------------------------------------

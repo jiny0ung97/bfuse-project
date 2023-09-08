@@ -5,10 +5,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <unordered_map>
 #include <tuple>
-
-#include "clang/Tooling/CommonOptionsParser.h"
 
 #include "bfuse/Bfuse.h"
 //---------------------------------------------------------------------------
@@ -48,8 +45,6 @@ public:
 struct KernelContext {
   using IdxBoundPair = std::pair<int, int>;
 
-  /// The kernel's information
-  KernelInfo info;
   /// The kernel's threadIdx boudnary
   IdxBoundPair threadIdxInfo;
   /// The kernel's blockIdx boundary
@@ -57,53 +52,23 @@ struct KernelContext {
   /// # of blocks from other fused kernels
   /// To rewrite blockIdx variables
   std::vector<int> otherBlocks;
-
-  /// The constructor
-  KernelContext(const KernelInfo& Info, IdxBoundPair&& ThreadIdxInfo)
-               : info{Info}, threadIdxInfo{std::move(ThreadIdxInfo)}, blockIdxInfo{}, otherBlocks{} {}
-
-  /// The default constructor
-  KernelContext() = default;
-  /// Delete copy constructor
-  KernelContext(const KernelContext& other) = default;
-  /// Delete move constructor
-  KernelContext(KernelContext&& other) = default;
-  /// Delete copy assignment operator
-  KernelContext& operator=(const KernelContext& other) = default;
-  /// Delete move assignment operator
-  KernelContext& operator=(KernelContext&& other) = default;
 };
 //---------------------------------------------------------------------------
 class FusionTools {
-public:
-  using IdxBoundPair = KernelContext::IdxBoundPair;
-
+private:
+  /// The kernel's information
+  std::map<std::string, KernelInfo> kernelInfoMap;
   /// The vector to contain kernel contexts
-  std::unordered_map<std::string, KernelContext> kernelContexts;
+  std::map<std::string, KernelContext> kernelContextMap;
 
-  /// 
-  constexpr static bool baseLine = false;
-  ///
-  constexpr static bool isBarSyncEnabled = false;
-  ///
-  constexpr static bool launchBound = false;
-  ///
-  constexpr static bool imBalancedThread = false;
-
-  /// Create class FusionTools' object
-  static FusionTools create(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfo);
-
-  /// LibTooling : expand macros
-  void expandMacros(clang::tooling::CommonOptionsParser& OptionParser);
-  /// LibTooling : rename parameters
-  void renameParameters(clang::tooling::CommonOptionsParser& OptionParser);
-  /// LibTooling : rewrite thread info
-  void rewriteThreadInfo(clang::tooling::CommonOptionsParser& OptionParser);
-  /// LibTooling : barrier rewriter
-  void barrierRewriter(clang::tooling::CommonOptionsParser& OptionParser);
+public:
+  /// Get KernelInfo of given kernel name
+  KernelInfo getKernelInfo(const std::string& KName) const;
+  /// Get KernelContext of given kernel name
+  KernelContext getKernelContext(const std::string& KName) const;
 
   /// The constructor
-  explicit FusionTools(std::vector<KernelInfo>& Infos);
+  FusionTools(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfo);
 };
 //---------------------------------------------------------------------------
 } // namespace tools

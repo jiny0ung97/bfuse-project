@@ -24,23 +24,17 @@ struct BlockDim {
 };
 //---------------------------------------------------------------------------
 struct KernelInfo {
-  /// The kernel's name
-  std::string kernelName;
+  /// The kernels' file path
+  std::string filePath;
   /// Whether the kernel code has synchronization barriers
   bool hasBarriers;
   /// The kernel's grid dimension
   GridDim gridDim;
   /// The kernel's block dimension
   BlockDim blockDim;
-  /// The kernel code's # of registers
-  int reg;
-  /// The kernel's execution time
-  double execTime;
 };
 //---------------------------------------------------------------------------
 struct FusionInfo {
-  /// The kernels' file path, which needs to be fused
-  std::string filePath;
   /// The kernels to be fused
   std::vector<std::string> kernels;
 };

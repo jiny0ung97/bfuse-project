@@ -48,11 +48,13 @@ Info readYAMLInfo(const std::string& Path)
   return Infos;
 }
 //---------------------------------------------------------------------------
-void printFusionYAML(const std::vector<bfuse::FusionInfo>& Infos);
+void printFusionInfo(const FusionInfo& Info);
 //---------------------------------------------------------------------------
-void printKernelYAML(const std::map<std::string, bfuse::KernelInfo>& Infos);
+void printKernelInfo(const std::string& KName, const KernelInfo& Info);
 //---------------------------------------------------------------------------
-void printKernelContexts(const std::vector<tools::KernelContext>& Contexts);
+void printKernelContexts(const std::string& KName, const tools::KernelContext& Context);
+//---------------------------------------------------------------------------
+void printFusionTools(const tools::FusionTools& Tools, const FusionInfo& Info);
 //---------------------------------------------------------------------------
 } // namespace utils
 } // namespace bfuse
@@ -61,13 +63,10 @@ template <>
 struct llvm::yaml::MappingTraits<bfuse::KernelInfo> {
   static void mapping(llvm::yaml::IO &Io, bfuse::KernelInfo &Info)
   {
-    Io.mapRequired("KernelName",  Info.kernelName);
     Io.mapRequired("HasBarriers", Info.hasBarriers);
     Io.mapRequired("GridDim",     Info.gridDim);
     Io.mapRequired("BlockDim",    Info.blockDim);
-    Io.mapRequired("Reg",         Info.reg);
-
-    Io.mapOptional("ExecTime", Info.execTime, 0.0);
+    Io.mapRequired("File",        Info.filePath);
   }
 };
 //---------------------------------------------------------------------------
@@ -75,7 +74,6 @@ template <>
 struct llvm::yaml::MappingTraits<bfuse::FusionInfo> {
   static void mapping(llvm::yaml::IO &Io, bfuse::FusionInfo &Info)
   {
-    Io.mapRequired("File",    Info.filePath);
     Io.mapRequired("Kernels", Info.kernels);
   }
 };

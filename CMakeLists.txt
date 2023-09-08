@@ -38,8 +38,8 @@ add_executable(${CMAKE_PROJECT_NAME} main.cc)
 
 # ------------------------------------------------------------------
 # Options for libraries
-option(USE_BFUSE "Use the bfuse library" OFF)
-option(USE_TEST "Use the test library" ON)
+option(USE_BFUSE "Use the bfuse library" ON)
+option(USE_TEST "Use the test library" OFF)
 
 # BFuse project library
 if(USE_BFUSE)

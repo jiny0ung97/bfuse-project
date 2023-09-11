@@ -4,15 +4,13 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
-#include <vector>
-#include <map>
 
 #include "llvm/Support/YAMLTraits.h"
 
 #include "bfuse/Bfuse.h"
 #include "bfuse/Tools.h"
 
-// TODO: need to be changed by cxx style.
+// TODO: need to be changed into cxx style.
 #define CHECK_ERROR(m)             \
   do                               \
   {                                \
@@ -52,9 +50,9 @@ void printFusionInfo(const FusionInfo& Info);
 //---------------------------------------------------------------------------
 void printKernelInfo(const std::string& KName, const KernelInfo& Info);
 //---------------------------------------------------------------------------
-void printKernelContexts(const std::string& KName, const tools::KernelContext& Context);
+void printKernelContexts(const std::string& KName, const KernelContext& Context);
 //---------------------------------------------------------------------------
-void printFusionTools(const tools::FusionTools& Tools, const FusionInfo& Info);
+void printFusionTools(const tools::FusionTools& Tools);
 //---------------------------------------------------------------------------
 } // namespace utils
 } // namespace bfuse

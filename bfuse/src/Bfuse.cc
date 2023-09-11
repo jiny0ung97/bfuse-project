@@ -1,8 +1,5 @@
 
-#include <cstdlib>
 #include <string>
-#include <vector>
-#include <map>
 
 // #include "clang/ASTMatchers/ASTMatchers.h"
 // #include "clang/ASTMatchers/ASTMatchFinder.h"
@@ -23,6 +20,17 @@ using namespace bfuse::utils;
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
+Arguments::Arguments(const char *ProgName, string& Path)
+{
+  filePath = Path;
+
+  argv    = (const char**)malloc(sizeof(char *) * 2);
+  argv[0] = ProgName;
+  argv[1] = filePath.c_str();
+}
+//---------------------------------------------------------------------------
+Arguments::~Arguments() { free(argv); }
+//---------------------------------------------------------------------------
 void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, string BasePath)
 {
   // Extract information from yaml files
@@ -35,7 +43,7 @@ void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, s
     FusionTools Tools{Info, KernelYAML};
 
     // [Tests]
-    printFusionTools(Tools, Info);
+    printFusionTools(Tools);
   }
 }
 //---------------------------------------------------------------------------

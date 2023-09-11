@@ -1,6 +1,4 @@
 
-#include <utility>
-#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
@@ -8,30 +6,16 @@
 #include "bfuse/Bfuse.h"
 #include "bfuse/Utils.h"
 #include "bfuse/Tools.h"
-// #include "bfuse/MatchFinders.h"
 
 using namespace std;
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-Arguments::Arguments(const char *ProgName, string& Path)
-{
-  filePath = Path;
-
-  argv    = (const char**)malloc(sizeof(char *) * 2);
-  argv[0] = ProgName;
-  argv[1] = filePath.c_str();
-}
-//---------------------------------------------------------------------------
-Arguments::~Arguments() { free(argv); }
-//---------------------------------------------------------------------------
 FusionTools::FusionTools(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
 {
-  vector<string> Order;
   map<string, int> CurBounds;
   map<string, int> EndBounds;
-  map<string, KernelContext> KernelContextMap;
 
   const int TotalSM  = 84;
   int Idx            = 0;
@@ -41,23 +25,21 @@ FusionTools::FusionTools(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
   for (auto& KName : FInfo.kernels) {
     auto& Info = KInfo.find(KName)->second;
 
-    Order.push_back(KName);
     CurBounds[KName]     = 0;
     EndBounds[KName]     = Info.gridDim.size();
-    kernelInfoMap[KName] = Info;
 
-    KernelContext Context;
-    Context.threadIdxInfo   = make_pair(0, Info.blockDim.size());
-    KernelContextMap[KName] = move(Context);
+    kernels.push_back(KName);
+    kernelInfoMap[KName]    = Info;
+    kernelContextMap[KName] = KernelContext{make_pair(0, Info.blockDim.size())};
   }
 
   while(true) {
-    auto& KName         = Order[Idx];
-    auto& Context       = KernelContextMap.find(KName)->second;
-    auto& BlockIdxInfo  = Context.blockIdxInfo;
-    auto& OtherBlocks   = Context.otherBlocks;
+    auto& KName        = kernels[Idx];
+    auto& Context      = kernelContextMap.find(KName)->second;
+    auto& BlockIdxInfo = Context.blockIdxInfo;
+    auto& OtherBlocks  = Context.otherBlocks;
 
-    int Stride  = EndBounds[KName] - CurBounds[KName];
+    int Stride = EndBounds[KName] - CurBounds[KName];
 
     if (!LastLoop && Stride > TotalSM)
       Stride = TotalSM;
@@ -74,11 +56,11 @@ FusionTools::FusionTools(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
     if (CurBounds[KName] == EndBounds[KName])
       LastLoop = true;
 
-    Idx = (Idx + 1) % Order.size();
+    Idx = (Idx + 1) % kernels.size();
   }
-
-  kernelContextMap = move(KernelContextMap);
 }
+//---------------------------------------------------------------------------
+vector<string> FusionTools::getKernelNames() const { return kernels; }
 //---------------------------------------------------------------------------
 KernelInfo FusionTools::getKernelInfo(const string& KName) const
 {

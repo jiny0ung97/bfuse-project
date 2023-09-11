@@ -61,27 +61,6 @@ FusionContext::FusionContext(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMa
   }
 }
 //---------------------------------------------------------------------------
-vector<string> FusionContext::getKernelNames() const { return kernels; }
-//---------------------------------------------------------------------------
-KernelInfo FusionContext::getKernelInfo(const string& KName) const
-{
-  auto KernelInfoMapIter = kernelInfoMap.find(KName);
-  if (KernelInfoMapIter == kernelInfoMap.end()) {
-    CHECK_ERROR("Cannot find KernelInfo with given name.");
-    exit(0);
-  }
-  return KernelInfoMapIter->second;
-}
-//---------------------------------------------------------------------------
-KernelContext FusionContext::getKernelContext(const string& KName) const
-{
-  auto KernelContextMapIter = kernelContextMap.find(KName);
-  if (KernelContextMapIter == kernelContextMap.end()) {
-    CHECK_ERROR("Cannot find KernelContext with given name.");
-    exit(0);
-  }
-  return KernelContextMapIter->second;
-}
 } // namespace contexts
 } // namespace bfuse
 //---------------------------------------------------------------------------

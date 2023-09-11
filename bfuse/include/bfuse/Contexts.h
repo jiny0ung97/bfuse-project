@@ -37,22 +37,13 @@ struct KernelContext {
   KernelContext& operator=(KernelContext&& other) = default;
 };
 //---------------------------------------------------------------------------
-class FusionContext {
-private:
+struct FusionContext {
   /// The kernels to be fused
   std::vector<std::string> kernels;
   /// The kernel's information
   std::map<std::string, KernelInfo> kernelInfoMap;
   /// The vector to contain kernel contexts
   std::map<std::string, KernelContext> kernelContextMap;
-
-public:
-  /// Get kernels to be fused
-  std::vector<std::string> getKernelNames() const;
-  /// Get KernelInfo of given kernel name
-  KernelInfo getKernelInfo(const std::string& KName) const;
-  /// Get KernelContext of given kernel name
-  KernelContext getKernelContext(const std::string& KName) const;
 
   /// The constructor
   FusionContext(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);

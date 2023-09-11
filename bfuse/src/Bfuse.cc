@@ -3,6 +3,7 @@
 #include <string>
 
 #include "bfuse/Contexts.h"
+#include "bfuse/Tools.h"
 #include "bfuse/Utils.h"
 #include "bfuse/Bfuse.h"
 
@@ -27,14 +28,19 @@ void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, s
   auto FusionYAML = utils::readYAMLInfo<vector<FusionInfo>>(FusionInfoPath);
   auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
 
-  // Run block-level fusion
-  for (auto& Info : FusionYAML) {
-    // Create fusion tools object
-    contexts::FusionContext Context{Info, KernelYAML};
+  Arguments Arg{ProgName, BasePath};
+  tools::FusionTool Tool{Arg};
 
-    // [Tests]
-    utils::printFusionTools(Context);
-  }
+  Tool.print();
+
+  // // Run block-level fusion
+  // for (auto& Info : FusionYAML) {
+  //   // Create fusion tools object
+  //   contexts::FusionContext Context{Info, KernelYAML};
+
+  //   // [Tests]
+  //   utils::printFusionContexts(Context);
+  // }
 }
 //---------------------------------------------------------------------------
 } // namespace bfuse

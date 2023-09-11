@@ -52,7 +52,7 @@ void printKernelInfo(const std::string& KName, const KernelInfo& Info);
 //---------------------------------------------------------------------------
 void printKernelContexts(const contexts::KernelContext& Context);
 //---------------------------------------------------------------------------
-void printFusionTools(const contexts::FusionContext& Tools);
+void printFusionContexts(const contexts::FusionContext& Tools);
 //---------------------------------------------------------------------------
 } // namespace utils
 } // namespace bfuse

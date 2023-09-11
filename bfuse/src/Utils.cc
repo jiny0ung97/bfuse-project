@@ -55,13 +55,12 @@ void printKernelContexts(const contexts::KernelContext& Context)
     cout << "\n";
 }
 //---------------------------------------------------------------------------
-void printFusionTools(const contexts::FusionContext& Tools)
+void printFusionContexts(const contexts::FusionContext& Context)
 {
-  auto kernels = Tools.getKernelNames();
-  cout << "\n================= FusionTools =================";
-  for (auto& KName : kernels) {
-    auto KernelInfo    = Tools.getKernelInfo(KName);
-    auto KernelContext = Tools.getKernelContext(KName);
+  cout << "\n================= FusionContext =================";
+  for (auto& KName : Context.kernels) {
+    auto KernelInfo    = Context.kernelInfoMap.find(KName)->second;
+    auto KernelContext = Context.kernelContextMap.find(KName)->second;
 
     cout << "\n";
     printKernelInfo(KName, KernelInfo);

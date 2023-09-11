@@ -1,18 +1,19 @@
 
+#include <cstdlib>
 #include <string>
 #include <vector>
 #include <map>
 
 #include "bfuse/Bfuse.h"
 #include "bfuse/Utils.h"
-#include "bfuse/Tools.h"
+#include "bfuse/Contexts.h"
 
 using namespace std;
 //---------------------------------------------------------------------------
 namespace bfuse {
-namespace tools {
+namespace contexts {
 //---------------------------------------------------------------------------
-FusionTools::FusionTools(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
+FusionContext::FusionContext(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMap)
 {
   map<string, int> CurBounds;
   map<string, int> EndBounds;
@@ -23,7 +24,7 @@ FusionTools::FusionTools(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
   bool LastLoop      = false;
 
   for (auto& KName : FInfo.kernels) {
-    auto& Info = KInfo.find(KName)->second;
+    auto& Info = KInfoMap.find(KName)->second;
 
     CurBounds[KName]     = 0;
     EndBounds[KName]     = Info.gridDim.size();
@@ -60,9 +61,9 @@ FusionTools::FusionTools(FusionInfo& FInfo, map<string, KernelInfo>& KInfo)
   }
 }
 //---------------------------------------------------------------------------
-vector<string> FusionTools::getKernelNames() const { return kernels; }
+vector<string> FusionContext::getKernelNames() const { return kernels; }
 //---------------------------------------------------------------------------
-KernelInfo FusionTools::getKernelInfo(const string& KName) const
+KernelInfo FusionContext::getKernelInfo(const string& KName) const
 {
   auto KernelInfoMapIter = kernelInfoMap.find(KName);
   if (KernelInfoMapIter == kernelInfoMap.end()) {
@@ -72,7 +73,7 @@ KernelInfo FusionTools::getKernelInfo(const string& KName) const
   return KernelInfoMapIter->second;
 }
 //---------------------------------------------------------------------------
-KernelContext FusionTools::getKernelContext(const string& KName) const
+KernelContext FusionContext::getKernelContext(const string& KName) const
 {
   auto KernelContextMapIter = kernelContextMap.find(KName);
   if (KernelContextMapIter == kernelContextMap.end()) {
@@ -81,6 +82,6 @@ KernelContext FusionTools::getKernelContext(const string& KName) const
   }
   return KernelContextMapIter->second;
 }
-} // namespace tools
+} // namespace contexts
 } // namespace bfuse
 //---------------------------------------------------------------------------

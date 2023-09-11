@@ -1,22 +1,12 @@
 
+#include <cstdlib>
 #include <string>
 
-// #include "clang/ASTMatchers/ASTMatchers.h"
-// #include "clang/ASTMatchers/ASTMatchFinder.h"
-
-#include "clang/Frontend/FrontendActions.h"
-#include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Tooling/Tooling.h"
-#include "llvm/Support/CommandLine.h"
-
-#include "bfuse/Bfuse.h"
+#include "bfuse/Contexts.h"
 #include "bfuse/Utils.h"
-#include "bfuse/Tools.h"
+#include "bfuse/Bfuse.h"
 
 using namespace std;
-using namespace clang::tooling;
-using namespace bfuse::tools;
-using namespace bfuse::utils;
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
@@ -34,16 +24,16 @@ Arguments::~Arguments() { free(argv); }
 void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, string BasePath)
 {
   // Extract information from yaml files
-  auto FusionYAML = readYAMLInfo<vector<FusionInfo>>(FusionInfoPath);
-  auto KernelYAML = readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
+  auto FusionYAML = utils::readYAMLInfo<vector<FusionInfo>>(FusionInfoPath);
+  auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
 
   // Run block-level fusion
   for (auto& Info : FusionYAML) {
     // Create fusion tools object
-    FusionTools Tools{Info, KernelYAML};
+    contexts::FusionContext Context{Info, KernelYAML};
 
     // [Tests]
-    printFusionTools(Tools);
+    utils::printFusionTools(Context);
   }
 }
 //---------------------------------------------------------------------------

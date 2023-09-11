@@ -35,7 +35,7 @@ void printKernelInfo(const string& KName, const KernelInfo& Info)
   cout << "    Z: " << Info.blockDim.z << "\n";
 }
 //---------------------------------------------------------------------------
-void printKernelContexts(const string& KName, const KernelContext& Context)
+void printKernelContexts(const contexts::KernelContext& Context)
 {
     auto& ThreadIdxInfo = Context.threadIdxInfo;
     auto& BlockIdxInfo  = Context.blockIdxInfo;
@@ -55,7 +55,7 @@ void printKernelContexts(const string& KName, const KernelContext& Context)
     cout << "\n";
 }
 //---------------------------------------------------------------------------
-void printFusionTools(const tools::FusionTools& Tools)
+void printFusionTools(const contexts::FusionContext& Tools)
 {
   auto kernels = Tools.getKernelNames();
   cout << "\n================= FusionTools =================";
@@ -65,7 +65,7 @@ void printFusionTools(const tools::FusionTools& Tools)
 
     cout << "\n";
     printKernelInfo(KName, KernelInfo);
-    printKernelContexts(KName, KernelContext);
+    printKernelContexts(KernelContext);
   }
 }
 //---------------------------------------------------------------------------

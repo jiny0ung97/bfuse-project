@@ -8,7 +8,7 @@
 #include "llvm/Support/YAMLTraits.h"
 
 #include "bfuse/Bfuse.h"
-#include "bfuse/Tools.h"
+#include "bfuse/Contexts.h"
 
 // TODO: need to be changed into cxx style.
 #define CHECK_ERROR(m)             \
@@ -50,9 +50,9 @@ void printFusionInfo(const FusionInfo& Info);
 //---------------------------------------------------------------------------
 void printKernelInfo(const std::string& KName, const KernelInfo& Info);
 //---------------------------------------------------------------------------
-void printKernelContexts(const std::string& KName, const KernelContext& Context);
+void printKernelContexts(const contexts::KernelContext& Context);
 //---------------------------------------------------------------------------
-void printFusionTools(const tools::FusionTools& Tools);
+void printFusionTools(const contexts::FusionContext& Tools);
 //---------------------------------------------------------------------------
 } // namespace utils
 } // namespace bfuse

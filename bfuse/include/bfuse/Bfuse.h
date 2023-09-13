@@ -25,7 +25,8 @@ struct BlockDim {
   int size() const { return x * y * z; }
 };
 //---------------------------------------------------------------------------
-struct KernelInfo {
+class KernelInfo {
+public:
   /// The kernels' file path
   std::string filePath;
   /// Whether the kernel code has synchronization barriers
@@ -34,11 +35,18 @@ struct KernelInfo {
   GridDim gridDim;
   /// The kernel's block dimension
   BlockDim blockDim;
+
+  /// Print KernelInfo
+  void print(const std::string& KName) const;
 };
 //---------------------------------------------------------------------------
-struct FusionInfo {
+class FusionInfo {
+public:
   /// The kernels to be fused
   std::vector<std::string> kernels;
+
+  /// Print FusionInfo
+  void print() const;
 };
 //---------------------------------------------------------------------------
 class Arguments {

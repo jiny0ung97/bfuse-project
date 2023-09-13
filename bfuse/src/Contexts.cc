@@ -1,5 +1,6 @@
 
 #include <cstdlib>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
@@ -12,6 +13,22 @@ using namespace std;
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace contexts {
+//---------------------------------------------------------------------------
+void KernelContext::print() const
+{
+  cout << "[KernelContext Info]\n";
+  cout << "- ThreadIdxInfo: [" << threadIdxInfo.first << " ~ " << threadIdxInfo.second << ")\n";
+  cout << "- BlockIdxInfo : ";
+  for (auto& info : blockIdxInfo) {
+    cout << "[" << info.first << " ~ " << info.second << ") ";
+  }
+  cout << "\n";
+  cout << "- OtherBlocks  : ";
+  for (auto n : otherBlocks) {
+    cout << n << " ";
+  }
+  cout << "\n";
+}
 //---------------------------------------------------------------------------
 FusionContext::FusionContext(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMap)
 {
@@ -58,6 +75,19 @@ FusionContext::FusionContext(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMa
       LastLoop = true;
 
     Idx = (Idx + 1) % kernels.size();
+  }
+}
+//---------------------------------------------------------------------------
+void FusionContext::print() const
+{
+  cout << "\n================= FusionContext =================";
+  for (auto& KName : kernels) {
+    auto& KernelInfo    = kernelInfoMap.find(KName)->second;
+    auto& KernelContext = kernelContextMap.find(KName)->second;
+
+    cout << "\n";
+    KernelInfo.print(KName);
+    KernelContext.print();
   }
 }
 //---------------------------------------------------------------------------

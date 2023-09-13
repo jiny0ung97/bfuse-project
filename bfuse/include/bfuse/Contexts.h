@@ -14,7 +14,6 @@ class KernelContext {
 public:
   using IdxBoundPair = std::pair<int, int>;
 
-private:
   /// The kernel's threadIdx boudnary
   IdxBoundPair threadIdxInfo;
   /// The kernel's blockIdx boundary
@@ -23,10 +22,11 @@ private:
   /// To rewrite blockIdx variables
   std::vector<int> otherBlocks;
 
-public:
   /// The constructor
   explicit KernelContext(IdxBoundPair&& ThreadIdxInfo)
                         : threadIdxInfo{std::move(ThreadIdxInfo)}, blockIdxInfo{}, otherBlocks{} {}
+  /// Print KernelContext
+  void print() const;
 
   /// The default constructor
   KernelContext() = default;
@@ -41,7 +41,7 @@ public:
 };
 //---------------------------------------------------------------------------
 class FusionContext {
-private:
+public:
   /// The kernels to be fused
   std::vector<std::string> kernels;
   /// The kernel's information
@@ -49,9 +49,10 @@ private:
   /// The vector to contain kernel contexts
   std::map<std::string, KernelContext> kernelContextMap;
 
-public:
   /// The constructor
   FusionContext(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);
+  /// Print FusionContext
+  void print() const;
 };
 //---------------------------------------------------------------------------
 } // namespace contexts

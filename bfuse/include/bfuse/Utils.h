@@ -2,13 +2,10 @@
 #pragma once
 
 #include <cstdlib>
-#include <iostream>
-#include <string>
 
 #include "llvm/Support/YAMLTraits.h"
 
 #include "bfuse/Bfuse.h"
-#include "bfuse/Contexts.h"
 
 // TODO: need to be changed into cxx style.
 #define CHECK_ERROR(m)             \
@@ -45,14 +42,6 @@ Info readYAMLInfo(const std::string& Path)
 
   return Infos;
 }
-//---------------------------------------------------------------------------
-void printFusionInfo(const FusionInfo& Info);
-//---------------------------------------------------------------------------
-void printKernelInfo(const std::string& KName, const KernelInfo& Info);
-//---------------------------------------------------------------------------
-void printKernelContexts(const contexts::KernelContext& Context);
-//---------------------------------------------------------------------------
-void printFusionContexts(const contexts::FusionContext& Tools);
 //---------------------------------------------------------------------------
 } // namespace utils
 } // namespace bfuse

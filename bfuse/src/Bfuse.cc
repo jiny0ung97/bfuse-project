@@ -1,6 +1,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <iostream>
 
 #include "bfuse/Contexts.h"
 #include "bfuse/Tools.h"
@@ -24,6 +25,31 @@ Arguments::Arguments(const char *ProgName, string& Path)
 //---------------------------------------------------------------------------
 Arguments::~Arguments() { free(argv); }
 //---------------------------------------------------------------------------
+void KernelInfo::print(const string& KName) const
+{
+  cout << "[KernelInfo]\n";
+  cout << KName << "\n";
+  cout << "  File: " << filePath << "\n";
+  cout << "  Barriers: " << hasBarriers << "\n";
+  cout << "  GridDim:\n";
+  cout << "    X: " << gridDim.x << "\n";
+  cout << "    Y: " << gridDim.y << "\n";
+  cout << "    Z: " << gridDim.z << "\n";
+  cout << "  BlockDim:\n";
+  cout << "    X: " << blockDim.x << "\n";
+  cout << "    Y: " << blockDim.y << "\n";
+  cout << "    Z: " << blockDim.z << "\n";
+}
+//---------------------------------------------------------------------------
+void FusionInfo::print() const
+{
+  cout << "[FusionInfo]\n";
+  cout << "  - Kernels:\n";
+  for (auto& KName : kernels) {
+    cout << "    - " << KName << "\n";
+  }
+}
+//---------------------------------------------------------------------------
 void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, string BasePath)
 {
   // Extract information from yaml files
@@ -38,8 +64,9 @@ void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, s
     FusionTool    Tool{Arg};
 
     // [Tests]
-    // utils::printFusionContexts(Context);
-    Tool.print(Context);
+    Context.print();
+    // Tool.print();
+
   }
 }
 //---------------------------------------------------------------------------

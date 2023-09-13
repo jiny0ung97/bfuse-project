@@ -11,16 +11,14 @@ namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
 class FusionTool {
-private:
+public:
   /// The AST of the source code
   std::vector<std::unique_ptr<clang::ASTUnit>> aSTs;
-
-public:
-  /// print FusionTool
-  void print(contexts::FusionContext& Context) const;
   
   /// The constructor
   explicit FusionTool(const Arguments& Arg);
+  /// print FusionTool
+  void print() const;
 };
 //---------------------------------------------------------------------------
 } // namespace tools

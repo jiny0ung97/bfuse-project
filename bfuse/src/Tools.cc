@@ -38,24 +38,24 @@ FusionTool::FusionTool(const Arguments& Arg) {
   Tool.buildASTs(aSTs);
 }
 //---------------------------------------------------------------------------
-void FusionTool::print(contexts::FusionContext& Context) const
-{
-  auto Matcher = functionDecl(hasAttr(attr::CUDAGlobal),
-                              hasName(Context.kernels[0])).bind("print-FusionTool-example");
+// void FusionTool::print(contexts::FusionContext& Context) const
+// {
+//   auto Matcher = functionDecl(hasAttr(attr::CUDAGlobal),
+//                               hasName(Context.kernels[0])).bind("print-FusionTool-example");
 
-  cout << "\n================= FusionTools =================\n";
-  cout << "Size of total AST : " << aSTs.size() << "\n\n";
-  for (auto& AST : aSTs) {
-    auto MatchRes = match(Matcher, AST->getASTContext());
-    if (MatchRes.size() < 1)
-      continue;
+//   cout << "\n================= FusionTools =================\n";
+//   cout << "Size of total AST : " << aSTs.size() << "\n\n";
+//   for (auto& AST : aSTs) {
+//     auto MatchRes = match(Matcher, AST->getASTContext());
+//     if (MatchRes.size() < 1)
+//       continue;
 
-    auto *Result = MatchRes[0].getNodeAs<FunctionDecl>("print-FusionTool-example");
-    assert(Result);
+//     auto *Result = MatchRes[0].getNodeAs<FunctionDecl>("print-FusionTool-example");
+//     assert(Result);
 
-    Result->dump();
-  }
-}
+//     Result->dump();
+//   }
+// }
 //---------------------------------------------------------------------------
 } // namespace tools
 } // namespace bfuse

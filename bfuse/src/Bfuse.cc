@@ -8,6 +8,8 @@
 #include "bfuse/Bfuse.h"
 
 using namespace std;
+using namespace bfuse::tools;
+using namespace bfuse::contexts;
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
@@ -29,18 +31,16 @@ void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, s
   auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
 
   Arguments Arg{ProgName, BasePath};
-  tools::FusionTool Tool{Arg};
 
-  Tool.print();
+  // Run block-level fusion
+  for (auto& Info : FusionYAML) {
+    FusionContext Context{Info, KernelYAML};
+    FusionTool    Tool{Arg};
 
-  // // Run block-level fusion
-  // for (auto& Info : FusionYAML) {
-  //   // Create fusion tools object
-  //   contexts::FusionContext Context{Info, KernelYAML};
-
-  //   // [Tests]
-  //   utils::printFusionContexts(Context);
-  // }
+    // [Tests]
+    // utils::printFusionContexts(Context);
+    Tool.print(Context);
+  }
 }
 //---------------------------------------------------------------------------
 } // namespace bfuse

@@ -27,7 +27,8 @@ set(LLVM_LINK_COMPONENTS support)
 add_clang_library(bfuse STATIC ${BFUSE_HEADERS} ${BFUSE_SOURCES})
 
 target_include_directories(bfuse
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/${BFUSE_HEADER_DIR}
+PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/${BFUSE_HEADER_DIR}
 )
 
 # Link against Clang libraries

@@ -5,6 +5,7 @@
 #include "clang/Tooling/Tooling.h"
 
 #include "bfuse/Bfuse.h"
+#include "bfuse/Contexts.h"
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace tools {
@@ -16,7 +17,7 @@ private:
 
 public:
   /// print FusionTool
-  void print() const;
+  void print(contexts::FusionContext& Context) const;
   
   /// The constructor
   explicit FusionTool(const Arguments& Arg);

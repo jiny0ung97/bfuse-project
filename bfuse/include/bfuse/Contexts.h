@@ -10,9 +10,11 @@
 namespace bfuse {
 namespace contexts {
 //---------------------------------------------------------------------------
-struct KernelContext {
+class KernelContext {
+public:
   using IdxBoundPair = std::pair<int, int>;
 
+private:
   /// The kernel's threadIdx boudnary
   IdxBoundPair threadIdxInfo;
   /// The kernel's blockIdx boundary
@@ -21,6 +23,7 @@ struct KernelContext {
   /// To rewrite blockIdx variables
   std::vector<int> otherBlocks;
 
+public:
   /// The constructor
   explicit KernelContext(IdxBoundPair&& ThreadIdxInfo)
                         : threadIdxInfo{std::move(ThreadIdxInfo)}, blockIdxInfo{}, otherBlocks{} {}
@@ -37,7 +40,8 @@ struct KernelContext {
   KernelContext& operator=(KernelContext&& other) = default;
 };
 //---------------------------------------------------------------------------
-struct FusionContext {
+class FusionContext {
+private:
   /// The kernels to be fused
   std::vector<std::string> kernels;
   /// The kernel's information
@@ -45,6 +49,7 @@ struct FusionContext {
   /// The vector to contain kernel contexts
   std::map<std::string, KernelContext> kernelContextMap;
 
+public:
   /// The constructor
   FusionContext(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);
 };

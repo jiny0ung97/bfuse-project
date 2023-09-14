@@ -12,18 +12,33 @@ using namespace std;
 using namespace bfuse::tools;
 using namespace bfuse::contexts;
 //---------------------------------------------------------------------------
+static const string KerenlInfoFilePath = "kernels.yaml";
+static const string FusionInfoFilePath = "fusion.yaml";
+static const string KernelCodePath = "kernels.cu";
+//---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
-Arguments::Arguments(const char *ProgName, string& Path)
+CommonParsersArguments::CommonParsersArguments(const char *ProgName,
+                                               string& CompileCommandsPath, string& FilePath)
 {
-  filePath = Path;
+  compileCommandsPath = CompileCommandsPath;
+  filePath            = FilePath;
 
-  argv    = (const char**)malloc(sizeof(char *) * 2);
+  argv    = (const char**)malloc(sizeof(char *) * argc);
   argv[0] = ProgName;
-  argv[1] = filePath.c_str();
+  argv[1] = "-p";
+  argv[2] = compileCommandsPath.c_str();
+  argv[3] = filePath.c_str();
+
+  // cout << "argc: " << argc << "\n";
+  // cout << "argv: ";
+  // for (int i = 0; i < argc; ++i) {
+  //   cout << argv[i] << " ";
+  // }
+  // cout << "\n";
 }
 //---------------------------------------------------------------------------
-Arguments::~Arguments() { free(argv); }
+CommonParsersArguments::~CommonParsersArguments() { free(argv); }
 //---------------------------------------------------------------------------
 void KernelInfo::print(const string& KName) const
 {
@@ -50,18 +65,22 @@ void FusionInfo::print() const
   }
 }
 //---------------------------------------------------------------------------
-void bfuse(const char *ProgName, string FusionInfoPath, string KernelInfoPath, string BasePath)
+void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPath)
 {
+  string FusionInfoPath = ConfigFilePath + "/" + FusionInfoFilePath;
+  string KernelInfoPath = ConfigFilePath + "/" + KerenlInfoFilePath;
+  string CodePath       = CompileCommandsPath + "/" + KernelCodePath;
+
   // Extract information from yaml files
   auto FusionYAML = utils::readYAMLInfo<vector<FusionInfo>>(FusionInfoPath);
   auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
 
-  Arguments Arg{ProgName, BasePath};
+  CommonParsersArguments Args{ProgName, CompileCommandsPath, CodePath};
 
   // Run block-level fusion
   for (auto& Info : FusionYAML) {
     FusionContext Context{Info, KernelYAML};
-    FusionTool    Tool{Arg};
+    FusionTool    Tool{Args};
 
     // [Tests]
     Context.print();

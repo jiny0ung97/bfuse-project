@@ -16,7 +16,7 @@ public:
   std::vector<std::unique_ptr<clang::ASTUnit>> aSTs;
   
   /// The constructor
-  explicit FusionTool(const Arguments& Arg);
+  explicit FusionTool(const CommonParsersArguments& Arg);
   /// print FusionTool
   void print() const;
 };

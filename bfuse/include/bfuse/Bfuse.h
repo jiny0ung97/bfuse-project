@@ -49,12 +49,14 @@ public:
   void print() const;
 };
 //---------------------------------------------------------------------------
-class Arguments {
+class CommonParsersArguments {
 private:
   /// The argc parameter
-  int argc = 2;
+  int argc = 4;
   /// The argv parameter
   const char **argv;
+  /// The path of compile_commands.json
+  std::string compileCommandsPath;
   /// The file path of fused kernels
   std::string filePath;
 
@@ -63,24 +65,23 @@ public:
   std::tuple<int, const char **>getArguments() const { return std::make_tuple(argc, argv); }
 
   /// The constructor
-  Arguments(const char *ProgName, std::string& Path);
+  CommonParsersArguments(const char *ProgName, std::string& CompileCommandsPath, std::string& FilePath);
   /// The destructor
-  ~Arguments();
+  ~CommonParsersArguments();
 
   /// Delete default constructor
-  Arguments() = delete;
+  CommonParsersArguments() = delete;
   /// Delete copy constructor
-  Arguments(const Arguments& other) = delete;
+  CommonParsersArguments(const CommonParsersArguments& other) = delete;
   /// Delete move constructor
-  Arguments(Arguments&& other) = delete;
+  CommonParsersArguments(CommonParsersArguments&& other) = delete;
   /// Delete copy assignment operator
-  Arguments& operator=(const Arguments& other) = delete;
+  CommonParsersArguments& operator=(const CommonParsersArguments& other) = delete;
   /// Delete move assignment operator
-  Arguments& operator=(Arguments&& other) = delete;
+  CommonParsersArguments& operator=(CommonParsersArguments&& other) = delete;
 };
 //---------------------------------------------------------------------------
-void bfuse(const char *ProgName, std::string FusionInfoPath,
-           std::string KernelInfoPath, std::string BasePath);
+void bfuse(const char *ProgName, std::string ConfigFilePath, std::string CompileCommandsPath);
 //---------------------------------------------------------------------------
 } // namespace bfuse
 //---------------------------------------------------------------------------

@@ -24,7 +24,7 @@ static llvm::cl::extrahelp      MoreHelp{"\nMore help text...\n"};
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-FusionTool::FusionTool(const Arguments& Arg) {
+FusionTool::FusionTool(const CommonParsersArguments& Arg) {
   auto [argc, argv] = Arg.getArguments();
   auto ExpectParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
   if (!ExpectParser) {

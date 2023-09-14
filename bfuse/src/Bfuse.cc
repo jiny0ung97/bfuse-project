@@ -6,18 +6,18 @@
 #include <map>
 
 #include "bfuse/Contexts.h"
-#include "bfuse/Tools.h"
+#include "bfuse/Database.h"
 #include "bfuse/Utils.h"
 #include "bfuse/Bfuse.h"
 
 using namespace std;
 using namespace bfuse::contexts;
-using namespace bfuse::tools;
+using namespace bfuse::database;
 using namespace bfuse::utils;
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
-CommonParsersArguments::CommonParsersArguments(const char *ProgName,
+OptionsParserArguments::OptionsParserArguments(const char *ProgName,
                                                string& CompileCommandsPath, string& FilePath)
 {
   compileCommandsPath = CompileCommandsPath;
@@ -37,7 +37,7 @@ CommonParsersArguments::CommonParsersArguments(const char *ProgName,
   // cout << "\n";
 }
 //---------------------------------------------------------------------------
-CommonParsersArguments::~CommonParsersArguments() { free(argv); }
+OptionsParserArguments::~OptionsParserArguments() { free(argv); }
 //---------------------------------------------------------------------------
 void KernelInfo::print(const string& KName) const
 {
@@ -83,13 +83,15 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
 
     string CodePath = CompileCommandsPath + "/" + extractFilePath(Info, KernelYAML);
 
-    CommonParsersArguments Args{ProgName, CompileCommandsPath, CodePath};
-    FusionTool             Tool{Args};
+    OptionsParserArguments Args{ProgName, CompileCommandsPath, CodePath};
+    FusionDatabase         FusionDB{Args};
     FusionContext          Context{Info, KernelYAML};
 
     // [Tests]
     Context.print();
-    Tool.print(Info.kernels.front());
+    FusionDB.print(Info.kernels.front());
+
+    // 1. 
   }
 }
 //---------------------------------------------------------------------------

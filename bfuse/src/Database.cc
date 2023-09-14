@@ -10,7 +10,7 @@
 
 #include "bfuse/Bfuse.h"
 #include "bfuse/Contexts.h"
-#include "bfuse/Tools.h"
+#include "bfuse/Database.h"
 
 using namespace std;
 using namespace clang;
@@ -22,9 +22,9 @@ static llvm::cl::extrahelp      CommonHelp{CommonOptionsParser::HelpMessage};
 static llvm::cl::extrahelp      MoreHelp{"\nMore help text...\n"};
 //---------------------------------------------------------------------------
 namespace bfuse {
-namespace tools {
+namespace database {
 //---------------------------------------------------------------------------
-FusionTool::FusionTool(const CommonParsersArguments& Arg) {
+FusionDatabase::FusionDatabase(const OptionsParserArguments& Arg) {
   auto [argc, argv] = Arg.getArguments();
   auto ExpectParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
   if (!ExpectParser) {
@@ -36,9 +36,11 @@ FusionTool::FusionTool(const CommonParsersArguments& Arg) {
   ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
 
   Tool.buildASTs(ASTs);
+
+  // 1. Init matchers for each functions
 }
 //---------------------------------------------------------------------------
-void FusionTool::print() const
+void FusionDatabase::print() const
 {
   cout << "================= FusionTools =================\n";
   cout << "Size of total AST : " << ASTs.size() << "\n\n";
@@ -50,7 +52,7 @@ void FusionTool::print() const
   cout << "\n";
 }
 //---------------------------------------------------------------------------
-void FusionTool::print(string& KName) const
+void FusionDatabase::print(string& KName) const
 {
   cout << "================= FusionTools =================\n";
   cout << "Kernel Name : " << KName << "\n\n";
@@ -66,6 +68,6 @@ void FusionTool::print(string& KName) const
   cout << "\n";
 }
 //---------------------------------------------------------------------------
-} // namespace tools
+} // namespace database
 } // namespace bfuse
 //---------------------------------------------------------------------------

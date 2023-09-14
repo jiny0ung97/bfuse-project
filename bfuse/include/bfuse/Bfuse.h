@@ -49,7 +49,7 @@ public:
   void print() const;
 };
 //---------------------------------------------------------------------------
-class CommonParsersArguments {
+class OptionsParserArguments {
 private:
   /// The argc parameter
   int argc = 4;
@@ -65,20 +65,20 @@ public:
   std::tuple<int, const char **>getArguments() const { return std::make_tuple(argc, argv); }
 
   /// The constructor
-  CommonParsersArguments(const char *ProgName, std::string& CompileCommandsPath, std::string& FilePath);
+  OptionsParserArguments(const char *ProgName, std::string& CompileCommandsPath, std::string& FilePath);
   /// The destructor
-  ~CommonParsersArguments();
+  ~OptionsParserArguments();
 
   /// Delete default constructor
-  CommonParsersArguments() = delete;
+  OptionsParserArguments() = delete;
   /// Delete copy constructor
-  CommonParsersArguments(const CommonParsersArguments& other) = delete;
+  OptionsParserArguments(const OptionsParserArguments& other) = delete;
   /// Delete move constructor
-  CommonParsersArguments(CommonParsersArguments&& other) = delete;
+  OptionsParserArguments(OptionsParserArguments&& other) = delete;
   /// Delete copy assignment operator
-  CommonParsersArguments& operator=(const CommonParsersArguments& other) = delete;
+  OptionsParserArguments& operator=(const OptionsParserArguments& other) = delete;
   /// Delete move assignment operator
-  CommonParsersArguments& operator=(CommonParsersArguments&& other) = delete;
+  OptionsParserArguments& operator=(OptionsParserArguments&& other) = delete;
 };
 //---------------------------------------------------------------------------
 void bfuse(const char *ProgName, std::string ConfigFilePath, std::string CompileCommandsPath);

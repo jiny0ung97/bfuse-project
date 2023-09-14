@@ -35,27 +35,36 @@ FusionTool::FusionTool(const CommonParsersArguments& Arg) {
   CommonOptionsParser& OptionsParser = ExpectParser.get();
   ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
 
-  Tool.buildASTs(aSTs);
+  Tool.buildASTs(ASTs);
 }
 //---------------------------------------------------------------------------
-// void FusionTool::print(contexts::FusionContext& Context) const
-// {
-//   auto Matcher = functionDecl(hasAttr(attr::CUDAGlobal),
-//                               hasName(Context.kernels[0])).bind("print-FusionTool-example");
+void FusionTool::print() const
+{
+  cout << "================= FusionTools =================\n";
+  cout << "Size of total AST : " << ASTs.size() << "\n\n";
+  // for (auto& AST : ASTs) {
+  //   auto *TU = AST->getASTContext().getTranslationUnitDecl();
+  //   TU->dump();
+  //   cout << "\n";
+  // }
+  cout << "\n";
+}
+//---------------------------------------------------------------------------
+void FusionTool::print(string& KName) const
+{
+  cout << "================= FusionTools =================\n";
+  cout << "Kernel Name : " << KName << "\n\n";
+  
+  auto MB = (functionDecl(hasAttr(attr::CUDAGlobal), hasName(KName))).bind("bindStr");
+  for (auto& AST : ASTs) {
+    auto MatchRes = match(MB, AST->getASTContext());
+    assert(MatchRes.size() >= 1);
 
-//   cout << "\n================= FusionTools =================\n";
-//   cout << "Size of total AST : " << aSTs.size() << "\n\n";
-//   for (auto& AST : aSTs) {
-//     auto MatchRes = match(Matcher, AST->getASTContext());
-//     if (MatchRes.size() < 1)
-//       continue;
-
-//     auto *Result = MatchRes[0].getNodeAs<FunctionDecl>("print-FusionTool-example");
-//     assert(Result);
-
-//     Result->dump();
-//   }
-// }
+    auto Result = MatchRes[0].getNodeAs<FunctionDecl>("bindStr");
+    Result->dump();
+  }
+  cout << "\n";
+}
 //---------------------------------------------------------------------------
 } // namespace tools
 } // namespace bfuse

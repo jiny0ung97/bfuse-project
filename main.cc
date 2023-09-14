@@ -52,7 +52,7 @@ static void parse_opt(int argc, char **argv)
 
   cout << "================ Bfuse Plus Info ================\n";
   cout << "- The Directory of Config files: " << ConfigFilePath << "\n";
-  cout << "- The Path of Compile Commands: " << CompileCommandsPath << "\n";
+  cout << "- The Path of Compile Commands:  " << CompileCommandsPath << "\n\n";
 }
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[])

@@ -27,7 +27,7 @@ void KernelContext::print() const
   for (auto n : otherBlocks) {
     cout << n << " ";
   }
-  cout << "\n";
+  cout << "\n\n";
 }
 //---------------------------------------------------------------------------
 FusionContext::FusionContext(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMap)
@@ -80,12 +80,12 @@ FusionContext::FusionContext(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMa
 //---------------------------------------------------------------------------
 void FusionContext::print() const
 {
-  cout << "\n================= FusionContext =================";
+  cout << "================= FusionContext =================\n";
   for (auto& KName : kernels) {
     auto& KernelInfo    = kernelInfoMap.find(KName)->second;
     auto& KernelContext = kernelContextMap.find(KName)->second;
 
-    cout << "\n";
+    cout << "/// " << KName << " ///\n\n";
     KernelInfo.print(KName);
     KernelContext.print();
   }

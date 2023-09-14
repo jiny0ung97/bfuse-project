@@ -2,32 +2,36 @@
 #pragma once
 
 #include <cstdlib>
+#include <string>
+#include <map>
 
 #include "llvm/Support/YAMLTraits.h"
 
 #include "bfuse/Bfuse.h"
 
 // TODO: need to be changed into cxx style.
-#define CHECK_ERROR(m)             \
-  do                               \
-  {                                \
-    std::cerr << "bfuse ERROR ("   \
-              << __FILE__ << ":"   \
-              << __LINE__ << "): " \
-              << m << "\n";        \
+#define ERROR_MESSAGE(m)                    \
+  do                                        \
+  {                                         \
+    std::cerr << "[bfuse ERROR] ("          \
+              << __FILE__ << ":"            \
+              << __LINE__ << "): "          \
+              << m << "\n";                 \
   } while (0)
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace utils {
 //---------------------------------------------------------------------------
+bool checkFusionValid(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);
+//---------------------------------------------------------------------------
+std::string extractFilePath(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);
+//---------------------------------------------------------------------------
 template <typename Info>
 Info readYAMLInfo(const std::string& Path)
 {
-  using FileOrError = llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>;
-
-  FileOrError Buffer = llvm::MemoryBuffer::getFile(Path.c_str());
+  auto Buffer = llvm::MemoryBuffer::getFile(Path.c_str());
   if (!Buffer) {
-    llvm::errs() << "[bfuse ERROR]: failed to read configs\n";
+    llvm::errs() << "[bfuse ERROR]: failed to read configs.\n";
     std::exit(0);
   }
 
@@ -36,7 +40,7 @@ Info readYAMLInfo(const std::string& Path)
   Yaml >> Infos;
 
   if (Yaml.error()) {
-    llvm::errs() << "[bfuse ERROR]: failed to get configs\n";
+    llvm::errs() << "[bfuse ERROR]: failed to get configs.\n";
     std::exit(0);
   }
 

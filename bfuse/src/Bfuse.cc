@@ -1,7 +1,9 @@
 
 #include <cstdlib>
-#include <string>
 #include <iostream>
+#include <string>
+#include <vector>
+#include <map>
 
 #include "bfuse/Contexts.h"
 #include "bfuse/Tools.h"
@@ -9,12 +11,9 @@
 #include "bfuse/Bfuse.h"
 
 using namespace std;
-using namespace bfuse::tools;
 using namespace bfuse::contexts;
-//---------------------------------------------------------------------------
-static const string KerenlInfoFilePath = "kernels.yaml";
-static const string FusionInfoFilePath = "fusion.yaml";
-static const string KernelCodePath = "kernels.cu";
+using namespace bfuse::tools;
+using namespace bfuse::utils;
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
@@ -53,7 +52,7 @@ void KernelInfo::print(const string& KName) const
   cout << "  BlockDim:\n";
   cout << "    X: " << blockDim.x << "\n";
   cout << "    Y: " << blockDim.y << "\n";
-  cout << "    Z: " << blockDim.z << "\n";
+  cout << "    Z: " << blockDim.z << "\n\n";
 }
 //---------------------------------------------------------------------------
 void FusionInfo::print() const
@@ -63,29 +62,34 @@ void FusionInfo::print() const
   for (auto& KName : kernels) {
     cout << "    - " << KName << "\n";
   }
+  cout << "\n";
 }
 //---------------------------------------------------------------------------
 void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPath)
 {
-  string FusionInfoPath = ConfigFilePath + "/" + FusionInfoFilePath;
-  string KernelInfoPath = ConfigFilePath + "/" + KerenlInfoFilePath;
-  string CodePath       = CompileCommandsPath + "/" + KernelCodePath;
+  string FusionInfoPath = ConfigFilePath + "/fusions.yaml";
+  string KernelInfoPath = ConfigFilePath + "/kernels.yaml";
 
   // Extract information from yaml files
-  auto FusionYAML = utils::readYAMLInfo<vector<FusionInfo>>(FusionInfoPath);
-  auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
-
-  CommonParsersArguments Args{ProgName, CompileCommandsPath, CodePath};
+  auto FusionYAML = readYAMLInfo<vector<FusionInfo>>(FusionInfoPath);
+  auto KernelYAML = readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
 
   // Run block-level fusion
   for (auto& Info : FusionYAML) {
-    FusionContext Context{Info, KernelYAML};
-    FusionTool    Tool{Args};
+    if (!checkFusionValid(Info, KernelYAML)) {
+      ERROR_MESSAGE("invalid fusion definition exist.");
+      exit(0);
+    }
+
+    string CodePath = CompileCommandsPath + "/" + extractFilePath(Info, KernelYAML);
+
+    CommonParsersArguments Args{ProgName, CompileCommandsPath, CodePath};
+    FusionTool             Tool{Args};
+    FusionContext          Context{Info, KernelYAML};
 
     // [Tests]
     Context.print();
-    // Tool.print();
-
+    Tool.print(Info.kernels.front());
   }
 }
 //---------------------------------------------------------------------------

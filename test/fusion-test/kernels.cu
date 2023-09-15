@@ -231,9 +231,9 @@ extern "C" __global__ void __launch_bounds__(112) conv2d_B1(float* __restrict__ 
 }
 
 extern "C" __global__ void __launch_bounds__(50) matmul_B16(float* __restrict__ data, float* __restrict__ weight, float* __restrict__ T_matmul_NT) {
-  // float T_matmul_NT_local[4];
-  // __shared__ float data_shared[256];
-  // __shared__ float weight_shared[3200];
+  float T_matmul_NT_local[4];
+  __shared__ float data_shared[256];
+  __shared__ float weight_shared[3200];
   // T_matmul_NT_local[0] = 0.000000e+00f;
   // T_matmul_NT_local[1] = 0.000000e+00f;
   // T_matmul_NT_local[2] = 0.000000e+00f;

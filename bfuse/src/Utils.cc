@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <map>
@@ -25,6 +26,12 @@ bool checkFusionValid(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMap)
     auto& KInfo = KInfoMapIter->second;
     FileInfos.push_back(KInfo.filePath);
   }
+
+  // check all kernels have different names
+  auto& V = FInfo.kernels;
+  V.erase(unique(V.begin(), V.end()), V.end());
+  if (V.size() != FInfo.kernels.size())
+    return false;
 
   // check all kernels exist in same file
   for (auto& FName : FileInfos) {

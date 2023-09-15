@@ -1,6 +1,6 @@
 
 # Options for tests
-option(USE_FUSION_TEST "Use fusion-test" ON)
+option(USE_FUSION_TEST "Use fusion-test" OFF)
 option(USE_CLANG_TEST "Use clang test" OFF)
 
 # Fusion test

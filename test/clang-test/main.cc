@@ -8,6 +8,7 @@
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Tooling/Tooling.h"
+#include "clang/Rewrite/Core/Rewriter.h"
 
 using namespace std;
 using namespace clang;
@@ -69,9 +70,24 @@ int codeASTImporterExample()
 //---------------------------------------------------------------------------
 void printTranslationUnitDecl(const TranslationUnitDecl& TU, const StringRef FName)
 {
-  error_code EC;
+  std::error_code EC;
   llvm::raw_fd_ostream OS{FName, EC};
   TU.print(OS);
+  OS.close();
+}
+//---------------------------------------------------------------------------
+template <typename Node>
+void rewriteAndSaveASTUnit(const ASTUnit& Unit, const StringRef FName, const Node* SomeNode)
+{
+  auto& SM = Unit.getSourceManager();
+  auto& LO = Unit.getLangOpts();
+  Rewriter R{SM, LO};
+
+  R.ReplaceText(SomeNode->getSourceRange(), "fn_" + "();");
+
+  std::error_code EC;
+  llvm::raw_fd_ostream OS{FName, EC};
+  R.getEditBuffer(SM.getMainFileID()).write(OS);
   OS.close();
 }
 //---------------------------------------------------------------------------
@@ -79,11 +95,26 @@ int main()
 {
   string FuncName1 = "matmul";
   string FuncName2 = "conv2d";
-  string SourceCode = "void " + FuncName1 + "_" + FuncName2 + "_fused" + "();";
+  string NewFuncName = FuncName1 + "_" + FuncName2 + "_fused";
+  string SourceCode = "void " + NewFuncName + "();";
   unique_ptr<ASTUnit> Unit = buildASTFromCode(SourceCode, "tmp.cc");
 
   auto &Context = Unit->getASTContext();
   auto *TU      = Context.getTranslationUnitDecl();
+
+  auto Matcher = functionDecl(hasName(NewFuncName));
+  auto *D = getFirstDecl<FunctionDecl>(Matcher, Unit);
+
+  auto& SM = Unit->getSourceManager();
+  auto& LO = Unit->getLangOpts();
+  Rewriter R{SM, LO};
+
+  R.ReplaceText(D->getSourceRange(), "fn_" + NewFuncName + "();");
+
+  std::error_code EC;
+  llvm::raw_fd_ostream OS{"test.cc", EC};
+  R.getEditBuffer(SM.getMainFileID()).write(OS);
+  OS.close();
 
   // Use previous code from HFuse-project...
   // 1. Bring Matcher Classes

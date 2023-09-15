@@ -1,4 +1,6 @@
 
+#pragma once
+
 #include <string>
 
 #include "clang/ASTMatchers/ASTMatchers.h"

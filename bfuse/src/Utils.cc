@@ -5,10 +5,12 @@
 #include <vector>
 #include <map>
 
-#include "bfuse/Bfuse.h"
+#include "bfuse/Contexts.h"
 #include "bfuse/Utils.h"
 
 using namespace std;
+
+using namespace bfuse::contexts;
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace utils {

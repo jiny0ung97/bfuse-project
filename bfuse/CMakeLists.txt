@@ -5,7 +5,9 @@ set(BFUSE_SOURCES
   ${BFUSE_SOURCE_DIR}/Bfuse.cc
   ${BFUSE_SOURCE_DIR}/Utils.cc
   ${BFUSE_SOURCE_DIR}/Contexts.cc
+  ${BFUSE_SOURCE_DIR}/Instances.cc
   ${BFUSE_SOURCE_DIR}/Matchers.cc
+  # ${BFUSE_SOURCE_DIR}/Instances.cc
   # Add your sources here
   # ${BFUSE_SOURCE_DIR}/foo/bar/your_source.cc
 )
@@ -16,7 +18,9 @@ set(BFUSE_HEADERS
   ${BFUSE_HEADER_DIR}/bfuse/Bfuse.h
   ${BFUSE_HEADER_DIR}/bfuse/Utils.h
   ${BFUSE_HEADER_DIR}/bfuse/Contexts.h
+  ${BFUSE_HEADER_DIR}/bfuse/Instances.h
   ${BFUSE_HEADER_DIR}/bfuse/Matchers.h
+  # ${BFUSE_HEADER_DIR}/bfuse/Instances.h
   # Add your headers here
   # ${BFUSE_HEADER_DIR}/foo/bar/your_header.h
 )

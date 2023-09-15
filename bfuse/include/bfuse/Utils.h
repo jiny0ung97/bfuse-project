@@ -2,12 +2,13 @@
 #pragma once
 
 #include <cstdlib>
+#include <iostream>
 #include <string>
 #include <map>
 
 #include "llvm/Support/YAMLTraits.h"
 
-#include "bfuse/Bfuse.h"
+#include "bfuse/Contexts.h"
 
 // TODO: need to be changed into cxx style.
 #define ERROR_MESSAGE(m)                    \
@@ -22,9 +23,9 @@
 namespace bfuse {
 namespace utils {
 //---------------------------------------------------------------------------
-bool checkFusionValid(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);
+bool checkFusionValid(contexts::FusionInfo& FInfo, std::map<std::string, contexts::KernelInfo>& KInfoMap);
 //---------------------------------------------------------------------------
-std::string extractFilePath(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);
+std::string extractFilePath(contexts::FusionInfo& FInfo, std::map<std::string, contexts::KernelInfo>& KInfoMap);
 //---------------------------------------------------------------------------
 template <typename Info>
 Info readYAMLInfo(const std::string& Path)
@@ -51,8 +52,8 @@ Info readYAMLInfo(const std::string& Path)
 } // namespace bfuse
 //---------------------------------------------------------------------------
 template <>
-struct llvm::yaml::MappingTraits<bfuse::KernelInfo> {
-  static void mapping(llvm::yaml::IO &Io, bfuse::KernelInfo &Info)
+struct llvm::yaml::MappingTraits<bfuse::contexts::KernelInfo> {
+  static void mapping(llvm::yaml::IO &Io, bfuse::contexts::KernelInfo &Info)
   {
     Io.mapRequired("HasBarriers", Info.hasBarriers);
     Io.mapRequired("GridDim",     Info.gridDim);
@@ -62,16 +63,16 @@ struct llvm::yaml::MappingTraits<bfuse::KernelInfo> {
 };
 //---------------------------------------------------------------------------
 template <>
-struct llvm::yaml::MappingTraits<bfuse::FusionInfo> {
-  static void mapping(llvm::yaml::IO &Io, bfuse::FusionInfo &Info)
+struct llvm::yaml::MappingTraits<bfuse::contexts::FusionInfo> {
+  static void mapping(llvm::yaml::IO &Io, bfuse::contexts::FusionInfo &Info)
   {
     Io.mapRequired("Kernels", Info.kernels);
   }
 };
 //---------------------------------------------------------------------------
 template <>
-struct llvm::yaml::MappingTraits<bfuse::GridDim> {
-  static void mapping(llvm::yaml::IO &Io, bfuse::GridDim &Dim)
+struct llvm::yaml::MappingTraits<bfuse::contexts::GridDim> {
+  static void mapping(llvm::yaml::IO &Io, bfuse::contexts::GridDim &Dim)
   {
     Io.mapRequired("X", Dim.x);
     Io.mapRequired("Y", Dim.y);
@@ -80,8 +81,8 @@ struct llvm::yaml::MappingTraits<bfuse::GridDim> {
 };
 //---------------------------------------------------------------------------
 template <>
-struct llvm::yaml::MappingTraits<bfuse::BlockDim> {
-  static void mapping(llvm::yaml::IO &Io, bfuse::BlockDim &Dim)
+struct llvm::yaml::MappingTraits<bfuse::contexts::BlockDim> {
+  static void mapping(llvm::yaml::IO &Io, bfuse::contexts::BlockDim &Dim)
   {
     Io.mapRequired("X", Dim.x);
     Io.mapRequired("Y", Dim.y);
@@ -89,6 +90,6 @@ struct llvm::yaml::MappingTraits<bfuse::BlockDim> {
   }
 };
 //---------------------------------------------------------------------------
-LLVM_YAML_IS_SEQUENCE_VECTOR(bfuse::FusionInfo)
-LLVM_YAML_IS_STRING_MAP(bfuse::KernelInfo)
+LLVM_YAML_IS_SEQUENCE_VECTOR(bfuse::contexts::FusionInfo)
+LLVM_YAML_IS_STRING_MAP(bfuse::contexts::KernelInfo)
 //---------------------------------------------------------------------------

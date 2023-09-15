@@ -18,3 +18,4 @@ void CUDAFunctionDeclPrinter::run(const MatchFinder::MatchResult &Result) {
 //---------------------------------------------------------------------------
 } // namespace matchers
 } // namespace bfuse
+//---------------------------------------------------------------------------

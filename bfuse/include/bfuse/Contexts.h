@@ -1,14 +1,52 @@
 
 #pragma once
 
+#include <utility>
 #include <string>
 #include <vector>
 #include <map>
-
-#include "bfuse/Bfuse.h"
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace contexts {
+//---------------------------------------------------------------------------
+struct GridDim {
+  /// Grid's x, y, z dimension
+  int x, y, z;
+  /// The size of grid dimension
+  int size() const { return x * y * z; }
+
+};
+//---------------------------------------------------------------------------
+struct BlockDim {
+  /// Block's x, y, z dimension
+  int x, y, z;
+  /// The size of block dimension
+  int size() const { return x * y * z; }
+};
+//---------------------------------------------------------------------------
+class KernelInfo {
+public:
+  /// The kernels' file path
+  std::string filePath;
+  /// Whether the kernel code has synchronization barriers
+  bool hasBarriers;
+  /// The kernel's grid dimension
+  GridDim gridDim;
+  /// The kernel's block dimension
+  BlockDim blockDim;
+
+  /// Print KernelInfo
+  void print(const std::string& KName) const;
+};
+//---------------------------------------------------------------------------
+class FusionInfo {
+public:
+  /// The kernels to be fused
+  std::vector<std::string> kernels;
+
+  /// Print FusionInfo
+  void print() const;
+};
 //---------------------------------------------------------------------------
 class KernelContext {
 public:
@@ -53,6 +91,17 @@ public:
   FusionContext(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);
   /// Print FusionContext
   void print() const;
+
+  /// The default constructor
+  FusionContext() = default;
+  /// The default copy constructor
+  FusionContext(const FusionContext& other) = default;
+  /// The default move constructor
+  FusionContext(FusionContext&& other) = default;
+  /// The default copy assignment operator
+  FusionContext& operator=(const FusionContext& other) = default;
+  /// The default move assignment operator
+  FusionContext& operator=(FusionContext&& other) = default;
 };
 //---------------------------------------------------------------------------
 } // namespace contexts

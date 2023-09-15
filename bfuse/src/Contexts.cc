@@ -1,11 +1,9 @@
 
-#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <map>
 
-#include "bfuse/Bfuse.h"
 #include "bfuse/Utils.h"
 #include "bfuse/Contexts.h"
 
@@ -13,6 +11,32 @@ using namespace std;
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace contexts {
+//---------------------------------------------------------------------------
+void KernelInfo::print(const string& KName) const
+{
+  cout << "[KernelInfo]\n";
+  cout << KName << "\n";
+  cout << "  File: " << filePath << "\n";
+  cout << "  Barriers: " << hasBarriers << "\n";
+  cout << "  GridDim:\n";
+  cout << "    X: " << gridDim.x << "\n";
+  cout << "    Y: " << gridDim.y << "\n";
+  cout << "    Z: " << gridDim.z << "\n";
+  cout << "  BlockDim:\n";
+  cout << "    X: " << blockDim.x << "\n";
+  cout << "    Y: " << blockDim.y << "\n";
+  cout << "    Z: " << blockDim.z << "\n\n";
+}
+//---------------------------------------------------------------------------
+void FusionInfo::print() const
+{
+  cout << "[FusionInfo]\n";
+  cout << "  - Kernels:\n";
+  for (auto& KName : kernels) {
+    cout << "    - " << KName << "\n";
+  }
+  cout << "\n";
+}
 //---------------------------------------------------------------------------
 void KernelContext::print() const
 {

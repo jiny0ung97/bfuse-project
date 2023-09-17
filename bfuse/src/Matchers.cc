@@ -39,27 +39,37 @@ void CUDAFuncDeclPrinter::run(const MatchFinder::MatchResult &Result)
 //---------------------------------------------------------------------------
 DeclarationMatcher CUDAFuncParamRewriter::getFuncParamMatcher(string &Kname)
 {
-  return parmVarDecl(
-           hasAncestor(
-             functionDecl(
-               hasAttr(attr::CUDAGlobal),
-               hasName(Kname)
-           ))
-         )
-         .bind(CUDAFuncParamBindId);
+  // return parmVarDecl(
+  //          hasAncestor(
+  //            functionDecl(
+  //              hasAttr(attr::CUDAGlobal),
+  //              hasName(Kname)
+  //          ))
+  //        )
+  //        .bind(CUDAFuncParamBindId);
+  return functionDecl(
+           hasAttr(attr::CUDAGlobal),
+           hasName(Kname),
+           hasDescendant(
+             parmVarDecl().bind(CUDAFuncParamBindId)
+           )
+         ).bind(CUDAFuncDeclBindId);
 }
 //---------------------------------------------------------------------------
 void CUDAFuncParamRewriter::run(const MatchFinder::MatchResult &Result)
 {
-  ASTContext *Context= Result.Context;
-  const ParmVarDecl *PD = Result.Nodes.getNodeAs<ParmVarDecl>(CUDAFuncParamBindId);
+  ASTContext *Context    = Result.Context;
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+  const ParmVarDecl *PD  = Result.Nodes.getNodeAs<ParmVarDecl>(CUDAFuncParamBindId);
 
-  if (!PD) {
-    ERROR_MESSAGE("cannot find parameter declarations");
+  if (!FD) {
+    ERROR_MESSAGE("cannot find function declaration");
     return;
   }
 
-  PD->dump();
+  auto KName = FD->getNameAsString();
+  auto PName = PD->getNameAsString();
+  Writer.ReplaceText(PD->getSourceRange(), KName + PName);
 }
 //---------------------------------------------------------------------------
 StatementMatcher CUDABlockIdxRewriter::getBlockIdxMatcher(string &KName)
@@ -91,7 +101,7 @@ void CUDABlockIdxRewriter::run(const MatchFinder::MatchResult &Result)
     return;
   }
 
-  ME->dump();
+  // ME->dump();
 }
 //---------------------------------------------------------------------------
 StatementMatcher CUDASyncRewriter::getSyncMatcher(string &KName)
@@ -120,7 +130,7 @@ void CUDASyncRewriter::run(const MatchFinder::MatchResult &Result)
     return;
   }
 
-  CE->dump();
+  // CE->dump();
 }
 //---------------------------------------------------------------------------
 } // namespace matchers

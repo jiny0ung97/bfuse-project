@@ -6,6 +6,7 @@
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "clang/Rewrite/Core/Rewriter.h"
 
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
@@ -73,10 +74,13 @@ int FusionRewriteTool::rewrite(AnalyzeContext &Analysis, llvm::raw_ostream &RawO
                  OptionsParser.getSourcePathList());
 
   // Add AST matchers
-  CUDAFuncParamRewriter ParamRewriter;
-  CUDABlockIdxRewriter  BlockIdxRewriter;
-  CUDASyncRewriter      SyncRewriter;
+  Rewriter    Writer;
   MatchFinder Finder;
+
+  CUDAFuncParamRewriter ParamRewriter{Writer};
+  CUDABlockIdxRewriter  BlockIdxRewriter{Writer};
+  CUDASyncRewriter      SyncRewriter{Writer};
+
 
   for (auto &KName : Context.kernels) {
     Finder.addMatcher(ParamRewriter.getFuncParamMatcher(KName),
@@ -87,15 +91,15 @@ int FusionRewriteTool::rewrite(AnalyzeContext &Analysis, llvm::raw_ostream &RawO
                       &SyncRewriter);
   }
 
+  int Err = Tool.run(newFrontendActionFactory(&Finder).get());
+  if (Err)
+    return Err;
 
-  // TODO:
-  // Rewriter Writer;
+  auto &SourceMgr   = Writer.getSourceMgr();
+  auto &WriteBuffer = Writer.getEditBuffer(SourceMgr.getMainFileID());
+  WriteBuffer.write(RawOstream);
 
-  // auto& SM = Writer.getSourceMgr();
-  // auto& WB = Writer.getEditBuffer(SM.getMainFileID());
-  // WB.write(RawOstream);
-
-  return Tool.run(newFrontendActionFactory(&Finder).get());
+  return Err;
 }
 //---------------------------------------------------------------------------
 int FusionRewriteTool::printFunctionDeclExample() const

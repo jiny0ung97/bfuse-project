@@ -105,7 +105,7 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     }
 
     // [Test]
-    // cout << RawStream.str() << "\n";
+    cout << RawStream.str() << "\n";
 
     // 3. Create new fused function
     FusionBuildTool FBTool;

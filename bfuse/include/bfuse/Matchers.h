@@ -5,6 +5,7 @@
 
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "clang/Rewrite/Core/Rewriter.h"
 
 //---------------------------------------------------------------------------
 namespace bfuse {
@@ -26,14 +27,22 @@ public:
 class CUDAFuncParamRewriter
       : public clang::ast_matchers::MatchFinder::MatchCallback {
 private:
+  /// The cuda function declaration bind id
+  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
   /// The cuda function parameters bind id
   const std::string CUDAFuncParamBindId = "cudaFuncParam";
+
+  /// The clang rewriter
+  clang::Rewriter &Writer;
 
 public:
   /// Get function parameters matcher
   clang::ast_matchers::DeclarationMatcher getFuncParamMatcher(std::string &Kname);
   /// Run AST matcher
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+
+  /// The constructor
+  explicit CUDAFuncParamRewriter(clang::Rewriter &OtherWriter) : Writer{OtherWriter} {}
 };
 //---------------------------------------------------------------------------
 class CUDABlockIdxRewriter
@@ -42,11 +51,17 @@ private:
   /// The cuda blockIdx bind id
   const std::string CUDABlockIdxBindId = "cudaBlockIdx";
 
+  /// The clang rewriter
+  clang::Rewriter &Writer;
+
 public:
   /// Get blockIdx declaration reference matcher
   clang::ast_matchers::StatementMatcher getBlockIdxMatcher(std::string &KName);
   /// Run AST matcher
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+
+  /// The constructor
+  explicit CUDABlockIdxRewriter(clang::Rewriter &OtherWriter) : Writer{OtherWriter} {}
 };
 //---------------------------------------------------------------------------
 class CUDASyncRewriter
@@ -55,11 +70,17 @@ private:
   /// The cuda synchronization bind id
   const std::string CUDASyncBindId = "cudaSync";
 
+  /// The clang rewriter
+  clang::Rewriter &Writer;
+
 public:
   /// Get synchronization matcher
   clang::ast_matchers::StatementMatcher getSyncMatcher(std::string &KName);
   /// Run AST matcher
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+
+  /// The constructor
+  explicit CUDASyncRewriter(clang::Rewriter &OtherWriter) : Writer{OtherWriter} {}
 };
 //---------------------------------------------------------------------------
 } // namespace matchers

@@ -1,8 +1,7 @@
 
 #pragma once
 
-#include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Rewrite/Core/Rewriter.h"
+#include <string>
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -12,7 +11,7 @@
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-class FusionInstance {
+class FusionRewriteTool {
 private:
   /// The arguments to build compilation database
   OptionsParserArguments &Args;
@@ -21,26 +20,37 @@ private:
 
 public:
   /// Analyze the source code
-  int analyze();
+  int analyze(contexts::AnalyzeContext &Analysis);
   /// Rewrite the source code to raw ostream
-  int rewrite(llvm::raw_ostream &RawOstream);
+  int rewrite(contexts::AnalyzeContext &Analysis, llvm::raw_ostream &RawOstream);
   /// Test function for print function declations
   int printFunctionDeclExample() const;
 
   /// The constructor
-  FusionInstance(OptionsParserArguments &OtherArgs, contexts::FusionContext &OtherContext)
+  FusionRewriteTool(OptionsParserArguments &OtherArgs, contexts::FusionContext &OtherContext)
                 : Args{OtherArgs}, Context{OtherContext} {}
 
   /// Delete default constructor
-  FusionInstance() = delete;
+  FusionRewriteTool() = delete;
   /// Delete copy constructor
-  FusionInstance(const FusionInstance &Other) = delete;
+  FusionRewriteTool(const FusionRewriteTool &Other) = delete;
   /// Delete move constructor
-  FusionInstance(FusionInstance &&Other) = delete;
+  FusionRewriteTool(FusionRewriteTool &&Other) = delete;
   /// Delete copy assignment operator
-  FusionInstance& operator=(const FusionInstance &Other) = delete;
+  FusionRewriteTool& operator=(const FusionRewriteTool &Other) = delete;
   /// Delete move assignment operator
-  FusionInstance& operator=(FusionInstance &&Other) = delete;
+  FusionRewriteTool& operator=(FusionRewriteTool &&Other) = delete;
+};
+//---------------------------------------------------------------------------
+class FusionBuildTool {
+private:
+  /// 
+
+public:
+  /// Create new fused function from raw string
+  int createFunctionFromCode(llvm::raw_string_ostream &RawString);
+  /// Write the fused function to file
+  int write(std::string &FilePath);
 };
 //---------------------------------------------------------------------------
 } // tools

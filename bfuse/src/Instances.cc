@@ -1,6 +1,8 @@
 
 #include <cstdlib>
+#include <memory>
 
+#include "clang/Frontend/ASTUnit.h"
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
@@ -11,6 +13,8 @@
 #include "bfuse/Contexts.h"
 #include "bfuse/Matchers.h"
 #include "bfuse/Instances.h"
+
+using namespace std;
 
 using namespace clang;
 using namespace clang::tooling;
@@ -31,33 +35,42 @@ static llvm::cl::extrahelp CommonHelp(CommonOptionsParser::HelpMessage);
 // A help message for this specific tool can be added afterwards.
 static llvm::cl::extrahelp MoreHelp("\nMore help text...\n");
 //---------------------------------------------------------------------------
-static DeclarationMatcher FunctionDeclMatcher
-        = functionDecl(
-            hasAttr(attr::CUDAGlobal)
-          ).bind(CUDAFunctionDeclBindId);
-//---------------------------------------------------------------------------
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-int FusionInstance::analyze(/*maybe need AnalyzeContext?*/)
+int FusionRewriteTool::analyze(AnalyzeContext &Analysis)
 {
+  // Create compilation database
+  auto [argc, argv]   = Args.getArguments();
+  auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
+  if (!ExpectedParser) {
+    // Fail gracefully for unsupported options
+    llvm::errs() << ExpectedParser.takeError();
+    exit(0);
+  }
+  CommonOptionsParser& OptionsParser = ExpectedParser.get();
+  ClangTool Tool(OptionsParser.getCompilations(),
+                 OptionsParser.getSourcePathList());
+
+  // Add AST matchers
+
+
   return 0;
 }
 //---------------------------------------------------------------------------
-int FusionInstance::rewrite(llvm::raw_ostream &RawOstream /*, maybe need AnalyzeContext?*/)
+int FusionRewriteTool::rewrite(AnalyzeContext &Analysis, llvm::raw_ostream &RawOstream)
 {
-  // TODO: do something...
+  // TODO:
+  // Rewriter Writer;
 
-  Rewriter Writer;
-
-  auto& SM = Writer.getSourceMgr();
-  auto& WB = Writer.getEditBuffer(SM.getMainFileID());
-  WB.write(RawOstream);
+  // auto& SM = Writer.getSourceMgr();
+  // auto& WB = Writer.getEditBuffer(SM.getMainFileID());
+  // WB.write(RawOstream);
 
   return 0;
 }
 //---------------------------------------------------------------------------
-int FusionInstance::printFunctionDeclExample() const
+int FusionRewriteTool::printFunctionDeclExample() const
 {
   auto [argc, argv]   = Args.getArguments();
   auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
@@ -72,9 +85,28 @@ int FusionInstance::printFunctionDeclExample() const
 
   CUDAFunctionDeclPrinter Printer;
   MatchFinder Finder;
-  Finder.addMatcher(FunctionDeclMatcher, &Printer);
+  auto Matcher = Printer.getDeclarationMatcher();
+  Finder.addMatcher(Matcher, &Printer);
 
   return Tool.run(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionBuildTool::createFunctionFromCode(llvm::raw_string_ostream &RawString)
+{
+  // TODO:
+  // unique_ptr<ASTUnit> Unit = buildASTFromCode(RawString);
+
+  // auto &C  = Unit->getASTContext();
+  // auto *TU = C.getTranslationUnitDecl();
+
+  return 0;
+}
+//---------------------------------------------------------------------------
+int FusionBuildTool::write(string &FilePath)
+{
+  // TODO:
+  
+  return 0;
 }
 //---------------------------------------------------------------------------
 } // tools

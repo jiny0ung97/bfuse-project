@@ -10,6 +10,14 @@ using namespace clang::ast_matchers;
 namespace bfuse {
 namespace matchers {
 //---------------------------------------------------------------------------
+DeclarationMatcher CUDAFunctionDeclPrinter::getDeclarationMatcher() const
+{
+  return functionDecl(
+            hasAttr(attr::CUDAGlobal)
+          )
+          .bind(CUDAFunctionDeclBindId);
+}
+//---------------------------------------------------------------------------
 void CUDAFunctionDeclPrinter::run(const MatchFinder::MatchResult &Result) {
   if (const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFunctionDeclBindId)) {
     FD->dump();

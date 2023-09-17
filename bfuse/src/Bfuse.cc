@@ -1,9 +1,11 @@
 
 #include <cstdlib>
-// #include <iostream>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
+
+#include "llvm/Support/raw_ostream.h"
 
 #include "bfuse/Contexts.h"
 #include "bfuse/Instances.h"
@@ -65,38 +67,49 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     // [Tests]
     // Context.print();
 
-    // 1. First, analysis the kernels and plan how to rewrite the kernels
-    // 2. Second, rewrite kernels (Parameters, Synchronization, ThreadIdx, BlockIdx, etc...)
-    // 3. Need to add share "Shared Memory Variable" Algorithm
-    // 4. Third, temporally save rewrite to temp file and make fused kernel
-    // %. THE END
+    /*
+     * The Fusion Flow
+     *
+     * First,  analysis the kernels and extract data to be used
+     * Second, rewrite kernels (Parameters, Synchronization, ThreadIdx, BlockIdx, etc...)
+     *         this rewriting rule need to add share "Shared Memory Variable" Algorithm
+     * Third,  create new fused function and save it into the disk
+     * THE END
+     */
 
-    // 1. Build Fusion Instance
-    FusionInstance FI{Args, Context};
+    FusionRewriteTool FRTool{Args, Context};
 
     // [Test]
-    if (FI.printFunctionDeclExample()) {
-      ERROR_MESSAGE("error occur while running tool");
+    if (FRTool.printFunctionDeclExample()) {
+      ERROR_MESSAGE("error occur while testing tool");
       exit(0);
     }
 
-    // 2. Build my matcher (analysis) & Run
+    // 1. Analyze kernel codes to be fused
+    AnalyzeContext AContext;
+    if (FRTool.analyze(AContext)) {
+      ERROR_MESSAGE("error occur while analyzing");
+      exit(0);
+    }
 
-    // 3. Build my matcher (rewriter) & Run
-    //    Each matcher should include rewriter
-    // ... My Something ...
-    // MatchFinder Finder;
-    // Finder.addMatcher(...);
-    // Tool.run(...);
+    // 2. Rewrite kernel codes and write it back
+    string Str;
+    llvm::raw_string_ostream RawStream{Str};
+    if (FRTool.rewrite(AContext, RawStream)) {
+      ERROR_MESSAGE("error occur while rewriting");
+      exit(0);
+    }
 
-    // 4. Rewrite to temp llvm::raw_string_ostream
-    // Rewriter.getEditBuffer(...).write(...);
+    // [Test]
+    // cout << RawStream.str() << "\n";
 
-    // 5. build AST from llvm::raw_string_ostream
-    // unique_ptr<ASTUnit> Unit = buildASTFromCode(... .str());
+    FusionBuildTool FBTool;
+    // 3. Create new fused function
+    FBTool.createFunctionFromCode(RawStream);
 
-    // 6. Extract bodies and Set it
-    // TODO:
+    // 4. Write it back to file
+    string FilePath = "output.cu";
+    FBTool.write(FilePath);
   }
 }
 //---------------------------------------------------------------------------

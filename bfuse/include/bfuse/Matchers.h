@@ -10,11 +10,16 @@
 namespace bfuse {
 namespace matchers {
 //---------------------------------------------------------------------------
-const std::string CUDAFunctionDeclBindId = "cudaFunctionDecl";
-//---------------------------------------------------------------------------
 class CUDAFunctionDeclPrinter
       : public clang::ast_matchers::MatchFinder::MatchCallback {
+private:
+  /// The cuda function declaration bind id
+  const std::string CUDAFunctionDeclBindId = "cudaFunctionDecl";
+
 public:
+  /// Get matcher value
+  clang::ast_matchers::DeclarationMatcher getDeclarationMatcher() const;
+  /// Run AST matcher
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
 //---------------------------------------------------------------------------

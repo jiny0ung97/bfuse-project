@@ -1,11 +1,22 @@
 
 #include <cstdlib>
 #include <memory>
+#include <algorithm>
+#include <string>
+#include <map>
+
+#include "clang/Basic/Diagnostic.h"
+#include "clang/Basic/SourceManager.h"
+#include "clang/Basic/LangOptions.h"
 
 #include "clang/Frontend/ASTUnit.h"
 #include "clang/Frontend/FrontendActions.h"
+#include "clang/Frontend/TextDiagnosticPrinter.h"
+
 #include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Tooling/Tooling.h"
+#include "clang/Tooling/Refactoring.h"
+#include "clang/Tooling/Refactoring/Rename/RenamingAction.h"
+
 #include "clang/Rewrite/Core/Rewriter.h"
 
 #include "llvm/Support/CommandLine.h"
@@ -39,7 +50,7 @@ static llvm::cl::extrahelp MoreHelp("\nMore help text...\n");
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-int FusionRewriteTool::analyze(AnalyzeContext &Analysis)
+int FusionRewriteTool::analyze(AnalysisContext &Analysis)
 {
   // Create compilation database
   auto [argc, argv]   = Args.getArguments();
@@ -54,48 +65,104 @@ int FusionRewriteTool::analyze(AnalyzeContext &Analysis)
                  OptionsParser.getSourcePathList());
 
   // Add AST matchers
-
-
-  return 0;
-}
-//---------------------------------------------------------------------------
-int FusionRewriteTool::rewrite(AnalyzeContext &Analysis, llvm::raw_ostream &RawOstream)
-{
-  // Create compilation database
-  auto [argc, argv]   = Args.getArguments();
-  auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
-  if (!ExpectedParser) {
-    // Fail gracefully for unsupported options
-    llvm::errs() << ExpectedParser.takeError();
-    exit(0);
-  }
-  CommonOptionsParser& OptionsParser = ExpectedParser.get();
-  ClangTool Tool(OptionsParser.getCompilations(),
-                 OptionsParser.getSourcePathList());
-
-  // Add AST matchers
-  Rewriter    Writer;
   MatchFinder Finder;
-
-  CUDAFuncParamRewriter ParamRewriter{Writer};
-  CUDABlockIdxRewriter  BlockIdxRewriter{Writer};
-  CUDASyncRewriter      SyncRewriter{Writer};
-
+  CUDAFuncParamAnalyzer ParamAnalyzer;
 
   for (auto &KName : Context.kernels) {
-    Finder.addMatcher(ParamRewriter.getFuncParamMatcher(KName),
-                      &ParamRewriter);
+    Finder.addMatcher(ParamAnalyzer.getFuncParamMatcher(KName),
+                      &ParamAnalyzer);
+  }
+
+  int Err = Tool.run(newFrontendActionFactory(&Finder).get());
+  if (Err) {
+    return Err;
+  }
+
+  Analysis.kernels      = Context.kernels;
+  Analysis.ParamListMap = ParamAnalyzer.ParamListMap;
+  Analysis.USRsListMap  = ParamAnalyzer.USRsListMap;
+
+  return Err;
+}
+//---------------------------------------------------------------------------
+int FusionRewriteTool::rewrite(AnalysisContext &Analysis, llvm::raw_ostream &RawOstream)
+{
+  // Create compilation database
+  auto [argc, argv]   = Args.getArguments();
+  auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
+  if (!ExpectedParser) {
+    // Fail gracefully for unsupported options
+    llvm::errs() << ExpectedParser.takeError();
+    exit(0);
+  }
+  CommonOptionsParser& OptionsParser = ExpectedParser.get();
+  RefactoringTool Tool(OptionsParser.getCompilations(),
+                       OptionsParser.getSourcePathList());
+
+  // TODO:
+  // Renaming function parameters
+  vector<string>         NewParams;
+  vector<string>         PrevParams;
+  vector<vector<string>> USRs;
+
+  for (auto &KName : Analysis.kernels) {
+    auto &PrevParamList = Analysis.ParamListMap.at(KName);
+    auto &USRsList      = Analysis.USRsListMap.at(KName);
+
+    vector<string> NewParamList{PrevParamList.size()};
+    transform(PrevParamList.begin(), PrevParamList.end(),
+              NewParamList.begin(),
+              [&KName](string &PName) {
+                return KName + "_" + PName;
+              });
+
+    NewParams.insert(NewParams.end(),
+                     NewParamList.begin(), NewParamList.end());
+    PrevParams.insert(PrevParams.end(),
+                      PrevParamList.begin(), PrevParamList.end());
+    USRs.insert(USRs.end(),
+                USRsList.begin(), USRsList.end());
+  }
+
+  RenamingAction Renaming{NewParams, PrevParams,
+                          USRs, Tool.getReplacements()};
+
+  int Err = Tool.run(newFrontendActionFactory(&Renaming).get());
+  if (Err)
+    return Err;
+
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDABlockIdxRewriter BlockIdxRewriter{Tool.getReplacements()};
+  CUDASyncRewriter     SyncRewriter{Tool.getReplacements()};
+
+  for (auto &KName : Context.kernels) {
     Finder.addMatcher(BlockIdxRewriter.getBlockIdxMatcher(KName),
                       &BlockIdxRewriter);
     Finder.addMatcher(SyncRewriter.getSyncMatcher(KName),
                       &SyncRewriter);
   }
 
-  int Err = Tool.run(newFrontendActionFactory(&Finder).get());
+  Err = Tool.run(newFrontendActionFactory(&Finder).get());
   if (Err)
     return Err;
 
-  auto &SourceMgr   = Writer.getSourceMgr();
+  // TODO:
+  // IntrusiveRefCntPtr<DiagnosticIDs> DiagIDs      = new DiagnosticIDs();
+  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+
+  // TextDiagnosticPrinter DiagPrinter{llvm::errs(), DiagOpts.get()};
+  DiagnosticsEngine DiagEngine{IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs()),
+                               &*DiagOpts,
+                               new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts)};
+
+  SourceManager SourceMgr{DiagEngine, Tool.getFiles()};
+  LangOptions   LangOpts;
+  Rewriter      Writer{SourceMgr, LangOpts};
+
+  if (!Tool.applyAllReplacements(Writer)) {
+    return 0;
+  }
   auto &WriteBuffer = Writer.getEditBuffer(SourceMgr.getMainFileID());
   WriteBuffer.write(RawOstream);
 

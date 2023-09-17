@@ -44,5 +44,6 @@ PRIVATE
   clangFrontend
   clangSerialization
   clangTooling
+  clangToolingRefactoring
 )
 # ------------------------------------------------------------------

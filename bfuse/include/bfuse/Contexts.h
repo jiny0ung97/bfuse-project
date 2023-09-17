@@ -104,9 +104,20 @@ public:
   FusionContext& operator=(FusionContext&& other) = default;
 };
 //---------------------------------------------------------------------------
-class AnalyzeContext {
+class AnalysisContext {
 public:
-  ///
+  using ParamList = std::vector<std::string>;
+  using USRsList  = std::vector<std::vector<std::string>>;
+
+  /// The kernels to be fused
+  std::vector<std::string> kernels;
+  /// The map of function parameters' list
+  std::map<std::string, ParamList> ParamListMap;
+  /// The map of USRs lists for renaming parameters
+  std::map<std::string, USRsList> USRsListMap;
+
+  /// Print AnalysisContext
+  void print() const;
 };
 //---------------------------------------------------------------------------
 } // namespace contexts

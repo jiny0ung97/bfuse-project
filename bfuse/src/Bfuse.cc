@@ -86,13 +86,16 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     // }
 
     // 1. Analyze kernel codes to be fused
-    AnalyzeContext AContext;
+    AnalysisContext AContext;
 
     cout << "Analyze CUDA kernels...\n";
     if (FRTool.analyze(AContext)) {
       ERROR_MESSAGE("error occur while analyzing");
       exit(0);
     }
+
+    // [Test]
+    AContext.print();
 
     // 2. Rewrite kernel codes and write it back
     string Str;

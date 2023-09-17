@@ -3,6 +3,7 @@
 
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "clang/Tooling/Refactoring/Rename/USRFindingAction.h"
 
 #include "bfuse/Utils.h"
 #include "bfuse/Matchers.h"
@@ -10,6 +11,7 @@
 using namespace std;
 
 using namespace clang;
+using namespace clang::tooling;
 using namespace clang::ast_matchers;
 //---------------------------------------------------------------------------
 namespace bfuse {
@@ -20,43 +22,34 @@ DeclarationMatcher CUDAFuncDeclPrinter::getFuncDeclMatcher(std::string &KName)
   return functionDecl(
            hasAttr(attr::CUDAGlobal),
            hasName(KName)
-         )
-         .bind(CUDAFuncDeclBindId);
+         ).bind(CUDAFuncDeclBindId);
 }
 //---------------------------------------------------------------------------
 void CUDAFuncDeclPrinter::run(const MatchFinder::MatchResult &Result)
 {
-  ASTContext *Context = Result.Context;
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
-
   if (!FD) {
     ERROR_MESSAGE("cannot find function declaration");
     return;
   }
 
+  // Print function declaration
   FD->dump();
 }
 //---------------------------------------------------------------------------
-DeclarationMatcher CUDAFuncParamRewriter::getFuncParamMatcher(string &Kname)
+DeclarationMatcher CUDAFuncParamAnalyzer::getFuncParamMatcher(string &Kname)
 {
-  // return parmVarDecl(
-  //          hasAncestor(
-  //            functionDecl(
-  //              hasAttr(attr::CUDAGlobal),
-  //              hasName(Kname)
-  //          ))
-  //        )
-  //        .bind(CUDAFuncParamBindId);
-  return functionDecl(
-           hasAttr(attr::CUDAGlobal),
-           hasName(Kname),
-           hasDescendant(
-             parmVarDecl().bind(CUDAFuncParamBindId)
+  return parmVarDecl(
+           hasAncestor(
+             functionDecl(
+               hasAttr(attr::CUDAGlobal),
+               hasName(Kname)
+             ).bind(CUDAFuncDeclBindId)
            )
-         ).bind(CUDAFuncDeclBindId);
+         ).bind(CUDAFuncParamBindId);
 }
 //---------------------------------------------------------------------------
-void CUDAFuncParamRewriter::run(const MatchFinder::MatchResult &Result)
+void CUDAFuncParamAnalyzer::run(const MatchFinder::MatchResult &Result)
 {
   ASTContext *Context    = Result.Context;
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
@@ -67,9 +60,12 @@ void CUDAFuncParamRewriter::run(const MatchFinder::MatchResult &Result)
     return;
   }
 
-  auto KName = FD->getNameAsString();
-  auto PName = PD->getNameAsString();
-  Writer.ReplaceText(PD->getSourceRange(), KName + PName);
+  auto FName    = FD->getNameAsString();
+  auto PName    = PD->getNameAsString();
+  auto ParamUSR = getUSRsForDeclaration(PD->getUnderlyingDecl(), *Context);
+
+  ParamListMap[FName].push_back(PName);
+  USRsListMap[FName].push_back(ParamUSR);
 }
 //---------------------------------------------------------------------------
 StatementMatcher CUDABlockIdxRewriter::getBlockIdxMatcher(string &KName)
@@ -87,8 +83,7 @@ StatementMatcher CUDABlockIdxRewriter::getBlockIdxMatcher(string &KName)
                hasAttr(attr::CUDAGlobal),
                hasName(KName)
            ))
-         )
-         .bind(CUDABlockIdxBindId);
+         ).bind(CUDABlockIdxBindId);
 }
 //---------------------------------------------------------------------------
 void CUDABlockIdxRewriter::run(const MatchFinder::MatchResult &Result)
@@ -116,8 +111,7 @@ StatementMatcher CUDASyncRewriter::getSyncMatcher(string &KName)
                hasAttr(attr::CUDAGlobal),
                hasName(KName)
            ))
-         )
-         .bind(CUDASyncBindId);
+         ).bind(CUDASyncBindId);
 }
 //---------------------------------------------------------------------------
 void CUDASyncRewriter::run(const MatchFinder::MatchResult &Result)

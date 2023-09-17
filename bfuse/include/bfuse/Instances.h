@@ -2,6 +2,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -20,9 +21,9 @@ private:
 
 public:
   /// Analyze the source code
-  int analyze(contexts::AnalyzeContext &Analysis);
+  int analyze(contexts::AnalysisContext &Analysis);
   /// Rewrite the source code to raw ostream
-  int rewrite(contexts::AnalyzeContext &Analysis, llvm::raw_ostream &RawOstream);
+  int rewrite(contexts::AnalysisContext &Analysis, llvm::raw_ostream &RawOstream);
   /// Test function for print function declations
   int printFunctionDeclExample() const;
 

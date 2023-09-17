@@ -60,18 +60,7 @@ int FusionRewriteTool::analyze(AnalyzeContext &Analysis)
 //---------------------------------------------------------------------------
 int FusionRewriteTool::rewrite(AnalyzeContext &Analysis, llvm::raw_ostream &RawOstream)
 {
-  // TODO:
-  // Rewriter Writer;
-
-  // auto& SM = Writer.getSourceMgr();
-  // auto& WB = Writer.getEditBuffer(SM.getMainFileID());
-  // WB.write(RawOstream);
-
-  return 0;
-}
-//---------------------------------------------------------------------------
-int FusionRewriteTool::printFunctionDeclExample() const
-{
+  // Create compilation database
   auto [argc, argv]   = Args.getArguments();
   auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
   if (!ExpectedParser) {
@@ -83,10 +72,55 @@ int FusionRewriteTool::printFunctionDeclExample() const
   ClangTool Tool(OptionsParser.getCompilations(),
                  OptionsParser.getSourcePathList());
 
-  CUDAFunctionDeclPrinter Printer;
+  // Add AST matchers
+  CUDAFuncParamRewriter ParamRewriter;
+  CUDABlockIdxRewriter  BlockIdxRewriter;
+  CUDASyncRewriter      SyncRewriter;
   MatchFinder Finder;
-  auto Matcher = Printer.getDeclarationMatcher();
-  Finder.addMatcher(Matcher, &Printer);
+
+  for (auto &KName : Context.kernels) {
+    Finder.addMatcher(ParamRewriter.getFuncParamMatcher(KName),
+                      &ParamRewriter);
+    Finder.addMatcher(BlockIdxRewriter.getBlockIdxMatcher(KName),
+                      &BlockIdxRewriter);
+    Finder.addMatcher(SyncRewriter.getSyncMatcher(KName),
+                      &SyncRewriter);
+  }
+
+
+  // TODO:
+  // Rewriter Writer;
+
+  // auto& SM = Writer.getSourceMgr();
+  // auto& WB = Writer.getEditBuffer(SM.getMainFileID());
+  // WB.write(RawOstream);
+
+  return Tool.run(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionRewriteTool::printFunctionDeclExample() const
+{
+  // Create compilation database
+  auto [argc, argv]   = Args.getArguments();
+  auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
+  if (!ExpectedParser) {
+    // Fail gracefully for unsupported options
+    llvm::errs() << ExpectedParser.takeError();
+    exit(0);
+  }
+
+  CommonOptionsParser& OptionsParser = ExpectedParser.get();
+  ClangTool Tool(OptionsParser.getCompilations(),
+                 OptionsParser.getSourcePathList());
+
+  // Add AST matchers
+  CUDAFuncDeclPrinter Printer;
+  MatchFinder Finder;
+
+  for (auto &KName : Context.kernels) {
+    auto Matcher = Printer.getFuncDeclMatcher(KName);
+    Finder.addMatcher(Matcher, &Printer);
+  }
 
   return Tool.run(newFrontendActionFactory(&Finder).get());
 }
@@ -105,7 +139,7 @@ int FusionBuildTool::createFunctionFromCode(llvm::raw_string_ostream &RawString)
 int FusionBuildTool::write(string &FilePath)
 {
   // TODO:
-  
+
   return 0;
 }
 //---------------------------------------------------------------------------

@@ -65,7 +65,7 @@ FusionContext::FusionContext(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMa
   bool LastLoop      = false;
 
   for (auto& KName : FInfo.kernels) {
-    auto& Info = KInfoMap.find(KName)->second;
+    auto& Info = KInfoMap.at(KName);
 
     CurBounds[KName]     = 0;
     EndBounds[KName]     = Info.gridDim.size();
@@ -77,7 +77,7 @@ FusionContext::FusionContext(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMa
 
   while(true) {
     auto& KName        = kernels[Idx];
-    auto& Context      = kernelContextMap.find(KName)->second;
+    auto& Context      = kernelContextMap.at(KName);
     auto& BlockIdxInfo = Context.blockIdxInfo;
     auto& OtherBlocks  = Context.otherBlocks;
 
@@ -106,8 +106,8 @@ void FusionContext::print() const
 {
   cout << "================= FusionContext =================\n";
   for (auto& KName : kernels) {
-    auto& KernelInfo    = kernelInfoMap.find(KName)->second;
-    auto& KernelContext = kernelContextMap.find(KName)->second;
+    auto& KernelInfo    = kernelInfoMap.at(KName);
+    auto& KernelContext = kernelContextMap.at(KName);
 
     cout << "/// " << KName << " ///\n\n";
     KernelInfo.print(KName);

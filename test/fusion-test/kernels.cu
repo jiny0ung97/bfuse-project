@@ -23,6 +23,13 @@ extern "C" __global__ void __launch_bounds__(112) conv2d_B1(float* __restrict__ 
   float conv2d_nhwc_local[4];
   __shared__ float pad_temp_shared[2320];
   __shared__ float kernel_shared[2304];
+
+  __syncthreads();
+  int a, b;
+  a = threadIdx.x;
+  b = blockIdx.x;
+  a = b;
+
   // conv2d_nhwc_local[0] = 0.000000e+00f;
   // conv2d_nhwc_local[1] = 0.000000e+00f;
   // conv2d_nhwc_local[2] = 0.000000e+00f;

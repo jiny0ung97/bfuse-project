@@ -80,13 +80,15 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     FusionRewriteTool FRTool{Args, Context};
 
     // [Test]
-    if (FRTool.printFunctionDeclExample()) {
-      ERROR_MESSAGE("error occur while testing tool");
-      exit(0);
-    }
+    // if (FRTool.printFunctionDeclExample()) {
+    //   ERROR_MESSAGE("error occur while testing tool");
+    //   exit(0);
+    // }
 
     // 1. Analyze kernel codes to be fused
     AnalyzeContext AContext;
+
+    cout << "Analyze CUDA kernels...\n";
     if (FRTool.analyze(AContext)) {
       ERROR_MESSAGE("error occur while analyzing");
       exit(0);
@@ -95,6 +97,8 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     // 2. Rewrite kernel codes and write it back
     string Str;
     llvm::raw_string_ostream RawStream{Str};
+
+    cout << "Rewrite codes...\n";
     if (FRTool.rewrite(AContext, RawStream)) {
       ERROR_MESSAGE("error occur while rewriting");
       exit(0);
@@ -103,12 +107,17 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     // [Test]
     // cout << RawStream.str() << "\n";
 
-    FusionBuildTool FBTool;
     // 3. Create new fused function
+    FusionBuildTool FBTool;
+
+    cout << "Create new fused function...\n";
     FBTool.createFunctionFromCode(RawStream);
 
     // 4. Write it back to file
     string FilePath = "output.cu";
+
+    cout << "Save fused function...\n";
+    cout << "File: " << FilePath << "\n";
     FBTool.write(FilePath);
   }
 }

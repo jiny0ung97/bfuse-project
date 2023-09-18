@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 
-#include "llvm/Support/raw_ostream.h"
+#include "clang/Tooling/CommonOptionsParser.h"
 
 #include "bfuse/Bfuse.h"
 #include "bfuse/Contexts.h"
@@ -14,22 +14,25 @@ namespace tools {
 //---------------------------------------------------------------------------
 class FusionRewriteTool {
 private:
-  /// The arguments to build compilation database
-  OptionsParserArguments &Args;
+  /// The clang refactoring tool
+  clang::tooling::CommonOptionsParser &OptionsParser;
   /// The fusion context
   contexts::FusionContext &Context;
 
 public:
   /// Analyze the source code
   int analyze(contexts::AnalysisContext &Analysis);
-  /// Rewrite the source code to raw ostream
-  int rewrite(contexts::AnalysisContext &Analysis, llvm::raw_ostream &RawOstream);
+  /// Renaming variables
+  int rename(contexts::AnalysisContext &Analysis);
+  /// Rewrite the source code
+  int rewrite(contexts::AnalysisContext &Analysis);
   /// Test function for print function declations
   int printFunctionDeclExample() const;
 
   /// The constructor
-  FusionRewriteTool(OptionsParserArguments &OtherArgs, contexts::FusionContext &OtherContext)
-                : Args{OtherArgs}, Context{OtherContext} {}
+  FusionRewriteTool(clang::tooling::CommonOptionsParser &OtherOptionsParser,
+                    contexts::FusionContext &OtherContext)
+                   : OptionsParser{OtherOptionsParser}, Context{OtherContext} {}
 
   /// Delete default constructor
   FusionRewriteTool() = delete;
@@ -49,7 +52,7 @@ private:
 
 public:
   /// Create new fused function from raw string
-  int createFunctionFromCode(llvm::raw_string_ostream &RawString);
+  int createFunctionFromCode();
   /// Write the fused function to file
   int write(std::string &FilePath);
 };

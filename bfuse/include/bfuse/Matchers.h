@@ -8,6 +8,7 @@
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Tooling/Core/Replacement.h"
 
+#include "bfuse/Contexts.h"
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace matchers {
@@ -49,39 +50,46 @@ public:
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
 //---------------------------------------------------------------------------
-class CUDABlockIdxRewriter
+class CUDABlockInfoRewriter
       : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
   using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
 
 private:
-  /// The cuda blockIdx bind id
-  const std::string CUDABlockIdxBindId = "cudaBlockIdx";
+  /// The cuda block information member (x, y, z) bind id
+  const std::string CUDAIdxAndDimMemberBindId = "cudaIdxAndDimMember";
+  /// The cuda block information bind id
+  const std::string CUDAIdxAndDimBindId = "cudaIdxAndDim";
 
   /// The container of refactoring replacements
   FileReplacementsMap &Repls;
 
 public:
-  /// Get blockIdx declaration reference matcher
-  clang::ast_matchers::StatementMatcher getBlockIdxMatcher(std::string &KName);
+  /// Get block information declarations' reference matcher
+  clang::ast_matchers::StatementMatcher getBlockInfoMatcher(std::string &KName);
   /// Run AST matcher
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  explicit CUDABlockIdxRewriter(FileReplacementsMap &OtherReps) : Repls{OtherReps} {}
+  explicit CUDABlockInfoRewriter(FileReplacementsMap &OtherRepls) : Repls{OtherRepls} {}
 };
 //---------------------------------------------------------------------------
 class CUDASyncRewriter
       : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
+  using FileReplacementsMap  = std::map<std::string, clang::tooling::Replacements>;
+  using NameKernelContextMap = std::map<std::string, contexts::KernelContext>;
 
 private:
+  /// The cuda function declaration bind id
+  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
   /// The cuda synchronization bind id
   const std::string CUDASyncBindId = "cudaSync";
 
   /// The container of refactoring replacements
   FileReplacementsMap &Repls;
+  /// The vector to contain kernel contexts
+  NameKernelContextMap &KernelContextMap;
 
 public:
   /// Get synchronization matcher
@@ -90,7 +98,9 @@ public:
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  explicit CUDASyncRewriter(FileReplacementsMap &OtherRepls) : Repls{OtherRepls} {}
+  explicit CUDASyncRewriter(FileReplacementsMap &OtherRepls,
+                            NameKernelContextMap &OtherKernelContextMap)
+                           : Repls{OtherRepls}, KernelContextMap{OtherKernelContextMap} {}
 };
 //---------------------------------------------------------------------------
 } // namespace matchers

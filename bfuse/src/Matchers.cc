@@ -1,8 +1,10 @@
 
+#include <cstdlib>
 #include <string>
 
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "clang/Tooling/Core/Replacement.h"
 #include "clang/Tooling/Refactoring/Rename/USRFindingAction.h"
 
 #include "bfuse/Utils.h"
@@ -27,13 +29,13 @@ DeclarationMatcher CUDAFuncDeclPrinter::getFuncDeclMatcher(std::string &KName)
 //---------------------------------------------------------------------------
 void CUDAFuncDeclPrinter::run(const MatchFinder::MatchResult &Result)
 {
+  // ASTContext    *Context = Result.Context;
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
   if (!FD) {
-    ERROR_MESSAGE("cannot find function declaration");
+    ERROR_MESSAGE("cannot find function declaration pattern");
     return;
   }
 
-  // Print function declaration
   FD->dump();
 }
 //---------------------------------------------------------------------------
@@ -51,12 +53,11 @@ DeclarationMatcher CUDAFuncParamAnalyzer::getFuncParamMatcher(string &Kname)
 //---------------------------------------------------------------------------
 void CUDAFuncParamAnalyzer::run(const MatchFinder::MatchResult &Result)
 {
-  ASTContext *Context    = Result.Context;
+  ASTContext    *Context = Result.Context;
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
   const ParmVarDecl *PD  = Result.Nodes.getNodeAs<ParmVarDecl>(CUDAFuncParamBindId);
-
-  if (!FD) {
-    ERROR_MESSAGE("cannot find function declaration");
+  if (!FD || !PD) {
+    ERROR_MESSAGE("cannot find parameter pattern");
     return;
   }
 
@@ -68,7 +69,7 @@ void CUDAFuncParamAnalyzer::run(const MatchFinder::MatchResult &Result)
   USRsListMap[FName].push_back(ParamUSR);
 }
 //---------------------------------------------------------------------------
-StatementMatcher CUDABlockIdxRewriter::getBlockIdxMatcher(string &KName)
+StatementMatcher CUDABlockInfoRewriter::getBlockInfoMatcher(string &KName)
 {
   return memberExpr(
            hasObjectExpression(
@@ -76,27 +77,51 @@ StatementMatcher CUDABlockIdxRewriter::getBlockIdxMatcher(string &KName)
                hasSourceExpression(
                  declRefExpr(
                    to(varDecl(
-                     hasName("blockIdx")
-           )))))),
+                     anyOf(
+                       hasName("gridDim"),
+                       hasName("blockIdx")
+                     )).bind(CUDAIdxAndDimBindId)
+           ))))),
            hasAncestor(
              functionDecl(
                hasAttr(attr::CUDAGlobal),
                hasName(KName)
            ))
-         ).bind(CUDABlockIdxBindId);
+         ).bind(CUDAIdxAndDimMemberBindId);
 }
 //---------------------------------------------------------------------------
-void CUDABlockIdxRewriter::run(const MatchFinder::MatchResult &Result)
+void CUDABlockInfoRewriter::run(const MatchFinder::MatchResult &Result)
 {
-  ASTContext *Context= Result.Context;
-  const MemberExpr *ME = Result.Nodes.getNodeAs<MemberExpr>(CUDABlockIdxBindId);
-
-  if (!ME) {
-    ERROR_MESSAGE("cannot find blockIdx");
+  ASTContext  *Context = Result.Context;
+  const MemberExpr *ME = Result.Nodes.getNodeAs<MemberExpr>(CUDAIdxAndDimMemberBindId);
+  const VarDecl    *VD = Result.Nodes.getNodeAs<VarDecl>(CUDAIdxAndDimBindId);
+  if (!ME || !VD) {
+    ERROR_MESSAGE("cannot find block information pattern");
     return;
   }
 
-  // ME->dump();
+  map<string, string> MemberReNamingMap = {
+    {"__fetch_builtin_x", "x"},
+    {"__fetch_builtin_y", "y"},
+    {"__fetch_builtin_z", "z"}
+  };
+  auto ReNamingFunc = [](string &Var, string &Member) { return Var + "_" + Member + "_"; };
+
+  string MName    = ME->getMemberNameInfo().getAsString();
+  string VName    = VD->getNameAsString();
+  string NewMName = MemberReNamingMap.at(MName);
+  string NewVName = ReNamingFunc(VName, NewMName);
+
+  auto CharSrcRange = CharSourceRange::getTokenRange(ME->getSourceRange());
+  auto &SourceMgr   = Context->getSourceManager();
+
+  Replacement Repl{SourceMgr, CharSrcRange, NewVName};
+  string FilePath = Repl.getFilePath().str();
+
+  if (auto Err = Repls[FilePath].add(Repl)) {
+    llvm::errs() << "CUDABlockInfoRewriter error occur\n";
+    exit(0);
+  }
 }
 //---------------------------------------------------------------------------
 StatementMatcher CUDASyncRewriter::getSyncMatcher(string &KName)
@@ -110,21 +135,36 @@ StatementMatcher CUDASyncRewriter::getSyncMatcher(string &KName)
              functionDecl(
                hasAttr(attr::CUDAGlobal),
                hasName(KName)
-           ))
+             ).bind(CUDAFuncDeclBindId)
+           )
          ).bind(CUDASyncBindId);
 }
 //---------------------------------------------------------------------------
 void CUDASyncRewriter::run(const MatchFinder::MatchResult &Result)
 {
-  ASTContext *Context= Result.Context;
-  const CallExpr *CE = Result.Nodes.getNodeAs<CallExpr>(CUDASyncBindId);
-
-  if (!CE) {
-    ERROR_MESSAGE("cannot find __syncthreads()");
+  ASTContext    *Context = Result.Context;
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+  const CallExpr     *CE = Result.Nodes.getNodeAs<CallExpr>(CUDASyncBindId);
+  if (!FD || !CE) {
+    ERROR_MESSAGE("cannot find __syncthreads() pattern");
     return;
   }
 
-  // CE->dump();
+  string FName        = FD->getNameAsString();
+  auto &KContext      = KernelContextMap.at(FName);
+  auto &ThreadIdxInfo = KContext.threadIdxInfo;
+
+  auto RefactoringFunc = [](int BlockDim) { return "asm(\"bar.sync 0, " + to_string(BlockDim) + ";\");"; };
+  string NewSync       = RefactoringFunc(ThreadIdxInfo.second);
+  auto &SourceMgr      = Context->getSourceManager();
+
+  Replacement Repl{SourceMgr, CE, NewSync};
+  string FilePath = Repl.getFilePath().str();
+
+  if (auto Err = Repls[FilePath].add(Repl)) {
+    llvm::errs() << "CUDASyncRewriter error occur\n";
+    exit(0);
+  }
 }
 //---------------------------------------------------------------------------
 } // namespace matchers

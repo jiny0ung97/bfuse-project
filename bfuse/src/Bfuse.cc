@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+#include "clang/Tooling/CommonOptionsParser.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "bfuse/Contexts.h"
@@ -15,10 +17,24 @@
 
 using namespace std;
 
+using namespace clang::tooling;
+
 using namespace bfuse::contexts;
 using namespace bfuse::tools;
 using namespace bfuse::matchers;
 using namespace bfuse::utils;
+//---------------------------------------------------------------------------
+// Apply a custom category to all command-line options so that they are the
+// only ones displayed.
+static llvm::cl::OptionCategory MyToolCategory("my-tool options");
+
+// CommonOptionsParser declares HelpMessage with a description of the common
+// command-line options related to the compilation database and input files.
+// It's nice to have this help message in all tools.
+static llvm::cl::extrahelp CommonHelp(CommonOptionsParser::HelpMessage);
+
+// A help message for this specific tool can be added afterwards.
+static llvm::cl::extrahelp MoreHelp("\nMore help text...\n");
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
@@ -33,16 +49,20 @@ OptionsParserArguments::OptionsParserArguments(const char *ProgName,
   argv[1] = "-p";
   argv[2] = compileCommandsPath.c_str();
   argv[3] = filePath.c_str();
-
-  // cout << "argc: " << argc << "\n";
-  // cout << "argv: ";
-  // for (int i = 0; i < argc; ++i) {
-  //   cout << argv[i] << " ";
-  // }
-  // cout << "\n";
 }
 //---------------------------------------------------------------------------
 OptionsParserArguments::~OptionsParserArguments() { free(argv); }
+//---------------------------------------------------------------------------
+void OptionsParserArguments::print() const
+{
+  cout << "================= OptionsParserArguments =================\n";
+  cout << "argc: " << argc << "\n";
+  cout << "argv: "
+  for (int i = 0; i < argc; ++i) {
+    cout << argv[i] << " ";
+  }
+  cout << "\n";
+}
 //---------------------------------------------------------------------------
 void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPath)
 {
@@ -60,12 +80,18 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
       exit(0);
     }
 
+    // Create compilation database
     string CodePath = CompileCommandsPath + "/" + extractFilePath(Info, KernelYAML);
     OptionsParserArguments Args{ProgName, CompileCommandsPath, CodePath};
-    FusionContext          Context{Info, KernelYAML};
 
-    // [Tests]
-    // Context.print();
+    auto [argc, argv]   = Args.getArguments();
+    auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
+    if (!ExpectedParser) {
+      // Fail gracefully for unsupported options
+      llvm::errs() << ExpectedParser.takeError();
+      exit(0);
+    }
+    CommonOptionsParser& OptionsParser = ExpectedParser.get();
 
     /*
      * The Fusion Flow
@@ -77,13 +103,14 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
      * THE END
      */
 
-    FusionRewriteTool FRTool{Args, Context};
+    FusionContext     Context{Info, KernelYAML};
+    FusionRewriteTool FRTool{OptionsParser, Context};
 
-    // [Test]
-    // if (FRTool.printFunctionDeclExample()) {
-    //   ERROR_MESSAGE("error occur while testing tool");
-    //   exit(0);
-    // }
+    // 0. Backup files first
+    cout << "Backup files...\n";
+    for (auto &S : OptionsParser.getSourcePathList()) {
+      utils::backUpFiles(S);
+    }
 
     // 1. Analyze kernel codes to be fused
     AnalysisContext AContext;
@@ -95,26 +122,20 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     }
 
     // [Test]
-    AContext.print();
+    // AContext.print();
 
     // 2. Rewrite kernel codes and write it back
-    string Str;
-    llvm::raw_string_ostream RawStream{Str};
-
     cout << "Rewrite codes...\n";
-    if (FRTool.rewrite(AContext, RawStream)) {
+    if (FRTool.rewrite(AContext)) {
       ERROR_MESSAGE("error occur while rewriting");
       exit(0);
     }
-
-    // [Test]
-    // cout << RawStream.str() << "\n";
 
     // 3. Create new fused function
     FusionBuildTool FBTool;
 
     cout << "Create new fused function...\n";
-    FBTool.createFunctionFromCode(RawStream);
+    FBTool.createFunctionFromCode();
 
     // 4. Write it back to file
     string FilePath = "output.cu";

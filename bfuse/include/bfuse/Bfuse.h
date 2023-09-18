@@ -20,6 +20,8 @@ private:
 public:
   /// Get argc, argv parameter
   std::tuple<int, const char **>getArguments() const { return std::make_tuple(argc, argv); }
+  /// Print OptionsParserArguments
+  void print() const;
 
   /// The constructor
   OptionsParserArguments(const char *ProgName, std::string& CompileCommandsPath, std::string& FilePath);

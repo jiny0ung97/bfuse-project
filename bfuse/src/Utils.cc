@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+#include "llvm/Support/FileSystem.h"
+
 #include "bfuse/Contexts.h"
 #include "bfuse/Utils.h"
 
@@ -54,6 +56,17 @@ string extractFilePath(FusionInfo& FInfo, map<string, KernelInfo>& KInfoMap)
 
   // Never reach here
   return "";
+}
+//---------------------------------------------------------------------------
+void backUpFiles(const string &FileName)
+{
+  llvm::sys::fs::copy_file(FileName, FileName + ".bak");
+}
+//---------------------------------------------------------------------------
+void recoverFiles(const string &FileName)
+{
+  llvm::sys::fs::copy_file(FileName + ".bak", FileName);
+  llvm::sys::fs::remove(FileName + ".bak");
 }
 //---------------------------------------------------------------------------
 } // namespace utils

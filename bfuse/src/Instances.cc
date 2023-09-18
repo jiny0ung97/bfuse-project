@@ -25,6 +25,7 @@
 #include "bfuse/Contexts.h"
 #include "bfuse/Matchers.h"
 #include "bfuse/Instances.h"
+#include "bfuse/Utils.h"
 
 using namespace std;
 
@@ -113,7 +114,7 @@ int FusionRewriteTool::rewrite(AnalysisContext &Analysis, llvm::raw_ostream &Raw
     transform(PrevParamList.begin(), PrevParamList.end(),
               NewParamList.begin(),
               [&KName](string &PName) {
-                return KName + "_" + PName;
+                return "__" + KName + "_" + PName;
               });
 
     NewParams.insert(NewParams.end(),
@@ -124,47 +125,51 @@ int FusionRewriteTool::rewrite(AnalysisContext &Analysis, llvm::raw_ostream &Raw
                 USRsList.begin(), USRsList.end());
   }
 
+  for (auto &S : Tool.getSourcePaths()) {
+    utils::backUpFiles(S);
+  }
+
   RenamingAction Renaming{NewParams, PrevParams,
                           USRs, Tool.getReplacements()};
 
-  int Err = Tool.run(newFrontendActionFactory(&Renaming).get());
+  int Err = Tool.runAndSave(newFrontendActionFactory(&Renaming).get());
   if (Err)
     return Err;
 
   // Add AST matchers
-  MatchFinder Finder;
-  CUDABlockIdxRewriter BlockIdxRewriter{Tool.getReplacements()};
-  CUDASyncRewriter     SyncRewriter{Tool.getReplacements()};
+  // MatchFinder Finder;
+  // CUDABlockIdxRewriter BlockIdxRewriter{Tool.getReplacements()};
+  // CUDASyncRewriter     SyncRewriter{Tool.getReplacements()};
 
-  for (auto &KName : Context.kernels) {
-    Finder.addMatcher(BlockIdxRewriter.getBlockIdxMatcher(KName),
-                      &BlockIdxRewriter);
-    Finder.addMatcher(SyncRewriter.getSyncMatcher(KName),
-                      &SyncRewriter);
-  }
+  // for (auto &KName : Context.kernels) {
+  //   Finder.addMatcher(BlockIdxRewriter.getBlockIdxMatcher(KName),
+  //                     &BlockIdxRewriter);
+  //   Finder.addMatcher(SyncRewriter.getSyncMatcher(KName),
+  //                     &SyncRewriter);
+  // }
 
-  Err = Tool.run(newFrontendActionFactory(&Finder).get());
-  if (Err)
-    return Err;
+  // Err = Tool.run(newFrontendActionFactory(&Finder).get());
+  // if (Err)
+  //   return Err;
 
   // TODO:
   // IntrusiveRefCntPtr<DiagnosticIDs> DiagIDs      = new DiagnosticIDs();
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  // IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
 
-  // TextDiagnosticPrinter DiagPrinter{llvm::errs(), DiagOpts.get()};
-  DiagnosticsEngine DiagEngine{IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs()),
-                               &*DiagOpts,
-                               new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts)};
+  // // TextDiagnosticPrinter DiagPrinter{llvm::errs(), DiagOpts.get()};
+  // DiagnosticsEngine DiagEngine{IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs()),
+  //                              &*DiagOpts,
+  //                              new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts)};
 
-  SourceManager SourceMgr{DiagEngine, Tool.getFiles()};
-  LangOptions   LangOpts;
-  Rewriter      Writer{SourceMgr, LangOpts};
+  // SourceManager SourceMgr{DiagEngine, Tool.getFiles()};
+  // LangOptions   LangOpts;
+  // Rewriter      Writer{SourceMgr, LangOpts};
 
-  if (!Tool.applyAllReplacements(Writer)) {
-    return 0;
-  }
-  auto &WriteBuffer = Writer.getEditBuffer(SourceMgr.getMainFileID());
-  WriteBuffer.write(RawOstream);
+  // if (!Tool.applyAllReplacements(Writer)) {
+  //   return 0;
+  // }
+  // auto &WriteBuffer = Writer.getEditBuffer(SourceMgr.getMainFileID());
+  // WriteBuffer.write(RawOstream);
 
   return Err;
 }

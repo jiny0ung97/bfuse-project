@@ -27,6 +27,10 @@ bool checkFusionValid(contexts::FusionInfo& FInfo, std::map<std::string, context
 //---------------------------------------------------------------------------
 std::string extractFilePath(contexts::FusionInfo& FInfo, std::map<std::string, contexts::KernelInfo>& KInfoMap);
 //---------------------------------------------------------------------------
+void backUpFiles(const std::string &FileName);
+//---------------------------------------------------------------------------
+void recoverFiles(const std::string &FileName);
+//---------------------------------------------------------------------------
 template <typename Info>
 Info readYAMLInfo(const std::string& Path)
 {

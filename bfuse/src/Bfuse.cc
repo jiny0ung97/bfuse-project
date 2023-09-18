@@ -99,8 +99,9 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
      * THE END
      */
 
-    FusionContext Context{Info, KernelYAML};
-    FusionTool    Tool{OptionsParser, Context};
+    FusionContext   Context{Info, KernelYAML};
+    FusionTool      Tool{OptionsParser, Context};
+    AnalysisContext Analysis;
 
     // 0. Backup files first
     cout << "Backup files...\n";
@@ -109,32 +110,36 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     }
 
     // 1. Analyze kernel codes to be fused
-    AnalysisContext AContext;
-    cout << "Analyze CUDA kernels...\n";
-    if (Tool.analyze(AContext)) {
-      ERROR_MESSAGE("error occur while analyzing");
+    cout << "Analyzing parameters...\n";
+    if (Tool.analyzeParameters(Analysis)) {
+      ERROR_MESSAGE("error occur while analyzing parameters");
+      exit(0);
+    }
+    cout << "Analyzing thread boundaries...\n";
+    if (Tool.analyzeThreadBoundaries(Analysis)) {
+      ERROR_MESSAGE("error occur while analyzing thread boundaries");
       exit(0);
     }
 
-    // [Test]
-    // AContext.print();
-
     // 2. Rename and rewrite kernel codes and write it back
-    cout << "Renaming codes...\n";
-    if (Tool.rename(AContext)) {
+    cout << "Renaming parameters...\n";
+    if (Tool.renameParameters(Analysis)) {
       ERROR_MESSAGE("error occur while renaming");
       exit(0);
     }
-    cout << "Rewriting codes...\n";
-    if (Tool.rewrite(AContext)) {
+    cout << "Rewriting cuda informations...\n";
+    if (Tool.rewriteCUDAInfos(Analysis)) {
       ERROR_MESSAGE("error occur while rewriting");
       exit(0);
     }
 
     // 3. Create new fused function
-    cout << "Create new fused function...\n";
     string FuncStr;
-    Tool.createFunction(AContext, FuncStr);
+    cout << "Building new fused function...\n";
+    if (Tool.createFunction(Analysis, FuncStr)) {
+      ERROR_MESSAGE("error occur while creating new function");
+      exit(0);
+    }
 
     // 4. Write it back to file
     // TODO:

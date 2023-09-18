@@ -156,13 +156,12 @@ void CUDASyncRewriter::run(const MatchFinder::MatchResult &Result)
     return;
   }
 
-  string FName        = FD->getNameAsString();
-  auto &KContext      = KernelContextMap.at(FName);
-  auto &ThreadIdxInfo = KContext.threadIdxInfo;
-
   auto RefactoringFunc = [](int BlockDim) { return "asm(\"bar.sync 0, " + to_string(BlockDim) + ";\")"; };
-  string NewSync       = RefactoringFunc(ThreadIdxInfo.second);
-  auto &SourceMgr      = Context->getSourceManager();
+  string FName  = FD->getNameAsString();
+  int ThreadNum = ThreadNumMap.at(FName);
+
+  string NewSync  = RefactoringFunc(ThreadNum);
+  auto &SourceMgr = Context->getSourceManager();
 
   Replacement Repl{SourceMgr, CE, NewSync};
   string FilePath = Repl.getFilePath().str();
@@ -195,32 +194,36 @@ void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
     return;
   }
 
-  auto &PrintPolicy = Context->getPrintingPolicy();
-
   // Print function body
-  string FName = FD->getNameAsString();
+  string FName         = FD->getNameAsString();
+  auto &FuncBodyStrMap = Analysis.FuncBodyStringMap;
+  auto &PrintPolicy    = Context->getPrintingPolicy();
+
   string BodyStr;
   llvm::raw_string_ostream BodyStream{BodyStr};
 
-  if (FuncBodyStringMap.find(FName) == FuncBodyStringMap.end()) {
+  if (FuncBodyStrMap.find(FName) == FuncBodyStrMap.end()) {
     FD->getBody()->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
     BodyStream.flush();
-    FuncBodyStringMap[FName] = BodyStr;
+    FuncBodyStrMap[FName] = BodyStr;
   }
 
   // Print function parameters
+  auto &ParmStrList = Analysis.ParmStringList;
+
   string ParamStr;
   llvm::raw_string_ostream ParamStream{ParamStr};
 
   PD->print(ParamStream, Context->getPrintingPolicy());
   ParamStream.flush();
-  ParmStringList.push_back(ParamStr);
+  ParmStrList.push_back(ParamStr);
 }
 //---------------------------------------------------------------------------
 void CUDAFuncBuilder::onEndOfTranslationUnit()
 {
   // Macro
-  string TVMMacros = R"(
+  string TVMMacros =
+R"(
 #if (((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)) || \
       (__CUDACC_VER_MAJOR__ > 11))
 #define TVM_ENABLE_L2_PREFETCH 1
@@ -246,11 +249,8 @@ void CUDAFuncBuilder::onEndOfTranslationUnit()
   // Attributes
   string ExternAttr     = "extern \"C\"";
   string CUDAGlobalAttr = "__global__";
-
-  Analysis.ThreadBoundary = 128; // temp
-
-  string CUDALaunchAttr = "__launch_bounds__(";
-  CUDALaunchAttr += to_string(Analysis.ThreadBoundary) + ")";
+  string CUDALaunchAttr = "";
+  CUDALaunchAttr += "__launch_bounds__(" + to_string(Analysis.MaxThreadBound) + ")";
 
   // Function declaration (name)
   string CUDAFuncName = "";
@@ -262,27 +262,35 @@ void CUDAFuncBuilder::onEndOfTranslationUnit()
   // Function declaration (paramenter)
   // FIXME: need to fix __restrict -> __restrict__
   // Maybe bug?
+  auto &ParmStrList = Analysis.ParmStringList;
   auto AccFunc = [](string a, string b) { return a + ", " + b; };
 
-  string CUDAFuncParam = accumulate(ParmStringList.begin() + 1,
-                                    ParmStringList.end(),
-                                    ParmStringList[0],
+  string CUDAFuncParam = accumulate(ParmStrList.begin() + 1,
+                                    ParmStrList.end(),
+                                    ParmStrList[0],
                                     AccFunc);
+  
+  // Function body
+  auto &BranchCondMap  = Analysis.BranchConditionMap;
+  auto &FuncBodyStrMap = Analysis.FuncBodyStringMap;
 
+  string CUDAFuncBody = "";
+  for (auto &KName : Analysis.kernels) {
+    auto &CondStr = BranchCondMap.at(KName);
+    auto &BodyStr = FuncBodyStrMap.at(KName);
+
+    CUDAFuncBody += "  if (" + CondStr + ")\n";
+    CUDAFuncBody += BodyStr; // include {}
+  }
+
+  // Create fused function
   FuncStream << TVMMacros
              << ExternAttr << " " << CUDAGlobalAttr << " "
              << CUDALaunchAttr << " " << CUDAFuncName << "("
-             << CUDAFuncParam << ")\n";
-  
-  // Function body
-  FuncStream << "{\n";
-  for (auto &KName : Analysis.kernels) {
-    auto &BodyStr = FuncBodyStringMap.at(KName);
-
-    FuncStream << "  if (condition)\n";
-    FuncStream << BodyStr; // include {}
-  }
-  FuncStream << "}\n"; // end compound
+             << CUDAFuncParam << ")\n"
+             << "{\n"
+             <<    CUDAFuncBody
+             << "}\n";
   
   // [Test]
   cout << FuncStream.str();

@@ -90,8 +90,8 @@ private:
 
   /// The container of refactoring replacements
   FileReplacementsMap &Repls;
-  /// The vector to contain kernel contexts
-  NameKernelContextMap &KernelContextMap;
+  /// The map of threads' number
+  std::map<std::string, int> &ThreadNumMap;
 
 public:
   /// Get synchronization matcher
@@ -101,8 +101,8 @@ public:
 
   /// The constructor
   explicit CUDASyncRewriter(FileReplacementsMap &OtherRepls,
-                            NameKernelContextMap &OtherKernelContextMap)
-                           : Repls{OtherRepls}, KernelContextMap{OtherKernelContextMap} {}
+                            std::map<std::string, int> &OtherThreadNumMap)
+                           : Repls{OtherRepls}, ThreadNumMap{OtherThreadNumMap} {}
 };
 //---------------------------------------------------------------------------
 class CUDAFuncBuilder
@@ -118,10 +118,6 @@ private:
 
   /// The string stream of fused function
   llvm::raw_string_ostream FuncStream;
-  /// The list of functions to be fused
-  std::map<std::string, std::string> FuncBodyStringMap;
-  /// The string list of parameters
-  std::vector<std::string> ParmStringList;
 
 public:
   /// Get function declaration matcher

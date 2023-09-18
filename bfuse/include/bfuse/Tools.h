@@ -15,25 +15,28 @@ class FusionTool {
 private:
   /// The clang refactoring tool
   clang::tooling::CommonOptionsParser &OptionsParser;
-  /// The fusion context
-  contexts::FusionContext &Context;
+  /// The Fusion Context
+  contexts::FusionContext &FContext;
 
 public:
-  /// Analyze the source code
-  int analyze(contexts::AnalysisContext &Analysis);
-  /// Renaming variables
-  int rename(contexts::AnalysisContext &Analysis);
+  /// Analyze function parameters
+  int analyzeParameters(contexts::AnalysisContext &Analysis);
+  /// Analyze threadIdx, blockIdx boundry and create branch condition
+  int analyzeThreadBoundaries(contexts::AnalysisContext &Analysis);
+
+  /// Rename function parameters
+  int renameParameters(contexts::AnalysisContext &Analysis);
   /// Rewrite the source code
-  int rewrite(contexts::AnalysisContext &Analysis);
+  int rewriteCUDAInfos(contexts::AnalysisContext &Analysis);
   /// Create fused function
   int createFunction(contexts::AnalysisContext &Analysis, std::string &FuncStr);
   /// Test function for print function declations
-  int printFunctionDeclExample() const;
+  int printFuncDeclExample() const;
 
   /// The constructor
-  FusionTool(clang::tooling::CommonOptionsParser &OtherOptionsParser,
-             contexts::FusionContext &OtherContext)
-            : OptionsParser{OtherOptionsParser}, Context{OtherContext} {}
+  explicit FusionTool(clang::tooling::CommonOptionsParser &OtherOptionsParser,
+                      contexts::FusionContext &OtherFContext)
+                     : OptionsParser{OtherOptionsParser}, FContext{OtherFContext} {}
 
   /// Delete default constructor
   FusionTool() = delete;

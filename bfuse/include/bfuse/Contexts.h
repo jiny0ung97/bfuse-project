@@ -109,6 +109,7 @@ public:
   using ParamList = std::vector<std::string>;
   using USRsList  = std::vector<std::vector<std::string>>;
 
+  /// Analyze & Rewrite ///
   /// The kernels to be fused
   std::vector<std::string> kernels;
   /// The map of function parameters' list
@@ -116,10 +117,18 @@ public:
   /// The map of USRs lists for renaming parameters
   std::map<std::string, USRsList> USRsListMap;
 
-  /// The fused kernel's block boundary
-  int BlockBoundary;
-  /// The fused kernel's thread boundary
-  int ThreadBoundary;
+  /// Build ///
+  /// The list of functions to be fused
+  std::map<std::string, std::string> FuncBodyStringMap;
+  /// The string list of parameters
+  std::vector<std::string> ParmStringList;
+
+  /// The map of threads' number
+  std::map<std::string, int> ThreadNumMap;
+  /// The max threads bound
+  int MaxThreadBound;
+  /// The Branch Condition
+  std::map<std::string, std::string> BranchConditionMap;
 
   /// Print AnalysisContext
   void print() const;

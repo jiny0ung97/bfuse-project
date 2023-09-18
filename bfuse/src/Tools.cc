@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <memory>
 #include <algorithm>
+#include <numeric>
 #include <string>
 #include <map>
 
@@ -17,6 +18,8 @@
 #include "clang/Tooling/Refactoring/Rename/RenamingAction.h"
 
 #include "clang/Rewrite/Core/Rewriter.h"
+
+#include "llvm/Support/raw_ostream.h"
 
 #include "bfuse/Contexts.h"
 #include "bfuse/Matchers.h"
@@ -35,7 +38,7 @@ using namespace bfuse::matchers;
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-int FusionTool::analyze(AnalysisContext &Analysis)
+int FusionTool::analyzeParameters(AnalysisContext &Analysis)
 {
   // Clang Tool
   ClangTool Tool(OptionsParser.getCompilations(),
@@ -45,7 +48,7 @@ int FusionTool::analyze(AnalysisContext &Analysis)
   MatchFinder Finder;
   CUDAFuncParamAnalyzer ParamAnalyzer;
 
-  for (auto &KName : Context.kernels) {
+  for (auto &KName : FContext.kernels) {
     Finder.addMatcher(ParamAnalyzer.getFuncParamMatcher(KName),
                       &ParamAnalyzer);
   }
@@ -55,14 +58,59 @@ int FusionTool::analyze(AnalysisContext &Analysis)
     return Err;
   }
 
-  Analysis.kernels      = Context.kernels;
+  Analysis.kernels      = FContext.kernels;
   Analysis.ParamListMap = ParamAnalyzer.ParamListMap;
   Analysis.USRsListMap  = ParamAnalyzer.USRsListMap;
-
   return Err;
 }
 //---------------------------------------------------------------------------
-int FusionTool::rename(AnalysisContext &Analysis)
+int FusionTool::analyzeThreadBoundaries(AnalysisContext &Analysis)
+{
+  auto PrintInfoToCondFunc = [](string V, auto &Info) {
+    string Str;
+    llvm::raw_string_ostream RawStream{Str};
+    RawStream << "((" << V << " >= " << Info.first << ") && "
+              << "(" << V << " < " << Info.second << "))";
+    RawStream.flush();
+    return Str;
+  };
+
+  int MaxBound = 0;
+  for (auto &KName : FContext.kernels) {
+    string CondStr;
+    llvm::raw_string_ostream CondStream{CondStr};
+    auto &KernelContext = FContext.kernelContextMap.at(KName);
+    auto &BlockIdxInfo  = KernelContext.blockIdxInfo;
+    auto &ThreadIdxInfo = KernelContext.threadIdxInfo;
+
+    // threadIdx condition
+    CondStream << "(";
+    CondStream << PrintInfoToCondFunc("threadIdx.x", ThreadIdxInfo);
+    CondStream << ") && ";
+
+    // blockIdx condition
+    CondStream << "(";
+    CondStream << accumulate(BlockIdxInfo.begin() + 1,
+                             BlockIdxInfo.end(),
+                             PrintInfoToCondFunc("blockIdx.x", BlockIdxInfo[0]),
+                             [&](string &Acc, auto &Info) {
+                               return Acc + " || " + PrintInfoToCondFunc("blockIdx.x", Info);
+                             }
+                            );
+    CondStream << ")";
+    CondStream.flush();
+
+    Analysis.BranchConditionMap[KName] = CondStr;
+    Analysis.ThreadNumMap[KName]       = ThreadIdxInfo.second;
+
+    MaxBound = MaxBound < ThreadIdxInfo.second ? ThreadIdxInfo.second : MaxBound;
+  }
+
+  Analysis.MaxThreadBound = MaxBound;
+  return 0;
+}
+//---------------------------------------------------------------------------
+int FusionTool::renameParameters(AnalysisContext &Analysis)
 {
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser.getCompilations(),
@@ -99,7 +147,7 @@ int FusionTool::rename(AnalysisContext &Analysis)
   return Tool.runAndSave(newFrontendActionFactory(&Renaming).get());
 }
 //---------------------------------------------------------------------------
-int FusionTool::rewrite(AnalysisContext &Analysis)
+int FusionTool::rewriteCUDAInfos(AnalysisContext &Analysis)
 {
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser.getCompilations(),
@@ -108,10 +156,9 @@ int FusionTool::rewrite(AnalysisContext &Analysis)
   // Add AST matchers
   MatchFinder Finder;
   CUDABlockInfoRewriter BlockInfoRewriter{Tool.getReplacements()};
-  CUDASyncRewriter      SyncRewriter{Tool.getReplacements(),
-                                     Context.kernelContextMap};
+  CUDASyncRewriter      SyncRewriter{Tool.getReplacements(), Analysis.ThreadNumMap};
 
-  for (auto &KName : Context.kernels) {
+  for (auto &KName : Analysis.kernels) {
     Finder.addMatcher(BlockInfoRewriter.getBlockInfoMatcher(KName),
                       &BlockInfoRewriter);
     Finder.addMatcher(SyncRewriter.getSyncMatcher(KName),
@@ -120,7 +167,7 @@ int FusionTool::rewrite(AnalysisContext &Analysis)
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
-int FusionTool::printFunctionDeclExample() const
+int FusionTool::printFuncDeclExample() const
 {
   // Clang Tool
   ClangTool Tool(OptionsParser.getCompilations(),
@@ -130,7 +177,7 @@ int FusionTool::printFunctionDeclExample() const
   MatchFinder Finder;
   CUDAFuncDeclPrinter Printer;
 
-  for (auto &KName : Context.kernels) {
+  for (auto &KName : FContext.kernels) {
     auto Matcher = Printer.getFuncDeclMatcher(KName);
     Finder.addMatcher(Matcher, &Printer);
   }
@@ -147,7 +194,7 @@ int FusionTool::createFunction(AnalysisContext &Analysis, string &FuncStr)
   MatchFinder Finder;
   CUDAFuncBuilder Builder{Analysis, FuncStr};
 
-  for (auto &KName : Context.kernels) {
+  for (auto &KName : Analysis.kernels) {
     auto Matcher = Builder.getFuncBuildMatcher(KName);
     Finder.addMatcher(Matcher, &Builder);
   }

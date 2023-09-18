@@ -118,21 +118,21 @@ void FusionContext::print() const
 void AnalysisContext::print() const
 {
   cout << "================= AnalysisContext =================\n";
-  for (auto &KName : kernels) {
-    auto &PL = ParamListMap.at(KName);
-    auto &UL = USRsListMap.at(KName);
+  for (auto& KName : kernels) {
+    auto& PL = ParamListMap.at(KName);
+    auto& UL = USRsListMap.at(KName);
 
     cout << "/// " << KName << " ///\n\n";
     cout << "Parameters: ";
-    for (auto &P : PL) {
+    for (auto& P : PL) {
       cout << P << " ";
     }
     cout << "\n";
 
     cout << "USRs:\n";
-    for (auto &UV : UL) {
+    for (auto& UV : UL) {
       cout << "      ";
-      for (auto &U : UV) {
+      for (auto& U : UV) {
         cout << U << " ";
       }
       cout << "\n";

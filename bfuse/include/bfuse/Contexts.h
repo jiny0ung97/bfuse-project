@@ -56,8 +56,7 @@ public:
   IdxBoundPair threadIdxInfo;
   /// The kernel's blockIdx boundary
   std::vector<IdxBoundPair> blockIdxInfo;
-  /// # of blocks from other fused kernels
-  /// To rewrite blockIdx variables
+  /// Num of blocks from other fused kernels
   std::vector<int> otherBlocks;
 
   /// The constructor
@@ -116,6 +115,8 @@ public:
   std::map<std::string, ParamList> ParamListMap;
   /// The map of USRs lists for renaming parameters
   std::map<std::string, USRsList> USRsListMap;
+  /// The map of new blockIdx, gridDim declarations
+  std::map<std::string, std::string> NewBlockInfoStringMap;
 
   /// Build ///
   /// The list of functions to be fused

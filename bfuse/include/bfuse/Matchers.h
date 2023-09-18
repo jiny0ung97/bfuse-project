@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
@@ -58,6 +59,8 @@ public:
   using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
 
 private:
+  /// The cuda function declaration bind id
+  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
   /// The cuda block information member (x, y, z) bind id
   const std::string CUDAIdxAndDimMemberBindId = "cudaIdxAndDimMember";
   /// The cuda block information bind id
@@ -65,6 +68,10 @@ private:
 
   /// The container of refactoring replacements
   FileReplacementsMap &Repls;
+  /// The map of new blockIdx, gridDim declarations
+  std::map<std::string, std::string> &NewBlockInfoStringMap;
+  /// The set of visited functions
+  std::set<std::string> VisitedFuncSet;
 
 public:
   /// Get block information declarations' reference matcher
@@ -73,7 +80,10 @@ public:
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  explicit CUDABlockInfoRewriter(FileReplacementsMap &OtherRepls) : Repls{OtherRepls} {}
+  explicit CUDABlockInfoRewriter(FileReplacementsMap &OtherRepls,
+                                 std::map<std::string, std::string> &OtherInfoStringMap)
+                                : Repls{OtherRepls},
+                                  NewBlockInfoStringMap{OtherInfoStringMap}, VisitedFuncSet{} {}
 };
 //---------------------------------------------------------------------------
 class CUDASyncRewriter
@@ -115,7 +125,6 @@ private:
 
   /// The analysis of functions to be fused
   contexts::AnalysisContext &Analysis;
-
   /// The string stream of fused function
   llvm::raw_string_ostream FuncStream;
 

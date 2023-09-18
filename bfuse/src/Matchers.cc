@@ -36,7 +36,7 @@ DeclarationMatcher CUDAFuncDeclPrinter::getFuncDeclMatcher(string &KName)
 void CUDAFuncDeclPrinter::run(const MatchFinder::MatchResult &Result)
 {
   // ASTContext    *Context = Result.Context;
-  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+  const FunctionDecl* FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
   if (!FD) {
     ERROR_MESSAGE("cannot find function declaration pattern");
     return;
@@ -57,11 +57,11 @@ DeclarationMatcher CUDAFuncParamAnalyzer::getFuncParamMatcher(string &Kname)
          ).bind(CUDAFuncParamBindId);
 }
 //---------------------------------------------------------------------------
-void CUDAFuncParamAnalyzer::run(const MatchFinder::MatchResult &Result)
+void CUDAFuncParamAnalyzer::run(const MatchFinder::MatchResult& Result)
 {
-  ASTContext    *Context = Result.Context;
+  ASTContext *Context = Result.Context;
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
-  const ParmVarDecl *PD  = Result.Nodes.getNodeAs<ParmVarDecl>(CUDAFuncParamBindId);
+  const ParmVarDecl  *PD = Result.Nodes.getNodeAs<ParmVarDecl>(CUDAFuncParamBindId);
   if (!FD || !PD) {
     ERROR_MESSAGE("cannot find parameter pattern");
     return;
@@ -92,24 +92,27 @@ StatementMatcher CUDABlockInfoRewriter::getBlockInfoMatcher(string &KName)
              functionDecl(
                hasAttr(attr::CUDAGlobal),
                hasName(KName)
-           ))
+             ).bind(CUDAFuncDeclBindId)
+           )
          ).bind(CUDAIdxAndDimMemberBindId);
 }
 //---------------------------------------------------------------------------
 void CUDABlockInfoRewriter::run(const MatchFinder::MatchResult &Result)
 {
-  ASTContext  *Context = Result.Context;
-  const MemberExpr *ME = Result.Nodes.getNodeAs<MemberExpr>(CUDAIdxAndDimMemberBindId);
-  const VarDecl    *VD = Result.Nodes.getNodeAs<VarDecl>(CUDAIdxAndDimBindId);
+  ASTContext  *Context   = Result.Context;
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+  const MemberExpr *ME   = Result.Nodes.getNodeAs<MemberExpr>(CUDAIdxAndDimMemberBindId);
+  const VarDecl    *VD   = Result.Nodes.getNodeAs<VarDecl>(CUDAIdxAndDimBindId);
   if (!ME || !VD) {
     ERROR_MESSAGE("cannot find block information pattern");
     return;
   }
 
+  // Rewrite thread informations
   map<string, string> MemberReNamingMap = {
     {"__fetch_builtin_x", "x"},
-    {"__fetch_builtin_y", "y"},
-    {"__fetch_builtin_z", "z"}
+    // {"__fetch_builtin_y", "y"},
+    // {"__fetch_builtin_z", "z"}
   };
   auto ReNamingFunc = [](string &Var, string &Member) { return Var + "_" + Member + "_"; };
 
@@ -119,15 +122,32 @@ void CUDABlockInfoRewriter::run(const MatchFinder::MatchResult &Result)
   string NewVName = ReNamingFunc(VName, NewMName);
 
   auto CharSrcRange = CharSourceRange::getTokenRange(ME->getSourceRange());
-  auto &SourceMgr   = Context->getSourceManager();
+  auto& SourceMgr   = Context->getSourceManager();
 
-  Replacement Repl{SourceMgr, CharSrcRange, NewVName};
-  string FilePath = Repl.getFilePath().str();
+  Replacement RenameRepl{SourceMgr, CharSrcRange, NewVName};
+  string RFilePath = RenameRepl.getFilePath().str();
 
-  if (auto Err = Repls[FilePath].add(Repl)) {
+  if (auto Err = Repls[RFilePath].add(RenameRepl)) {
     llvm::errs() << "CUDABlockInfoRewriter error occur\n";
     exit(0);
   }
+
+  // Append new declaration of thread information
+  string FName = FD->getNameAsString();
+  if (VisitedFuncSet.find(FName) != VisitedFuncSet.end())
+    return; // Already append. return
+
+  auto SourceLoc          = FD->getBody()->getBeginLoc().getLocWithOffset(1);
+  auto& NewThreadInfoDecl = NewBlockInfoStringMap.at(FName);
+
+  Replacement DeclRepl{SourceMgr, SourceLoc, 0, NewThreadInfoDecl};
+  string DFilePath = DeclRepl.getFilePath().str();
+
+  if (auto Err = Repls[DFilePath].add(DeclRepl)) {
+    llvm::errs() << "CUDABlockInfoRewriter error occur\n";
+    exit(0);
+  }
+  VisitedFuncSet.insert(FName);
 }
 //---------------------------------------------------------------------------
 StatementMatcher CUDASyncRewriter::getSyncMatcher(string &KName)
@@ -291,10 +311,7 @@ R"(
              << "{\n"
              <<    CUDAFuncBody
              << "}\n";
-  
-  // [Test]
-  cout << FuncStream.str();
-
+             
   FuncStream.flush();
 }
 //---------------------------------------------------------------------------

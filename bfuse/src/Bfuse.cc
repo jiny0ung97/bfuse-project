@@ -34,8 +34,8 @@ static llvm::cl::extrahelp MoreHelp("\nMore help text...\n");
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
-OptionsParserArguments::OptionsParserArguments(const char *ProgName,
-                                               string &CompileCommandsPath, string &FilePath)
+OptionsParserArguments::OptionsParserArguments(const char* ProgName,
+                                               string& CompileCommandsPath, string& FilePath)
 {
   compileCommandsPath = CompileCommandsPath;
   filePath            = FilePath;
@@ -60,7 +60,7 @@ void OptionsParserArguments::print() const
   cout << "\n";
 }
 //---------------------------------------------------------------------------
-void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPath)
+void bfuse(const char* ProgName, string ConfigFilePath, string CompileCommandsPath)
 {
   string FusionInfoPath = ConfigFilePath + "/fusions.yaml";
   string KernelInfoPath = ConfigFilePath + "/kernels.yaml";
@@ -70,7 +70,7 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
   auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
 
   // Run block-level fusion
-  for (auto &Info : FusionYAML) {
+  for (auto& Info : FusionYAML) {
     if (!utils::checkFusionValid(Info, KernelYAML)) {
       ERROR_MESSAGE("invalid fusion definition exist");
       exit(0);
@@ -94,7 +94,7 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
      *
      * First,  analysis the kernels and extract data to be used
      * Second, rewrite kernels (Parameters, Synchronization, ThreadIdx, BlockIdx, etc...)
-     *         this rewriting rule need to add share "Shared Memory Variable" Algorithm
+     *         this rewriting rule needs to add  "Union Shared Memory Variable" Algorithm
      * Third,  create new fused function and save it into the disk
      * THE END
      */
@@ -105,7 +105,7 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
 
     // 0. Backup files first
     cout << "Backup files...\n";
-    for (auto &S : OptionsParser.getSourcePathList()) {
+    for (auto& S : OptionsParser.getSourcePathList()) {
       utils::backUpFiles(S);
     }
 
@@ -140,6 +140,9 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
       ERROR_MESSAGE("error occur while creating new function");
       exit(0);
     }
+
+    // [Test]
+    cout << FuncStr;
 
     // 4. Write it back to file
     // TODO:

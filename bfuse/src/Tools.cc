@@ -1,5 +1,6 @@
 
 #include <cstdlib>
+#include <cassert>
 #include <memory>
 #include <algorithm>
 #include <numeric>
@@ -69,14 +70,16 @@ int FusionTool::analyzeThreadBoundaries(AnalysisContext &Analysis)
   auto PrintInfoToCondFunc = [](string V, auto &Info) {
     string Str;
     llvm::raw_string_ostream RawStream{Str};
-    RawStream << "((" << V << " >= " << Info.first << ") && "
-              << "(" << V << " < " << Info.second << "))";
+    RawStream << "(" << V << " >= " << Info.first << " && "
+              << V << " < " << Info.second << ")";
     RawStream.flush();
     return Str;
   };
 
   int MaxBound = 0;
   for (auto &KName : FContext.kernels) {
+    
+    // Create boundary conditions for each kernel
     string CondStr;
     llvm::raw_string_ostream CondStream{CondStr};
     auto &KernelContext = FContext.kernelContextMap.at(KName);
@@ -103,7 +106,43 @@ int FusionTool::analyzeThreadBoundaries(AnalysisContext &Analysis)
     Analysis.BranchConditionMap[KName] = CondStr;
     Analysis.ThreadNumMap[KName]       = ThreadIdxInfo.second;
 
+    // Calculate max boundary
     MaxBound = MaxBound < ThreadIdxInfo.second ? ThreadIdxInfo.second : MaxBound;
+
+    // Create new blockIdx, gridDim declarations
+    string VarStr;
+    llvm::raw_string_ostream VarStream{VarStr};
+
+    // "others_" declaration
+    auto &OtherBlocks = KernelContext.otherBlocks;
+    assert(BlockIdxInfo.size() == OtherBlocks.size());
+
+    VarStream << "\n"
+              << "  int others_;\n"
+              << "  int gridDim_x_;\n"
+              << "  int blockIdx_x_;\n\n";
+
+    for (long unsigned I = 0; I < BlockIdxInfo.size(); ++I) {
+      auto &Info = BlockIdxInfo[I];
+      int Others = OtherBlocks[I];
+
+      if (I > 0) {
+        VarStream << "  else ";
+      } else {
+        VarStream << "  ";
+      }
+      VarStream << "if " << PrintInfoToCondFunc("blockIdx.x", Info) << " {\n"
+                << "    others_ = " << Others << ";\n"
+                << "  }\n";
+    }
+
+    // "gridDim_x_" and "blockIdx_x_" declaration
+    auto &KernelInfo = FContext.kernelInfoMap.at(KName);
+    VarStream << "  gridDim_x_  = " << KernelInfo.gridDim.size() << ";\n"
+              << "  blockIdx_x_ = blockIdx.x - others_;\n";
+    VarStream.flush();
+
+    Analysis.NewBlockInfoStringMap[KName] = VarStr;
   }
 
   Analysis.MaxThreadBound = MaxBound;
@@ -155,7 +194,7 @@ int FusionTool::rewriteCUDAInfos(AnalysisContext &Analysis)
 
   // Add AST matchers
   MatchFinder Finder;
-  CUDABlockInfoRewriter BlockInfoRewriter{Tool.getReplacements()};
+  CUDABlockInfoRewriter BlockInfoRewriter{Tool.getReplacements(), Analysis.NewBlockInfoStringMap};
   CUDASyncRewriter      SyncRewriter{Tool.getReplacements(), Analysis.ThreadNumMap};
 
   for (auto &KName : Analysis.kernels) {

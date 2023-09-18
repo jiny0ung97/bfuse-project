@@ -7,11 +7,9 @@
 
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/raw_ostream.h"
 
 #include "bfuse/Contexts.h"
-#include "bfuse/Instances.h"
-#include "bfuse/Matchers.h"
+#include "bfuse/Tools.h"
 #include "bfuse/Utils.h"
 #include "bfuse/Bfuse.h"
 
@@ -21,8 +19,6 @@ using namespace clang::tooling;
 
 using namespace bfuse::contexts;
 using namespace bfuse::tools;
-using namespace bfuse::matchers;
-using namespace bfuse::utils;
 //---------------------------------------------------------------------------
 // Apply a custom category to all command-line options so that they are the
 // only ones displayed.
@@ -39,7 +35,7 @@ static llvm::cl::extrahelp MoreHelp("\nMore help text...\n");
 namespace bfuse {
 //---------------------------------------------------------------------------
 OptionsParserArguments::OptionsParserArguments(const char *ProgName,
-                                               string& CompileCommandsPath, string& FilePath)
+                                               string &CompileCommandsPath, string &FilePath)
 {
   compileCommandsPath = CompileCommandsPath;
   filePath            = FilePath;
@@ -57,7 +53,7 @@ void OptionsParserArguments::print() const
 {
   cout << "================= OptionsParserArguments =================\n";
   cout << "argc: " << argc << "\n";
-  cout << "argv: "
+  cout << "argv: ";
   for (int i = 0; i < argc; ++i) {
     cout << argv[i] << " ";
   }
@@ -74,14 +70,14 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
   auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelInfoPath);
 
   // Run block-level fusion
-  for (auto& Info : FusionYAML) {
-    if (!checkFusionValid(Info, KernelYAML)) {
-      ERROR_MESSAGE("invalid fusion definition exist.");
+  for (auto &Info : FusionYAML) {
+    if (!utils::checkFusionValid(Info, KernelYAML)) {
+      ERROR_MESSAGE("invalid fusion definition exist");
       exit(0);
     }
 
     // Create compilation database
-    string CodePath = CompileCommandsPath + "/" + extractFilePath(Info, KernelYAML);
+    string CodePath = CompileCommandsPath + "/" + utils::extractFilePath(Info, KernelYAML);
     OptionsParserArguments Args{ProgName, CompileCommandsPath, CodePath};
 
     auto [argc, argv]   = Args.getArguments();
@@ -103,8 +99,8 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
      * THE END
      */
 
-    FusionContext     Context{Info, KernelYAML};
-    FusionRewriteTool FRTool{OptionsParser, Context};
+    FusionContext Context{Info, KernelYAML};
+    FusionTool    Tool{OptionsParser, Context};
 
     // 0. Backup files first
     cout << "Backup files...\n";
@@ -114,9 +110,8 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
 
     // 1. Analyze kernel codes to be fused
     AnalysisContext AContext;
-
     cout << "Analyze CUDA kernels...\n";
-    if (FRTool.analyze(AContext)) {
+    if (Tool.analyze(AContext)) {
       ERROR_MESSAGE("error occur while analyzing");
       exit(0);
     }
@@ -124,25 +119,31 @@ void bfuse(const char *ProgName, string ConfigFilePath, string CompileCommandsPa
     // [Test]
     // AContext.print();
 
-    // 2. Rewrite kernel codes and write it back
-    cout << "Rewrite codes...\n";
-    if (FRTool.rewrite(AContext)) {
+    // 2. Rename and rewrite kernel codes and write it back
+    cout << "Renaming codes...\n";
+    if (Tool.rename(AContext)) {
+      ERROR_MESSAGE("error occur while renaming");
+      exit(0);
+    }
+    cout << "Rewriting codes...\n";
+    if (Tool.rewrite(AContext)) {
       ERROR_MESSAGE("error occur while rewriting");
       exit(0);
     }
 
     // 3. Create new fused function
-    FusionBuildTool FBTool;
-
     cout << "Create new fused function...\n";
-    FBTool.createFunctionFromCode();
+    string FuncStr;
+    Tool.createFunction(AContext, FuncStr);
 
     // 4. Write it back to file
-    string FilePath = "output.cu";
+    // TODO:
 
-    cout << "Save fused function...\n";
-    cout << "File: " << FilePath << "\n";
-    FBTool.write(FilePath);
+    // 5. Recover files
+    cout << "Recover files...\n";
+    for (auto &S : OptionsParser.getSourcePathList()) {
+      utils::recoverFiles(S);
+    }
   }
 }
 //---------------------------------------------------------------------------

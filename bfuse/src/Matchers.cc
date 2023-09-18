@@ -1,5 +1,6 @@
 
 #include <cstdlib>
+#include <numeric>
 #include <string>
 
 #include "clang/ASTMatchers/ASTMatchers.h"
@@ -7,10 +8,15 @@
 #include "clang/Tooling/Core/Replacement.h"
 #include "clang/Tooling/Refactoring/Rename/USRFindingAction.h"
 
+#include "llvm/Support/raw_ostream.h"
+
+#include "bfuse/Contexts.h"
 #include "bfuse/Utils.h"
 #include "bfuse/Matchers.h"
 
 using namespace std;
+
+using namespace bfuse::contexts;
 
 using namespace clang;
 using namespace clang::tooling;
@@ -19,7 +25,7 @@ using namespace clang::ast_matchers;
 namespace bfuse {
 namespace matchers {
 //---------------------------------------------------------------------------
-DeclarationMatcher CUDAFuncDeclPrinter::getFuncDeclMatcher(std::string &KName)
+DeclarationMatcher CUDAFuncDeclPrinter::getFuncDeclMatcher(string &KName)
 {
   return functionDecl(
            hasAttr(attr::CUDAGlobal),
@@ -154,7 +160,7 @@ void CUDASyncRewriter::run(const MatchFinder::MatchResult &Result)
   auto &KContext      = KernelContextMap.at(FName);
   auto &ThreadIdxInfo = KContext.threadIdxInfo;
 
-  auto RefactoringFunc = [](int BlockDim) { return "asm(\"bar.sync 0, " + to_string(BlockDim) + ";\");"; };
+  auto RefactoringFunc = [](int BlockDim) { return "asm(\"bar.sync 0, " + to_string(BlockDim) + ";\")"; };
   string NewSync       = RefactoringFunc(ThreadIdxInfo.second);
   auto &SourceMgr      = Context->getSourceManager();
 
@@ -165,6 +171,123 @@ void CUDASyncRewriter::run(const MatchFinder::MatchResult &Result)
     llvm::errs() << "CUDASyncRewriter error occur\n";
     exit(0);
   }
+}
+//---------------------------------------------------------------------------
+DeclarationMatcher CUDAFuncBuilder::getFuncBuildMatcher(string &KName)
+{
+  return parmVarDecl(
+           hasAncestor(
+             functionDecl(
+               hasAttr(attr::CUDAGlobal),
+               hasName(KName)
+             ).bind(CUDAFuncDeclBindId)
+           )
+         ).bind(CUDAFuncParamBindId);
+}
+//---------------------------------------------------------------------------
+void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
+{
+  ASTContext    *Context = Result.Context;
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+  const ParmVarDecl  *PD = Result.Nodes.getNodeAs<ParmVarDecl>(CUDAFuncParamBindId);
+  if (!FD || !PD) {
+    ERROR_MESSAGE("cannot find function declaration pattern");
+    return;
+  }
+
+  auto &PrintPolicy = Context->getPrintingPolicy();
+
+  // Print function body
+  string FName = FD->getNameAsString();
+  string BodyStr;
+  llvm::raw_string_ostream BodyStream{BodyStr};
+
+  if (FuncBodyStringMap.find(FName) == FuncBodyStringMap.end()) {
+    FD->getBody()->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
+    BodyStream.flush();
+    FuncBodyStringMap[FName] = BodyStr;
+  }
+
+  // Print function parameters
+  string ParamStr;
+  llvm::raw_string_ostream ParamStream{ParamStr};
+
+  PD->print(ParamStream, Context->getPrintingPolicy());
+  ParamStream.flush();
+  ParmStringList.push_back(ParamStr);
+}
+//---------------------------------------------------------------------------
+void CUDAFuncBuilder::onEndOfTranslationUnit()
+{
+  // Macro
+  string TVMMacros = R"(
+#if (((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)) || \
+      (__CUDACC_VER_MAJOR__ > 11))
+#define TVM_ENABLE_L2_PREFETCH 1
+#else
+#define TVM_ENABLE_L2_PREFETCH 0
+#endif
+
+#ifdef _WIN32
+  using uint = unsigned int;
+  using uchar = unsigned char;
+  using ushort = unsigned short;
+  using int64_t = long long;
+  using uint64_t = unsigned long long;
+#else
+  #define uint unsigned int
+  #define uchar unsigned char
+  #define ushort unsigned short
+  #define int64_t long long
+  #define uint64_t unsigned long long
+#endif
+)";
+
+  // Attributes
+  string ExternAttr     = "extern \"C\"";
+  string CUDAGlobalAttr = "__global__";
+
+  Analysis.ThreadBoundary = 128; // temp
+
+  string CUDALaunchAttr = "__launch_bounds__(";
+  CUDALaunchAttr += to_string(Analysis.ThreadBoundary) + ")";
+
+  // Function declaration (name)
+  string CUDAFuncName = "";
+  for (auto &KName : Analysis.kernels) {
+    CUDAFuncName += KName + "_";
+  }
+  CUDAFuncName += "fused_";
+
+  // Function declaration (paramenter)
+  // FIXME: need to fix __restrict -> __restrict__
+  // Maybe bug?
+  auto AccFunc = [](string a, string b) { return a + ", " + b; };
+
+  string CUDAFuncParam = accumulate(ParmStringList.begin() + 1,
+                                    ParmStringList.end(),
+                                    ParmStringList[0],
+                                    AccFunc);
+
+  FuncStream << TVMMacros
+             << ExternAttr << " " << CUDAGlobalAttr << " "
+             << CUDALaunchAttr << " " << CUDAFuncName << "("
+             << CUDAFuncParam << ")\n";
+  
+  // Function body
+  FuncStream << "{\n";
+  for (auto &KName : Analysis.kernels) {
+    auto &BodyStr = FuncBodyStringMap.at(KName);
+
+    FuncStream << "  if (condition)\n";
+    FuncStream << BodyStr; // include {}
+  }
+  FuncStream << "}\n"; // end compound
+  
+  // [Test]
+  cout << FuncStream.str();
+
+  FuncStream.flush();
 }
 //---------------------------------------------------------------------------
 } // namespace matchers

@@ -8,6 +8,8 @@
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Tooling/Core/Replacement.h"
 
+#include "llvm/Support/raw_ostream.h"
+
 #include "bfuse/Contexts.h"
 //---------------------------------------------------------------------------
 namespace bfuse {
@@ -22,7 +24,7 @@ private:
 public:
   /// Get function declaration matcher
   clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(std::string &KName);
-  /// Run AST matcher
+  /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
 //---------------------------------------------------------------------------
@@ -46,7 +48,7 @@ public:
 
   /// Get function parameters matcher
   clang::ast_matchers::DeclarationMatcher getFuncParamMatcher(std::string &Kname);
-  /// Run AST matcher
+  /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
 //---------------------------------------------------------------------------
@@ -67,7 +69,7 @@ private:
 public:
   /// Get block information declarations' reference matcher
   clang::ast_matchers::StatementMatcher getBlockInfoMatcher(std::string &KName);
-  /// Run AST matcher
+  /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
@@ -94,13 +96,44 @@ private:
 public:
   /// Get synchronization matcher
   clang::ast_matchers::StatementMatcher getSyncMatcher(std::string &KName);
-  /// Run AST matcher
+  /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
   explicit CUDASyncRewriter(FileReplacementsMap &OtherRepls,
                             NameKernelContextMap &OtherKernelContextMap)
                            : Repls{OtherRepls}, KernelContextMap{OtherKernelContextMap} {}
+};
+//---------------------------------------------------------------------------
+class CUDAFuncBuilder
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+private:
+  /// The cuda function declaration bind id
+  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
+  /// The cuda function parameters bind id
+  const std::string CUDAFuncParamBindId = "cudaFuncParam";
+
+  /// The analysis of functions to be fused
+  contexts::AnalysisContext &Analysis;
+
+  /// The string stream of fused function
+  llvm::raw_string_ostream FuncStream;
+  /// The list of functions to be fused
+  std::map<std::string, std::string> FuncBodyStringMap;
+  /// The string list of parameters
+  std::vector<std::string> ParmStringList;
+
+public:
+  /// Get function declaration matcher
+  clang::ast_matchers::DeclarationMatcher getFuncBuildMatcher(std::string &KName);
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+  /// Run finder at the end of the translation unit
+  virtual void onEndOfTranslationUnit() override;
+
+  /// The constructor
+  CUDAFuncBuilder(contexts::AnalysisContext &OtherAnalysis, std::string &FuncStr)
+                 : Analysis{OtherAnalysis}, FuncStream{FuncStr} {}
 };
 //---------------------------------------------------------------------------
 } // namespace matchers

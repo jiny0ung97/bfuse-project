@@ -20,7 +20,7 @@
 
 #include "bfuse/Contexts.h"
 #include "bfuse/Matchers.h"
-#include "bfuse/Instances.h"
+#include "bfuse/Tools.h"
 #include "bfuse/Utils.h"
 
 using namespace std;
@@ -35,7 +35,7 @@ using namespace bfuse::matchers;
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-int FusionRewriteTool::analyze(AnalysisContext &Analysis)
+int FusionTool::analyze(AnalysisContext &Analysis)
 {
   // Clang Tool
   ClangTool Tool(OptionsParser.getCompilations(),
@@ -62,7 +62,7 @@ int FusionRewriteTool::analyze(AnalysisContext &Analysis)
   return Err;
 }
 //---------------------------------------------------------------------------
-int FusionRewriteTool::rename(AnalysisContext &Analysis)
+int FusionTool::rename(AnalysisContext &Analysis)
 {
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser.getCompilations(),
@@ -99,7 +99,7 @@ int FusionRewriteTool::rename(AnalysisContext &Analysis)
   return Tool.runAndSave(newFrontendActionFactory(&Renaming).get());
 }
 //---------------------------------------------------------------------------
-int FusionRewriteTool::rewrite(AnalysisContext &Analysis)
+int FusionTool::rewrite(AnalysisContext &Analysis)
 {
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser.getCompilations(),
@@ -120,15 +120,15 @@ int FusionRewriteTool::rewrite(AnalysisContext &Analysis)
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
-int FusionRewriteTool::printFunctionDeclExample() const
+int FusionTool::printFunctionDeclExample() const
 {
   // Clang Tool
   ClangTool Tool(OptionsParser.getCompilations(),
                  OptionsParser.getSourcePathList());
 
   // Add AST matchers
-  CUDAFuncDeclPrinter Printer;
   MatchFinder Finder;
+  CUDAFuncDeclPrinter Printer;
 
   for (auto &KName : Context.kernels) {
     auto Matcher = Printer.getFuncDeclMatcher(KName);
@@ -137,18 +137,21 @@ int FusionRewriteTool::printFunctionDeclExample() const
   return Tool.run(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
-int FusionBuildTool::createFunctionFromCode()
+int FusionTool::createFunction(AnalysisContext &Analysis, string &FuncStr)
 {
-  // TODO:
+  // Clang Tool
+  ClangTool Tool(OptionsParser.getCompilations(),
+                 OptionsParser.getSourcePathList());
 
-  return 0;
-}
-//---------------------------------------------------------------------------
-int FusionBuildTool::write(string &FilePath)
-{
-  // TODO:
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDAFuncBuilder Builder{Analysis, FuncStr};
 
-  return 0;
+  for (auto &KName : Context.kernels) {
+    auto Matcher = Builder.getFuncBuildMatcher(KName);
+    Finder.addMatcher(Matcher, &Builder);
+  }
+  return Tool.run(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
 } // tools

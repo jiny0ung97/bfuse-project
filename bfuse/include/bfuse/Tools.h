@@ -2,7 +2,6 @@
 #pragma once
 
 #include <string>
-#include <map>
 
 #include "clang/Tooling/CommonOptionsParser.h"
 
@@ -12,7 +11,7 @@
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-class FusionRewriteTool {
+class FusionTool {
 private:
   /// The clang refactoring tool
   clang::tooling::CommonOptionsParser &OptionsParser;
@@ -26,35 +25,26 @@ public:
   int rename(contexts::AnalysisContext &Analysis);
   /// Rewrite the source code
   int rewrite(contexts::AnalysisContext &Analysis);
+  /// Create fused function
+  int createFunction(contexts::AnalysisContext &Analysis, std::string &FuncStr);
   /// Test function for print function declations
   int printFunctionDeclExample() const;
 
   /// The constructor
-  FusionRewriteTool(clang::tooling::CommonOptionsParser &OtherOptionsParser,
-                    contexts::FusionContext &OtherContext)
-                   : OptionsParser{OtherOptionsParser}, Context{OtherContext} {}
+  FusionTool(clang::tooling::CommonOptionsParser &OtherOptionsParser,
+             contexts::FusionContext &OtherContext)
+            : OptionsParser{OtherOptionsParser}, Context{OtherContext} {}
 
   /// Delete default constructor
-  FusionRewriteTool() = delete;
+  FusionTool() = delete;
   /// Delete copy constructor
-  FusionRewriteTool(const FusionRewriteTool &Other) = delete;
+  FusionTool(const FusionTool &Other) = delete;
   /// Delete move constructor
-  FusionRewriteTool(FusionRewriteTool &&Other) = delete;
+  FusionTool(FusionTool &&Other) = delete;
   /// Delete copy assignment operator
-  FusionRewriteTool& operator=(const FusionRewriteTool &Other) = delete;
+  FusionTool& operator=(const FusionTool &Other) = delete;
   /// Delete move assignment operator
-  FusionRewriteTool& operator=(FusionRewriteTool &&Other) = delete;
-};
-//---------------------------------------------------------------------------
-class FusionBuildTool {
-private:
-  /// 
-
-public:
-  /// Create new fused function from raw string
-  int createFunctionFromCode();
-  /// Write the fused function to file
-  int write(std::string &FilePath);
+  FusionTool& operator=(FusionTool &&Other) = delete;
 };
 //---------------------------------------------------------------------------
 } // tools

@@ -61,7 +61,7 @@ public:
   std::vector<int> otherBlocks;
 
   /// The constructor
-  explicit KernelContext(IdxBoundPair&& ThreadIdxInfo)
+  explicit KernelContext(IdxBoundPair &&ThreadIdxInfo)
                         : threadIdxInfo{std::move(ThreadIdxInfo)}, blockIdxInfo{}, otherBlocks{} {}
   /// Print KernelContext
   void print() const;
@@ -88,20 +88,20 @@ public:
   std::map<std::string, KernelContext> kernelContextMap;
 
   /// The constructor
-  FusionContext(FusionInfo& FInfo, std::map<std::string, KernelInfo>& KInfoMap);
+  FusionContext(FusionInfo &FInfo, std::map<std::string, KernelInfo> &KInfoMap);
   /// Print FusionContext
   void print() const;
 
   /// The default constructor
   FusionContext() = default;
   /// The default copy constructor
-  FusionContext(const FusionContext& other) = default;
+  FusionContext(const FusionContext &other) = default;
   /// The default move constructor
-  FusionContext(FusionContext&& other) = default;
+  FusionContext(FusionContext &&other) = default;
   /// The default copy assignment operator
-  FusionContext& operator=(const FusionContext& other) = default;
+  FusionContext& operator=(const FusionContext &other) = default;
   /// The default move assignment operator
-  FusionContext& operator=(FusionContext&& other) = default;
+  FusionContext& operator=(FusionContext &&other) = default;
 };
 //---------------------------------------------------------------------------
 class AnalysisContext {
@@ -115,6 +115,11 @@ public:
   std::map<std::string, ParamList> ParamListMap;
   /// The map of USRs lists for renaming parameters
   std::map<std::string, USRsList> USRsListMap;
+
+  /// The fused kernel's block boundary
+  int BlockBoundary;
+  /// The fused kernel's thread boundary
+  int ThreadBoundary;
 
   /// Print AnalysisContext
   void print() const;

@@ -26,8 +26,8 @@ extern "C" __global__ void __launch_bounds__(112) conv2d_B1(float* __restrict__ 
 
   conv2d_nhwc_local[0] = data[0];
 
-  int a = blockIdx.x;
-  int b = gridDim.y;
+  // int a = blockIdx.x;
+  // int b = gridDim.y;
   __syncthreads();
 }
 

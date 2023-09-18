@@ -24,20 +24,20 @@ public:
   void print() const;
 
   /// The constructor
-  OptionsParserArguments(const char *ProgName, std::string& CompileCommandsPath, std::string& FilePath);
+  OptionsParserArguments(const char *ProgName, std::string &CompileCommandsPath, std::string &FilePath);
   /// The destructor
   ~OptionsParserArguments();
 
   /// Delete default constructor
   OptionsParserArguments() = delete;
   /// Delete copy constructor
-  OptionsParserArguments(const OptionsParserArguments& other) = delete;
+  OptionsParserArguments(const OptionsParserArguments &other) = delete;
   /// Delete move constructor
-  OptionsParserArguments(OptionsParserArguments&& other) = delete;
+  OptionsParserArguments(OptionsParserArguments &&other) = delete;
   /// Delete copy assignment operator
-  OptionsParserArguments& operator=(const OptionsParserArguments& other) = delete;
+  OptionsParserArguments& operator=(const OptionsParserArguments &other) = delete;
   /// Delete move assignment operator
-  OptionsParserArguments& operator=(OptionsParserArguments&& other) = delete;
+  OptionsParserArguments& operator=(OptionsParserArguments &&other) = delete;
 };
 //---------------------------------------------------------------------------
 void bfuse(const char *ProgName, std::string ConfigFilePath, std::string CompileCommandsPath);

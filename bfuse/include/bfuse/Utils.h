@@ -32,7 +32,7 @@ void backUpFiles(const std::string &FileName);
 void recoverFiles(const std::string &FileName);
 //---------------------------------------------------------------------------
 template <typename Info>
-Info readYAMLInfo(const std::string& Path)
+Info readYAMLInfo(const std::string &Path)
 {
   auto Buffer = llvm::MemoryBuffer::getFile(Path.c_str());
   if (!Buffer) {

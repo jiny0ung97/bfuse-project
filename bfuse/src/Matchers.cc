@@ -137,12 +137,23 @@ void CUDABlockInfoRewriter::run(const MatchFinder::MatchResult &Result)
   if (VisitedFuncSet.find(FName) != VisitedFuncSet.end())
     return; // Already append. return
 
-  auto SourceLoc = FD->getBody()->getBeginLoc().getLocWithOffset(1);
+  auto SourceBeginLoc = FD->getBody()->getBeginLoc().getLocWithOffset(1);
+  auto SourceEndLoc   = FD->getBody()->getEndLoc().getLocWithOffset(-1);
 
-  Replacement DeclRepl{SourceMgr, SourceLoc, 0, TmpBlockInfoString};
-  string DFilePath = DeclRepl.getFilePath().str();
+  // Append compound {}
+  string CompBeginString = TmpBlockInfoString + "  {";
+  string CompEndString   = "\n  }";
 
-  if (auto Err = Repls[DFilePath].add(DeclRepl)) {
+  Replacement CompBeginRepl{SourceMgr, SourceBeginLoc, 0, CompBeginString};
+  string CBFile = CompBeginRepl.getFilePath().str();
+  if (auto Err = Repls[CBFile].add(CompBeginRepl)) {
+    llvm::errs() << "CUDABlockInfoRewriter error occur\n";
+    exit(0);
+  }
+
+  Replacement CompEndRepl{SourceMgr, SourceEndLoc, 0, CompEndString};
+  string CEFile = CompEndRepl.getFilePath().str();
+  if (auto Err = Repls[CEFile].add(CompEndRepl)) {
     llvm::errs() << "CUDABlockInfoRewriter error occur\n";
     exit(0);
   }
@@ -222,7 +233,13 @@ void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
   llvm::raw_string_ostream BodyStream{BodyStr};
 
   if (FuncBodyStrMap.find(FName) == FuncBodyStrMap.end()) {
-    FD->getBody()->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
+
+    // Assume that every function has blockIdx.x and gridDim.x
+    for (auto *Child : FD->getBody()->children()) {
+      if (auto *CS = dyn_cast<CompoundStmt>(Child)) {
+        CS->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
+      }
+    }
     BodyStream.flush();
     FuncBodyStrMap[FName] = BodyStr;
   }

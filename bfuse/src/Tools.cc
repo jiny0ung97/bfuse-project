@@ -83,7 +83,7 @@ int FusionTool::analyzeThreadBoundaries(AnalysisContext &Analysis)
   TmpVarStream << "\n"
                << "  // FIXME: need to be deleted later\n"
                << "  int gridDim_x_  = 0; // temp declaration\n"
-               << "  int blockIdx_x_ = 0; // temp declaration\n\n";
+               << "  int blockIdx_x_ = 0; // temp declaration\n";
   TmpVarStream.flush();
 
   // Create new blockIdx, gridDim declarations

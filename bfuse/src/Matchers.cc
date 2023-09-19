@@ -234,12 +234,25 @@ void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
 
   if (FuncBodyStrMap.find(FName) == FuncBodyStrMap.end()) {
 
-    // Assume that every function has blockIdx.x and gridDim.x
+    // FIXME: Bug can be occured.
+    // It assume that there is no 'just compound statement'
+    // in the function body
+    // i.e.
+    // /code
+    //  {
+    //    Maybe some codes...
+    //  }
+    // /code
+    bool HasComp = false;
     for (auto *Child : FD->getBody()->children()) {
       if (auto *CS = dyn_cast<CompoundStmt>(Child)) {
+        HasComp = true;
         CS->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
       }
     }
+    if (!HasComp)
+      FD->getBody()->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
+
     BodyStream.flush();
     FuncBodyStrMap[FName] = BodyStr;
   }

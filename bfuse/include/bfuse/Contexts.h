@@ -115,10 +115,12 @@ public:
   std::map<std::string, ParamList> ParamListMap;
   /// The map of USRs lists for renaming parameters
   std::map<std::string, USRsList> USRsListMap;
+  /// The map of temp blockIdx, gridDim declarations
+  std::string TmpBlockInfoString;
   /// The map of new blockIdx, gridDim declarations
-  std::map<std::string, std::string> NewBlockInfoStringMap;
+  std::string NewBlockInfoStringMap;
 
-  /// Build ///
+  /// Create ///
   /// The list of functions to be fused
   std::map<std::string, std::string> FuncBodyStringMap;
   /// The string list of parameters
@@ -130,6 +132,9 @@ public:
   int MaxThreadBound;
   /// The Branch Condition
   std::map<std::string, std::string> BranchConditionMap;
+
+  /// Save ///
+  std::string NewFuncName;
 
   /// Print AnalysisContext
   void print() const;

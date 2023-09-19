@@ -69,7 +69,7 @@ private:
   /// The container of refactoring replacements
   FileReplacementsMap &Repls;
   /// The map of new blockIdx, gridDim declarations
-  std::map<std::string, std::string> &NewBlockInfoStringMap;
+  std::string &TmpBlockInfoString;
   /// The set of visited functions
   std::set<std::string> VisitedFuncSet;
 
@@ -80,10 +80,8 @@ public:
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  explicit CUDABlockInfoRewriter(FileReplacementsMap &OtherRepls,
-                                 std::map<std::string, std::string> &OtherInfoStringMap)
-                                : Repls{OtherRepls},
-                                  NewBlockInfoStringMap{OtherInfoStringMap}, VisitedFuncSet{} {}
+  explicit CUDABlockInfoRewriter(FileReplacementsMap &OtherRepls, std::string &OtherInfoString)
+                                : Repls{OtherRepls}, TmpBlockInfoString{OtherInfoString}, VisitedFuncSet{} {}
 };
 //---------------------------------------------------------------------------
 class CUDASyncRewriter

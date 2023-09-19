@@ -137,10 +137,9 @@ void CUDABlockInfoRewriter::run(const MatchFinder::MatchResult &Result)
   if (VisitedFuncSet.find(FName) != VisitedFuncSet.end())
     return; // Already append. return
 
-  auto SourceLoc          = FD->getBody()->getBeginLoc().getLocWithOffset(1);
-  auto& NewThreadInfoDecl = NewBlockInfoStringMap.at(FName);
+  auto SourceLoc = FD->getBody()->getBeginLoc().getLocWithOffset(1);
 
-  Replacement DeclRepl{SourceMgr, SourceLoc, 0, NewThreadInfoDecl};
+  Replacement DeclRepl{SourceMgr, SourceLoc, 0, TmpBlockInfoString};
   string DFilePath = DeclRepl.getFilePath().str();
 
   if (auto Err = Repls[DFilePath].add(DeclRepl)) {
@@ -293,13 +292,23 @@ R"(
   // Function body
   auto &BranchCondMap  = Analysis.BranchConditionMap;
   auto &FuncBodyStrMap = Analysis.FuncBodyStringMap;
+  auto &Kernels        = Analysis.kernels;
+  string CUDAFuncBody  = Analysis.NewBlockInfoStringMap;
 
-  string CUDAFuncBody = "";
-  for (auto &KName : Analysis.kernels) {
+  for (long unsigned I = 0; I < Kernels.size(); ++I) {
+    auto &KName   = Kernels[I];
     auto &CondStr = BranchCondMap.at(KName);
     auto &BodyStr = FuncBodyStrMap.at(KName);
 
-    CUDAFuncBody += "  if (" + CondStr + ")\n";
+    // Comments
+    CUDAFuncBody += "  // " + KName + "\n";
+
+    if (I == 0) {
+      CUDAFuncBody += "  ";
+    } else {
+      CUDAFuncBody += "  else ";
+    }
+    CUDAFuncBody += "if (" + CondStr + ")\n";
     CUDAFuncBody += BodyStr; // include {}
   }
 
@@ -313,6 +322,9 @@ R"(
              << "}\n";
              
   FuncStream.flush();
+
+  // Save new function name
+  Analysis.NewFuncName = CUDAFuncName;
 }
 //---------------------------------------------------------------------------
 } // namespace matchers

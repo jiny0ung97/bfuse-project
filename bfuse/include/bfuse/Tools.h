@@ -30,6 +30,8 @@ public:
   int rewriteCUDAInfos(contexts::AnalysisContext &Analysis);
   /// Create fused function
   int createFunction(contexts::AnalysisContext &Analysis, std::string &FuncStr);
+  /// Save fused function into disk
+  int saveFunction(contexts::AnalysisContext &Analysis, std::string &FuncStr);
   /// Test function for print function declations
   int printFuncDeclExample() const;
 

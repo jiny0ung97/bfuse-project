@@ -76,31 +76,95 @@ int FusionTool::analyzeThreadBoundaries(AnalysisContext &Analysis)
     return Str;
   };
 
+  // Create temp blockIdx, gridDim declarations
+  string &TmpVarStr = Analysis.TmpBlockInfoString;
+  llvm::raw_string_ostream TmpVarStream{TmpVarStr};
+
+  TmpVarStream << "\n"
+               << "  // FIXME: need to be deleted later\n"
+               << "  int gridDim_x_  = 0; // temp declaration\n"
+               << "  int blockIdx_x_ = 0; // temp declaration\n\n";
+  TmpVarStream.flush();
+
+  // Create new blockIdx, gridDim declarations
+  // and define which kernel to be executed
+  string &VarStr = Analysis.NewBlockInfoStringMap;
+  llvm::raw_string_ostream VarStream{VarStr};
+
+  // Comments
+  auto &Kernels = FContext.kernels;
+
+  VarStream << "  /*\n"
+            << "   * KernelID_ means...\n";
+
+  for (long unsigned I = 0; I < Kernels.size(); ++I) {
+    string &KName = Kernels[I];
+    VarStream << "   * " << I << ": " << KName << "\n";
+  }
+  VarStream << "   */\n";
+
+  // Declarations
+  VarStream << "  int gridDim_x_;\n"
+            << "  int blockIdx_x_;\n"
+            << "  int Others_;\n"
+            << "  int KernelID_;\n"
+            << "  \n";
+
+  auto &KernelInfoMap    = FContext.kernelInfoMap;
+  auto &KernelContextMap = FContext.kernelContextMap;
+  bool IsAllVisited      = false;
+
+  for (long unsigned VI = 0; !IsAllVisited; ++VI) {
+    IsAllVisited = true;
+
+    for (long unsigned KI = 0; KI < Kernels.size(); ++KI) {
+      auto &KName         = Kernels[KI];
+      auto &KernelInfo    = KernelInfoMap.at(KName);
+      auto &KernelContext = KernelContextMap.at(KName);
+      auto &BlockIdxInfo  = KernelContext.blockIdxInfo;
+      auto &OtherBlocks   = KernelContext.otherBlocks;
+
+      // Validation check
+      assert(BlockIdxInfo.size() == OtherBlocks.size());
+      if (VI >= BlockIdxInfo.size())
+        continue;
+
+      IsAllVisited = false;
+
+      if (VI == 0 && KI == 0) { // first if case
+        VarStream << "  ";
+      } else {
+        VarStream << "  else ";
+      }
+
+      VarStream << "if " << PrintInfoToCondFunc("blockIdx.x", BlockIdxInfo[VI]) << "\n"
+                << "  {\n"
+                << "    gridDim_x_ = " << KernelInfo.gridDim.size() << ";\n"
+                << "    Others_    = " << OtherBlocks[VI] << ";\n"
+                << "    KernelID_  = " << KI << ";\n"
+                << "  }\n";
+    }
+  }
+  VarStream << "  blockIdx_x_ = blockIdx.x - Others_;\n"
+            << "  \n";
+  VarStream.flush();
+
+  // Create boundary conditions for each kernel
+  // And calculate mx thread bound 
   int MaxBound = 0;
-  for (auto &KName : FContext.kernels) {
-    
-    // Create boundary conditions for each kernel
-    string CondStr;
-    llvm::raw_string_ostream CondStream{CondStr};
-    auto &KernelContext = FContext.kernelContextMap.at(KName);
-    auto &BlockIdxInfo  = KernelContext.blockIdxInfo;
+  for (long unsigned I = 0; I < Kernels.size(); ++I) {
+    string &KName       = Kernels[I];
+    auto &KernelContext = KernelContextMap.at(KName);
     auto &ThreadIdxInfo = KernelContext.threadIdxInfo;
 
-    // threadIdx condition
-    CondStream << "(";
-    CondStream << PrintInfoToCondFunc("threadIdx.x", ThreadIdxInfo);
-    CondStream << ") && ";
+    string CondStr;
+    llvm::raw_string_ostream CondStream{CondStr};
 
-    // blockIdx condition
-    CondStream << "(";
-    CondStream << accumulate(BlockIdxInfo.begin() + 1,
-                             BlockIdxInfo.end(),
-                             PrintInfoToCondFunc("blockIdx.x", BlockIdxInfo[0]),
-                             [&](string &Acc, auto &Info) {
-                               return Acc + " || " + PrintInfoToCondFunc("blockIdx.x", Info);
-                             }
-                            );
-    CondStream << ")";
+    // "KernelID_" condition check
+    CondStream << "(KernelID_ == " << I << ") && ";
+
+    // threadIdx condition check
+    CondStream << "(" << PrintInfoToCondFunc("threadIdx.x", ThreadIdxInfo) << ")";
     CondStream.flush();
 
     Analysis.BranchConditionMap[KName] = CondStr;
@@ -108,43 +172,9 @@ int FusionTool::analyzeThreadBoundaries(AnalysisContext &Analysis)
 
     // Calculate max boundary
     MaxBound = MaxBound < ThreadIdxInfo.second ? ThreadIdxInfo.second : MaxBound;
-
-    // Create new blockIdx, gridDim declarations
-    string VarStr;
-    llvm::raw_string_ostream VarStream{VarStr};
-
-    // "others_" declaration
-    auto &OtherBlocks = KernelContext.otherBlocks;
-    assert(BlockIdxInfo.size() == OtherBlocks.size());
-
-    VarStream << "\n"
-              << "  int others_;\n"
-              << "  int gridDim_x_;\n"
-              << "  int blockIdx_x_;\n\n";
-
-    for (long unsigned I = 0; I < BlockIdxInfo.size(); ++I) {
-      auto &Info = BlockIdxInfo[I];
-      int Others = OtherBlocks[I];
-
-      if (I > 0) {
-        VarStream << "  else ";
-      } else {
-        VarStream << "  ";
-      }
-      VarStream << "if " << PrintInfoToCondFunc("blockIdx.x", Info) << " {\n"
-                << "    others_ = " << Others << ";\n"
-                << "  }\n";
-    }
-
-    // "gridDim_x_" and "blockIdx_x_" declaration
-    auto &KernelInfo = FContext.kernelInfoMap.at(KName);
-    VarStream << "  gridDim_x_  = " << KernelInfo.gridDim.size() << ";\n"
-              << "  blockIdx_x_ = blockIdx.x - others_;\n";
-    VarStream.flush();
-
-    Analysis.NewBlockInfoStringMap[KName] = VarStr;
   }
 
+  // Save max thread bound
   Analysis.MaxThreadBound = MaxBound;
   return 0;
 }
@@ -194,7 +224,7 @@ int FusionTool::rewriteCUDAInfos(AnalysisContext &Analysis)
 
   // Add AST matchers
   MatchFinder Finder;
-  CUDABlockInfoRewriter BlockInfoRewriter{Tool.getReplacements(), Analysis.NewBlockInfoStringMap};
+  CUDABlockInfoRewriter BlockInfoRewriter{Tool.getReplacements(), Analysis.TmpBlockInfoString};
   CUDASyncRewriter      SyncRewriter{Tool.getReplacements(), Analysis.ThreadNumMap};
 
   for (auto &KName : Analysis.kernels) {
@@ -238,6 +268,18 @@ int FusionTool::createFunction(AnalysisContext &Analysis, string &FuncStr)
     Finder.addMatcher(Matcher, &Builder);
   }
   return Tool.run(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionTool::saveFunction(AnalysisContext &Analysis, string &FuncStr)
+{
+  std::error_code EC;
+  std::string FileName = Analysis.NewFuncName + ".cu";
+  llvm::raw_fd_ostream FdStream{FileName, EC};
+
+  FdStream << FuncStr;
+  FdStream.close();
+
+  return 0;
 }
 //---------------------------------------------------------------------------
 } // tools

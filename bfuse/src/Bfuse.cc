@@ -141,11 +141,12 @@ void bfuse(const char* ProgName, string ConfigFilePath, string CompileCommandsPa
       exit(0);
     }
 
-    // [Test]
-    cout << FuncStr;
-
     // 4. Write it back to file
-    // TODO:
+    cout << "Save new fused function...\n";
+    if (Tool.saveFunction(Analysis, FuncStr)) {
+      ERROR_MESSAGE("error occur while saving new function");
+      exit(0);
+    }
 
     // 5. Recover files
     cout << "Recover files...\n";

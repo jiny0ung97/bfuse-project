@@ -24,7 +24,8 @@ public:
   void print() const;
 
   /// The constructor
-  OptionsParserArguments(const char *ProgName, std::string &CompileCommandsPath, std::string &FilePath);
+  OptionsParserArguments(const std::string &ProgName, const std::string &CompileCommandsPath,
+                         const std::string &FilePath);
   /// The destructor
   ~OptionsParserArguments();
 
@@ -40,7 +41,8 @@ public:
   OptionsParserArguments& operator=(OptionsParserArguments &&other) = delete;
 };
 //---------------------------------------------------------------------------
-void bfuse(const char *ProgName, std::string ConfigFilePath, std::string CompileCommandsPath);
+void bfuse(const std::string ProgName, const std::string CompileCommandsPath,
+           const std::string ConfigFilePath, const std::string ResultPath);
 //---------------------------------------------------------------------------
 } // namespace bfuse
 //---------------------------------------------------------------------------

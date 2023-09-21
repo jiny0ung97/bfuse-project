@@ -301,11 +301,7 @@ R"(
   CUDALaunchAttr += "__launch_bounds__(" + to_string(Analysis.MaxThreadBound) + ")";
 
   // Function declaration (name)
-  string CUDAFuncName = "";
-  for (auto &KName : Analysis.kernels) {
-    CUDAFuncName += KName + "_";
-  }
-  CUDAFuncName += "fused_";
+  string CUDAFuncName = Analysis.NewFuncName;
 
   // Function declaration (paramenter)
   // FIXME: need to fix __restrict -> __restrict__
@@ -321,8 +317,8 @@ R"(
   // Function body
   auto &BranchCondMap  = Analysis.BranchConditionMap;
   auto &FuncBodyStrMap = Analysis.FuncBodyStringMap;
-  auto &Kernels        = Analysis.kernels;
-  string CUDAFuncBody  = Analysis.NewBlockInfoStringMap;
+  auto &Kernels        = Analysis.Kernels;
+  string CUDAFuncBody  = Analysis.NewBlockInfoString;
 
   for (long unsigned I = 0; I < Kernels.size(); ++I) {
     auto &KName   = Kernels[I];

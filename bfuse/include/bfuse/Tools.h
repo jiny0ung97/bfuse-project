@@ -5,7 +5,6 @@
 
 #include "clang/Tooling/CommonOptionsParser.h"
 
-#include "bfuse/Bfuse.h"
 #include "bfuse/Contexts.h"
 //---------------------------------------------------------------------------
 namespace bfuse {
@@ -15,33 +14,29 @@ class FusionTool {
 private:
   /// The clang refactoring tool
   clang::tooling::CommonOptionsParser &OptionsParser;
-  /// The Fusion Context
-  contexts::FusionContext &FContext;
+
+  /// The string result of the fused kernels
+  std::string FuncStr;
 
 public:
   /// Extract specific delcarations out of compound statement
-  int extractDeclarations(contexts::AnalysisContext &Analysis);
-
+  int initiallyRewriteKernels(contexts::AnalysisContext &AContext);
   /// Analyze function parameters
-  int analyzeParameters(contexts::AnalysisContext &Analysis);
-  /// Analyze threadIdx, blockIdx boundry and create branch condition
-  int analyzeThreadBoundaries(contexts::AnalysisContext &Analysis);
-
+  int analyzeParameters(contexts::AnalysisContext &AContext);
   /// Rename function parameters
-  int renameParameters(contexts::AnalysisContext &Analysis);
+  int renameParameters(contexts::AnalysisContext &AContext);
   /// Rewrite the source code
-  int rewriteCUDAInfos(contexts::AnalysisContext &Analysis);
+  int rewriteCUDAVariables(contexts::AnalysisContext &AContext);
   /// Create fused function
-  int createFunction(contexts::AnalysisContext &Analysis, std::string &FuncStr);
+  int createFusedKernel(contexts::AnalysisContext &AContext);
   /// Save fused function into disk
-  int saveFunction(contexts::AnalysisContext &Analysis, std::string &FuncStr);
+  int saveFusedKernel(contexts::AnalysisContext &AContext, const std::string &ResultPath);
   /// Test function for print function declations
-  int printFuncDeclExample() const;
+  int printFuncDecl(contexts::AnalysisContext &AContext);
 
   /// The constructor
-  explicit FusionTool(clang::tooling::CommonOptionsParser &OtherOptionsParser,
-                      contexts::FusionContext &OtherFContext)
-                     : OptionsParser{OtherOptionsParser}, FContext{OtherFContext} {}
+  explicit FusionTool(clang::tooling::CommonOptionsParser &OtherOptionsParser)
+                     : OptionsParser{OtherOptionsParser} {}
 
   /// Delete default constructor
   FusionTool() = delete;

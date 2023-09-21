@@ -87,20 +87,17 @@ public:
   std::map<std::string, KernelContext> kernelContextMap;
 
   /// The constructor
-  FusionContext(FusionInfo &FInfo, std::map<std::string, KernelInfo> &KInfoMap);
+  // FusionContext(FusionInfo &FInfo, std::map<std::string, KernelInfo> &KInfoMap);
+  /// The constructor
+  FusionContext(std::vector<std::string> &&OtherKernels, std::map<std::string, KernelInfo> &&OtherKernelInfoMap,
+                std::map<std::string, KernelContext> &&OtherKernelContextMap)
+                : kernels{std::move(OtherKernels)}, kernelInfoMap{std::move(OtherKernelInfoMap)},
+                  kernelContextMap{std::move(OtherKernelContextMap)} {}
   /// Print FusionContext
   void print() const;
 
-  /// The default constructor
-  FusionContext() = default;
-  /// The default copy constructor
-  FusionContext(const FusionContext &other) = default;
-  /// The default move constructor
-  FusionContext(FusionContext &&other) = default;
-  /// The default copy assignment operator
-  FusionContext& operator=(const FusionContext &other) = default;
-  /// The default move assignment operator
-  FusionContext& operator=(FusionContext &&other) = default;
+  /// Create the KernelContext
+  static FusionContext create(FusionInfo &FInfo, std::map<std::string, KernelInfo> &KInfoMap);
 };
 //---------------------------------------------------------------------------
 class AnalysisContext {
@@ -108,36 +105,48 @@ public:
   using ParamList = std::vector<std::string>;
   using USRsList  = std::vector<std::vector<std::string>>;
 
-  /// Analyze & Rewrite ///
   /// The kernels to be fused
-  std::vector<std::string> kernels;
+  std::vector<std::string> Kernels;
+  /// The map of threads' number
+  std::map<std::string, int> ThreadNumMap;
+  /// The Branch Condition
+  std::map<std::string, std::string> BranchConditionMap;
+  /// The map of temp blockIdx, gridDim declarations
+  std::string TmpBlockInfoString;
+  /// The map of new blockIdx, gridDim declarations
+  std::string NewBlockInfoString;
+  /// The name of fused kernel
+  std::string NewFuncName;
+  /// The max threads bound
+  int MaxThreadBound;
+
+  /// Renaming Parameters ///
   /// The map of function parameters' list
   std::map<std::string, ParamList> ParamListMap;
   /// The map of USRs lists for renaming parameters
   std::map<std::string, USRsList> USRsListMap;
-  /// The map of temp blockIdx, gridDim declarations
-  std::string TmpBlockInfoString;
-  /// The map of new blockIdx, gridDim declarations
-  std::string NewBlockInfoStringMap;
 
-  /// Create ///
+  /// Creating fused kernel ///
   /// The list of functions to be fused
   std::map<std::string, std::string> FuncBodyStringMap;
   /// The string list of parameters
   std::vector<std::string> ParmStringList;
 
-  /// The map of threads' number
-  std::map<std::string, int> ThreadNumMap;
-  /// The max threads bound
-  int MaxThreadBound;
-  /// The Branch Condition
-  std::map<std::string, std::string> BranchConditionMap;
-
-  /// Save ///
-  std::string NewFuncName;
-
+  /// The constructor
+  AnalysisContext(std::vector<std::string> &&OtherKernels, std::map<std::string, int> &&OtherThreadNumMap,
+                  std::map<std::string, std::string> &&OtherBranchConditionMap,
+                  std::string &&OtherTmpBlockInfoString, std::string &&OtherNewBlockInfoString,
+                  std::string &&OtherNewFuncName, int OtherMaxThreadBound)
+                  : Kernels{OtherKernels}, ThreadNumMap{OtherThreadNumMap},
+                    BranchConditionMap{OtherBranchConditionMap},
+                    TmpBlockInfoString{OtherTmpBlockInfoString},
+                    NewBlockInfoString{OtherNewBlockInfoString},
+                    NewFuncName{OtherNewFuncName}, MaxThreadBound{OtherMaxThreadBound} {}
   /// Print AnalysisContext
   void print() const;
+
+  /// Create the AnalysisContext
+  static AnalysisContext create(FusionContext &FContext);
 };
 //---------------------------------------------------------------------------
 } // namespace contexts

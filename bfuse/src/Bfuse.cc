@@ -34,14 +34,14 @@ static llvm::cl::extrahelp MoreHelp("\nMore help text...\n");
 //---------------------------------------------------------------------------
 namespace bfuse {
 //---------------------------------------------------------------------------
-OptionsParserArguments::OptionsParserArguments(const char* ProgName,
-                                               string& CompileCommandsPath, string& FilePath)
+OptionsParserArguments::OptionsParserArguments(const string& ProgName, const string& CompileCommandsPath,
+                                               const string& FilePath)
 {
   compileCommandsPath = CompileCommandsPath;
   filePath            = FilePath;
 
   argv    = (const char**)malloc(sizeof(char *) * argc);
-  argv[0] = ProgName;
+  argv[0] = ProgName.c_str();
   argv[1] = "-p";
   argv[2] = compileCommandsPath.c_str();
   argv[3] = filePath.c_str();
@@ -60,7 +60,8 @@ void OptionsParserArguments::print() const
   cout << "\n";
 }
 //---------------------------------------------------------------------------
-void bfuse(const char* ProgName, string ConfigFilePath, string CompileCommandsPath)
+void bfuse(const string ProgName, const string CompileCommandsPath, 
+           const string ConfigFilePath, const string ResultPath)
 {
   string FusionInfoPath = ConfigFilePath + "/fusions.yaml";
   string KernelInfoPath = ConfigFilePath + "/kernels.yaml";
@@ -87,10 +88,10 @@ void bfuse(const char* ProgName, string ConfigFilePath, string CompileCommandsPa
       llvm::errs() << ExpectedParser.takeError();
       exit(0);
     }
-    CommonOptionsParser& OptionsParser = ExpectedParser.get();
+    CommonOptionsParser &OptionsParser = ExpectedParser.get();
 
     /*
-     * The Fusion Flow
+     * The Fusion-Flow
      *
      * First,  analysis the kernels and extract data to be used
      * Second, rewrite kernels (Parameters, Synchronization, ThreadIdx, BlockIdx, etc...)
@@ -99,64 +100,84 @@ void bfuse(const char* ProgName, string ConfigFilePath, string CompileCommandsPa
      * THE END
      */
 
-    FusionContext   Context{Info, KernelYAML};
-    FusionTool      Tool{OptionsParser, Context};
-    AnalysisContext Analysis;
+    FusionTool Tool{OptionsParser};
+
+    FusionContext FContext   = FusionContext::create(Info, KernelYAML);
+    AnalysisContext AContext = AnalysisContext::create(FContext);
 
     // 0. Backup files first
-    cout << "Backup files...\n";
+    // -----------------------------------------------------------------
+    // Backup the kernel codes to be fused.
+    // Because Clang libTooling is not suitable for creating new AST,
+    // so rather than creating new AST from code, backup existing files,
+    // and then refactoring the files. (Later recovery them)
+
+    cout << "\nBackup files...\n";
     for (auto& S : OptionsParser.getSourcePathList()) {
       utils::backUpFiles(S);
     }
 
-    // 0. Reforming code to analyze and rewrite easily
-    cout << "Reforming codes...\n";
-    if (Tool.extractDeclarations(Analysis)) {
-      ERROR_MESSAGE("error occur while reforming code");
-      exit(0);      
+    // 1. Initially rewrite code to analyze and rewrite easily
+    // -----------------------------------------------------------------
+    // This will append compound statement.
+    // So that we can be free from semantic error,
+    // which can be occured during analyze and rewrite some variables.
+
+    cout << "\nInitializing codes at first...\n";
+    if (Tool.initiallyRewriteKernels(AContext)) {
+      ERROR_MESSAGE("error occur while initialzing codes");
+      exit(0);
     }
 
-    // 1. Analyze kernel codes to be fused
-    cout << "Analyzing parameters...\n";
-    if (Tool.analyzeParameters(Analysis)) {
+    // 2. Renaming parameters
+    // -----------------------------------------------------------------
+    // Renaming kernels' parameters with kernels' name.
+    // Because when fusing kernels, each parameters' name can be duplicated
+    // in fused kernel.
+    // i.e. ParmName -> KernelName + "_" + ParmName + "_";
+
+    cout << "\nRenaming parameters...\n";
+    if (Tool.analyzeParameters(AContext)) {
       ERROR_MESSAGE("error occur while analyzing parameters");
       exit(0);
     }
-    cout << "Analyzing thread boundaries...\n";
-    if (Tool.analyzeThreadBoundaries(Analysis)) {
-      ERROR_MESSAGE("error occur while analyzing thread boundaries");
+    if (Tool.renameParameters(AContext)) {
+      ERROR_MESSAGE("error occur while renaming parameters");
       exit(0);
     }
 
-    // 2. Rename and rewrite kernel codes and write it back
-    cout << "Renaming parameters...\n";
-    if (Tool.renameParameters(Analysis)) {
-      ERROR_MESSAGE("error occur while renaming");
-      exit(0);
-    }
-    cout << "Rewriting cuda informations...\n";
-    if (Tool.rewriteCUDAInfos(Analysis)) {
-      ERROR_MESSAGE("error occur while rewriting");
+    // 3. Rewrite pre-built variables
+    // -----------------------------------------------------------------
+    // Rewrite blockIdx and gridDim variables.
+    // Because when fusing kernels, the semantics of blockIdx and gridDim
+    // are changed.
+
+    cout << "\nRewriting pre-built variables...\n";
+    if (Tool.rewriteCUDAVariables(AContext)) {
+      ERROR_MESSAGE("error occur while rewriting CUDA pre-built variables");
       exit(0);
     }
 
-    // 3. Create new fused function
-    string FuncStr;
-    cout << "Building new fused function...\n";
-    if (Tool.createFunction(Analysis, FuncStr)) {
+    // 4. Create fused kerenl
+    // -----------------------------------------------------------------
+    // Fuse two different kernels and
+    // save it into the result path directory.
+
+    cout << "\nCreating fused kernel...\n";
+    if (Tool.createFusedKernel(AContext)) {
       ERROR_MESSAGE("error occur while creating new function");
       exit(0);
     }
-
-    // 4. Write it back to file
-    cout << "Save new fused function...\n";
-    if (Tool.saveFunction(Analysis, FuncStr)) {
+    if (Tool.saveFusedKernel(AContext, ResultPath)) {
       ERROR_MESSAGE("error occur while saving new function");
       exit(0);
     }
 
     // 5. Recover files
-    cout << "Recover files...\n";
+    // -----------------------------------------------------------------
+    // Recover files.
+
+    cout << "\nRecovering files...\n";
     for (auto &S : OptionsParser.getSourcePathList()) {
       utils::recoverFiles(S);
     }

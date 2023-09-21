@@ -109,6 +109,13 @@ void bfuse(const char* ProgName, string ConfigFilePath, string CompileCommandsPa
       utils::backUpFiles(S);
     }
 
+    // 0. Reforming code to analyze and rewrite easily
+    cout << "Reforming codes...\n";
+    if (Tool.extractDeclarations(Analysis)) {
+      ERROR_MESSAGE("error occur while reforming code");
+      exit(0);      
+    }
+
     // 1. Analyze kernel codes to be fused
     cout << "Analyzing parameters...\n";
     if (Tool.analyzeParameters(Analysis)) {

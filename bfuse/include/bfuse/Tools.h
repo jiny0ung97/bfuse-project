@@ -19,6 +19,9 @@ private:
   contexts::FusionContext &FContext;
 
 public:
+  /// Extract specific delcarations out of compound statement
+  int extractDeclarations(contexts::AnalysisContext &Analysis);
+
   /// Analyze function parameters
   int analyzeParameters(contexts::AnalysisContext &Analysis);
   /// Analyze threadIdx, blockIdx boundry and create branch condition

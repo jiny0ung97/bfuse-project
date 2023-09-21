@@ -45,6 +45,47 @@ void CUDAFuncDeclPrinter::run(const MatchFinder::MatchResult &Result)
   FD->dump();
 }
 //---------------------------------------------------------------------------
+DeclarationMatcher CUDADeclExtractor::getFuncDeclMatcher(string &KName)
+{
+  return functionDecl(
+           hasAttr(attr::CUDAGlobal),
+           hasName(KName)
+         ).bind(CUDAFuncDeclBindId);
+}
+//---------------------------------------------------------------------------
+void CUDADeclExtractor::run(const MatchFinder::MatchResult& Result)
+{
+  ASTContext *Context    = Result.Context;
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);  
+  if (!FD) {
+    ERROR_MESSAGE("cannot find function declaration pattern");
+    return;
+  }
+
+  // Append compound {}
+  auto &SourceMgr     = Context->getSourceManager();
+  auto SourceBeginLoc = FD->getBody()->getBeginLoc().getLocWithOffset(1);
+  auto SourceEndLoc   = FD->getBody()->getEndLoc().getLocWithOffset(-1);
+
+  string TmpBlockInfoString = "\n  int blockIdx_x_;\n  int gridDim_x_;\n";
+  string CompBeginString    = "\n  {";
+  string CompEndString      = "\n  }";
+
+  Replacement CompBeginRepl{SourceMgr, SourceBeginLoc, 0, TmpBlockInfoString + CompBeginString};
+  string CBFile = CompBeginRepl.getFilePath().str();
+  if (auto Err = Repls[CBFile].add(CompBeginRepl)) {
+    llvm::errs() << "CUDABlockInfoRewriter error occur\n";
+    exit(0);
+  }
+
+  Replacement CompEndRepl{SourceMgr, SourceEndLoc, 0, CompEndString};
+  string CEFile = CompEndRepl.getFilePath().str();
+  if (auto Err = Repls[CEFile].add(CompEndRepl)) {
+    llvm::errs() << "CUDABlockInfoRewriter error occur\n";
+    exit(0);
+  }
+}
+//---------------------------------------------------------------------------
 DeclarationMatcher CUDAFuncParamAnalyzer::getFuncParamMatcher(string &Kname)
 {
   return parmVarDecl(
@@ -131,33 +172,6 @@ void CUDABlockInfoRewriter::run(const MatchFinder::MatchResult &Result)
     llvm::errs() << "CUDABlockInfoRewriter error occur\n";
     exit(0);
   }
-
-  // Append new declaration of thread information
-  string FName = FD->getNameAsString();
-  if (VisitedFuncSet.find(FName) != VisitedFuncSet.end())
-    return; // Already append. return
-
-  auto SourceBeginLoc = FD->getBody()->getBeginLoc().getLocWithOffset(1);
-  auto SourceEndLoc   = FD->getBody()->getEndLoc().getLocWithOffset(-1);
-
-  // Append compound {}
-  string CompBeginString = TmpBlockInfoString + "  {";
-  string CompEndString   = "\n  }";
-
-  Replacement CompBeginRepl{SourceMgr, SourceBeginLoc, 0, CompBeginString};
-  string CBFile = CompBeginRepl.getFilePath().str();
-  if (auto Err = Repls[CBFile].add(CompBeginRepl)) {
-    llvm::errs() << "CUDABlockInfoRewriter error occur\n";
-    exit(0);
-  }
-
-  Replacement CompEndRepl{SourceMgr, SourceEndLoc, 0, CompEndString};
-  string CEFile = CompEndRepl.getFilePath().str();
-  if (auto Err = Repls[CEFile].add(CompEndRepl)) {
-    llvm::errs() << "CUDABlockInfoRewriter error occur\n";
-    exit(0);
-  }
-  VisitedFuncSet.insert(FName);
 }
 //---------------------------------------------------------------------------
 StatementMatcher CUDASyncRewriter::getSyncMatcher(string &KName)
@@ -233,26 +247,11 @@ void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
   llvm::raw_string_ostream BodyStream{BodyStr};
 
   if (FuncBodyStrMap.find(FName) == FuncBodyStrMap.end()) {
-
-    // FIXME: Bug can be occured.
-    // It assume that there is no 'just compound statement'
-    // in the function body
-    // i.e.
-    // /code
-    //  {
-    //    Maybe some codes...
-    //  }
-    // /code
-    bool HasComp = false;
     for (auto *Child : FD->getBody()->children()) {
       if (auto *CS = dyn_cast<CompoundStmt>(Child)) {
-        HasComp = true;
         CS->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
       }
     }
-    if (!HasComp)
-      FD->getBody()->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
-
     BodyStream.flush();
     FuncBodyStrMap[FName] = BodyStr;
   }

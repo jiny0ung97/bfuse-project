@@ -3,7 +3,6 @@
 
 #include <string>
 #include <map>
-#include <set>
 
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
@@ -27,6 +26,29 @@ public:
   clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(std::string &KName);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+};
+//---------------------------------------------------------------------------
+class CUDADeclExtractor
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+public:
+  using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
+  
+private:
+  /// The cuda function declaration bind id
+  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
+
+  /// The container of refactoring replacements
+  FileReplacementsMap &Repls;
+
+public:
+  /// Get function declaration matcher
+  clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(std::string &KName);
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+
+  /// The constructor
+  explicit CUDADeclExtractor(FileReplacementsMap &OtherRepls)
+                              : Repls{OtherRepls} {}
 };
 //---------------------------------------------------------------------------
 class CUDAFuncParamAnalyzer
@@ -70,8 +92,6 @@ private:
   FileReplacementsMap &Repls;
   /// The map of new blockIdx, gridDim declarations
   std::string &TmpBlockInfoString;
-  /// The set of visited functions
-  std::set<std::string> VisitedFuncSet;
 
 public:
   /// Get block information declarations' reference matcher
@@ -80,8 +100,8 @@ public:
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  explicit CUDABlockInfoRewriter(FileReplacementsMap &OtherRepls, std::string &OtherInfoString)
-                                : Repls{OtherRepls}, TmpBlockInfoString{OtherInfoString}, VisitedFuncSet{} {}
+  CUDABlockInfoRewriter(FileReplacementsMap &OtherRepls, std::string &OtherInfoString)
+                       : Repls{OtherRepls}, TmpBlockInfoString{OtherInfoString} {}
 };
 //---------------------------------------------------------------------------
 class CUDASyncRewriter
@@ -108,9 +128,8 @@ public:
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  explicit CUDASyncRewriter(FileReplacementsMap &OtherRepls,
-                            std::map<std::string, int> &OtherThreadNumMap)
-                           : Repls{OtherRepls}, ThreadNumMap{OtherThreadNumMap} {}
+  CUDASyncRewriter(FileReplacementsMap &OtherRepls, std::map<std::string, int> &OtherThreadNumMap)
+                  : Repls{OtherRepls}, ThreadNumMap{OtherThreadNumMap} {}
 };
 //---------------------------------------------------------------------------
 class CUDAFuncBuilder

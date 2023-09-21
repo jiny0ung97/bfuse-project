@@ -39,6 +39,22 @@ using namespace bfuse::matchers;
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
+int FusionTool::extractDeclarations(AnalysisContext &Analysis)
+{
+  // Refactoring Tool
+  RefactoringTool Tool(OptionsParser.getCompilations(),
+                       OptionsParser.getSourcePathList());
+
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDADeclExtractor Extractor{Tool.getReplacements()};
+
+  for (auto &KName : FContext.kernels) {
+    Finder.addMatcher(Extractor.getFuncDeclMatcher(KName), &Extractor);
+  }
+  return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
 int FusionTool::analyzeParameters(AnalysisContext &Analysis)
 {
   // Clang Tool

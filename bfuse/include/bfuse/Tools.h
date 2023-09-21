@@ -20,19 +20,27 @@ private:
 
 public:
   /// Extract specific delcarations out of compound statement
-  int initiallyRewriteKernels(contexts::AnalysisContext &AContext);
+  int initiallyRewriteKernels(const contexts::AnalysisContext &AContext);
+  /// Extract specific delcarations out of compound statement
+  int rewriteCompStmt(const contexts::AnalysisContext &AContext);
   /// Analyze function parameters
   int analyzeParameters(contexts::AnalysisContext &AContext);
   /// Rename function parameters
-  int renameParameters(contexts::AnalysisContext &AContext);
+  int renameParameters(const contexts::AnalysisContext &AContext);
   /// Rewrite the source code
-  int rewriteCUDAVariables(contexts::AnalysisContext &AContext);
+  int rewriteCUDAVariables(const contexts::AnalysisContext &AContext);
+  /// Extract shared memory variable declarations
+  int extractSharedDecls(contexts::AnalysisContext &AContext);
+  /// Analyze shared memory variables
+  int rewriteSharedDecls(const contexts::AnalysisContext &AContext);
+  /// Rename shared memory variables
+  int renameSharedVariables(const contexts::AnalysisContext &AContext);
   /// Create fused function
-  int createFusedKernel(contexts::AnalysisContext &AContext);
+  int createFusedKernel(const contexts::AnalysisContext &AContext);
   /// Save fused function into disk
-  int saveFusedKernel(contexts::AnalysisContext &AContext, const std::string &ResultPath);
+  int saveFusedKernel(const contexts::AnalysisContext &AContext, const std::string &ResultPath);
   /// Test function for print function declations
-  int printFuncDecl(contexts::AnalysisContext &AContext);
+  int printFuncDecl(const contexts::AnalysisContext &AContext);
 
   /// The constructor
   explicit FusionTool(clang::tooling::CommonOptionsParser &OtherOptionsParser)

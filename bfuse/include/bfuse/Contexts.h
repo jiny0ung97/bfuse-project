@@ -126,11 +126,9 @@ public:
   /// The map of USRs lists for renaming parameters
   std::map<std::string, USRsList> USRsListMap;
 
-  /// Creating fused kernel ///
-  /// The list of functions to be fused
-  std::map<std::string, std::string> FuncBodyStringMap;
-  /// The string list of parameters
-  std::vector<std::string> ParmStringList;
+  /// Rewrite shared memory declarations ///
+  /// The string of shared memory declarations
+  std::string SharedDeclString;
 
   /// The constructor
   AnalysisContext(std::vector<std::string> &&OtherKernels, std::map<std::string, int> &&OtherThreadNumMap,

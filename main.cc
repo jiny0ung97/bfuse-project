@@ -22,7 +22,7 @@ static void print_help(const char *prog_name)
   cout << "     -h : print this page.\n";
   cout << "     -p : the path of \'compile_commands.json\' file (default: .)\n";
   cout << "     -c : the directory of configuration files     (default: ./config)\n";
-  cout << "     -d : The directory of result files            (default: .)\n";
+  cout << "     -d : The directory of result files            (default: .)\n\n";
 }
 //---------------------------------------------------------------------------
 static void parse_opt(int argc, char **argv)

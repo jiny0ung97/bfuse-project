@@ -28,7 +28,23 @@ using namespace bfuse::matchers;
 namespace bfuse {
 namespace tools {
 //---------------------------------------------------------------------------
-int FusionTool::initiallyRewriteKernels(AnalysisContext &AContext)
+int FusionTool::initiallyRewriteKernels(const AnalysisContext &AContext)
+{
+  // Refactoring Tool
+  RefactoringTool Tool(OptionsParser.getCompilations(),
+                       OptionsParser.getSourcePathList());
+
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDADeclRewriter Rewriter{Tool.getReplacements()};
+
+  for (auto &KName : AContext.Kernels) {
+    Finder.addMatcher(Rewriter.getFuncDeclMatcher(KName), &Rewriter);
+  }
+  return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionTool::rewriteCompStmt(const contexts::AnalysisContext &AContext)
 {
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser.getCompilations(),
@@ -69,7 +85,7 @@ int FusionTool::analyzeParameters(AnalysisContext &AContext)
   return Err;
 }
 //---------------------------------------------------------------------------
-int FusionTool::renameParameters(AnalysisContext &AContext)
+int FusionTool::renameParameters(const AnalysisContext &AContext)
 {
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser.getCompilations(),
@@ -87,7 +103,7 @@ int FusionTool::renameParameters(AnalysisContext &AContext)
     vector<string> NewParamList{PrevParamList.size()};
     transform(PrevParamList.begin(), PrevParamList.end(),
               NewParamList.begin(),
-              [&KName](string &PName) {
+              [&KName](const string &PName) {
                 return KName + "_" + PName + "_";
               });
 
@@ -106,7 +122,7 @@ int FusionTool::renameParameters(AnalysisContext &AContext)
   return Tool.runAndSave(newFrontendActionFactory(&Renaming).get());
 }
 //---------------------------------------------------------------------------
-int FusionTool::rewriteCUDAVariables(AnalysisContext &AContext)
+int FusionTool::rewriteCUDAVariables(const AnalysisContext &AContext)
 {
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser.getCompilations(),
@@ -126,7 +142,56 @@ int FusionTool::rewriteCUDAVariables(AnalysisContext &AContext)
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
-int FusionTool::createFusedKernel(AnalysisContext &AContext)
+int FusionTool::extractSharedDecls(AnalysisContext &AContext)
+{
+  // Refactoring Tool
+  RefactoringTool Tool(OptionsParser.getCompilations(),
+                       OptionsParser.getSourcePathList());
+
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDASharedDeclExtractor Extractor{Tool.getReplacements()};
+
+  for (auto &KName : AContext.Kernels) {
+    Finder.addMatcher(Extractor.getSharedDeclMatcher(KName), &Extractor);
+  }
+
+  auto Err = Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+  if (Err) {
+    return Err;
+  }
+
+  AContext.SharedDeclString = Extractor.SharedDeclString;
+  return Err;
+}
+//---------------------------------------------------------------------------
+int FusionTool::rewriteSharedDecls(const AnalysisContext &AContext)
+{
+  // Clang Tool
+  RefactoringTool Tool(OptionsParser.getCompilations(),
+                       OptionsParser.getSourcePathList());
+
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDASharedDeclRewriter Writer(Tool.getReplacements(),
+                                AContext.SharedDeclString);
+
+  for (auto &KName : AContext.Kernels) {
+    Finder.addMatcher(Writer.getFuncDeclMatcher(KName), &Writer);
+  }
+  return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionTool::renameSharedVariables(const AnalysisContext &AContext)
+{
+  // Refactoring Tool
+  RefactoringTool Tool(OptionsParser.getCompilations(),
+                       OptionsParser.getSourcePathList());
+
+  return 0;
+}
+//---------------------------------------------------------------------------
+int FusionTool::createFusedKernel(const AnalysisContext &AContext)
 {
   // Clang Tool
   ClangTool Tool(OptionsParser.getCompilations(),
@@ -137,13 +202,13 @@ int FusionTool::createFusedKernel(AnalysisContext &AContext)
   CUDAFuncBuilder Builder{AContext, FuncStr};
 
   for (auto &KName : AContext.Kernels) {
-    auto Matcher = Builder.getFuncBuildMatcher(KName);
-    Finder.addMatcher(Matcher, &Builder);
+    Finder.addMatcher(Builder.getFuncBuildMatcher(KName),
+                      &Builder);
   }
   return Tool.run(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
-int FusionTool::saveFusedKernel(AnalysisContext &AContext, const string &ResultPath)
+int FusionTool::saveFusedKernel(const AnalysisContext &AContext, const string &ResultPath)
 {
   string FilePath = ResultPath + "/" + AContext.NewFuncName + ".cu";
   std::error_code EC;
@@ -155,7 +220,7 @@ int FusionTool::saveFusedKernel(AnalysisContext &AContext, const string &ResultP
   return 0;
 }
 //---------------------------------------------------------------------------
-int FusionTool::printFuncDecl(AnalysisContext &AContext)
+int FusionTool::printFuncDecl(const AnalysisContext &AContext)
 {
   // Clang Tool
   ClangTool Tool(OptionsParser.getCompilations(),

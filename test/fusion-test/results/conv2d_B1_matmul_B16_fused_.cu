@@ -55,8 +55,6 @@ extern "C" __global__ __launch_bounds__(112) conv2d_B1_matmul_B16_fused_(float *
   if ((KernelID_ == 0) && ((threadIdx.x >= 0 && threadIdx.x < 112)))
   {
       float conv2d_nhwc_local[4];
-      static float pad_temp_shared[2320] __attribute__((shared));
-      static float kernel_shared[2304] __attribute__((shared));
       conv2d_nhwc_local[0] = conv2d_B1_data_[0];
       int a = blockIdx_x_;
       int b = gridDim_x_;
@@ -66,8 +64,6 @@ extern "C" __global__ __launch_bounds__(112) conv2d_B1_matmul_B16_fused_(float *
   else if ((KernelID_ == 1) && ((threadIdx.x >= 0 && threadIdx.x < 50)))
   {
       float T_matmul_NT_local[4];
-      static float data_shared[256] __attribute__((shared));
-      static float weight_shared[3200] __attribute__((shared));
       T_matmul_NT_local[0] = matmul_B16_data_[0];
       int a = blockIdx_x_;
       int b = gridDim_x_;

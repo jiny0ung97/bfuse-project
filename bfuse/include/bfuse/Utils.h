@@ -11,13 +11,13 @@
 #include "bfuse/Contexts.h"
 
 // TODO: need to be changed into cxx style.
-#define ERROR_MESSAGE(m)                    \
-  do                                        \
-  {                                         \
-    std::cerr << "[bfuse ERROR] ("          \
-              << __FILE__ << ":"            \
-              << __LINE__ << "): "          \
-              << m << "\n";                 \
+#define ERROR_MESSAGE(m)                   \
+  do                                       \
+  {                                        \
+    std::cerr << __FILE__ << ":"           \
+              << __LINE__ << ": "          \
+              << "bfuse error: "           \
+              << m << "\n";                \
   } while (0)
 //---------------------------------------------------------------------------
 namespace bfuse {

@@ -112,20 +112,26 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
     // so rather than creating new AST from code, backup existing files,
     // and then refactoring the files. (Later recovery them)
 
-    cout << "\nBackup files...\n";
+    cout << "Backup files...\n";
     for (auto& S : OptionsParser.getSourcePathList()) {
       utils::backUpFiles(S);
     }
 
     // 1. Initially rewrite code to analyze and rewrite easily
     // -----------------------------------------------------------------
-    // This will append compound statement.
-    // So that we can be free from semantic error,
+    // First, We need to rewrite whole body because when using libTooling
+    // rewriting shared memory declarations may occur error. (Maybe bug?)
+    // Then, this will append compound statement
+    // so that we can be free from semantic error,
     // which can be occured during analyze and rewrite some variables.
 
-    cout << "\nInitializing codes at first...\n";
+    cout << "Initializing codes at first...\n";
     if (Tool.initiallyRewriteKernels(AContext)) {
       ERROR_MESSAGE("error occur while initialzing codes");
+      exit(0);
+    }
+    if (Tool.rewriteCompStmt(AContext)) {
+      ERROR_MESSAGE("error occur while rewriting compound statment");
       exit(0);
     }
 
@@ -136,7 +142,7 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
     // in fused kernel.
     // i.e. ParmName -> KernelName + "_" + ParmName + "_";
 
-    cout << "\nRenaming parameters...\n";
+    cout << "Renaming parameters...\n";
     if (Tool.analyzeParameters(AContext)) {
       ERROR_MESSAGE("error occur while analyzing parameters");
       exit(0);
@@ -152,18 +158,36 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
     // Because when fusing kernels, the semantics of blockIdx and gridDim
     // are changed.
 
-    cout << "\nRewriting pre-built variables...\n";
+    cout << "Rewriting pre-built variables...\n";
     if (Tool.rewriteCUDAVariables(AContext)) {
       ERROR_MESSAGE("error occur while rewriting CUDA pre-built variables");
       exit(0);
     }
 
-    // 4. Create fused kerenl
+    // 4. Renaming shared memory variables
+    // -----------------------------------------------------------------
+    // TODO: add comments
+
+    cout << "Renaming shared memory declarations...\n";
+    if (Tool.extractSharedDecls(AContext)) {
+      ERROR_MESSAGE("error occur while extracting shared memory declarations");
+      exit(0);
+    }
+    if (Tool.rewriteSharedDecls(AContext)) {
+      ERROR_MESSAGE("error occur while rewriting shared memory declarations");
+      exit(0);
+    }
+    // if (Tool.renameSharedVariables(AContext)) {
+    //   ERROR_MESSAGE("error occur while renaming shared memory variables");
+    //   exit(0);
+    // }
+
+    // 5. Create fused kerenl
     // -----------------------------------------------------------------
     // Fuse two different kernels and
     // save it into the result path directory.
 
-    cout << "\nCreating fused kernel...\n";
+    cout << "Creating fused kernel...\n";
     if (Tool.createFusedKernel(AContext)) {
       ERROR_MESSAGE("error occur while creating new function");
       exit(0);
@@ -173,11 +197,11 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
       exit(0);
     }
 
-    // 5. Recover files
+    // 6. Recover files
     // -----------------------------------------------------------------
     // Recover files.
 
-    cout << "\nRecovering files...\n";
+    cout << "Recovering files...\n";
     for (auto &S : OptionsParser.getSourcePathList()) {
       utils::recoverFiles(S);
     }

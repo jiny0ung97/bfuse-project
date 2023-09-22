@@ -70,12 +70,19 @@ void CUDADeclRewriter::run(const MatchFinder::MatchResult& Result)
   BodyStream.flush();
 
   Replacement BodyRepl{SourceMgr, FuncBody, BodyStr};
-  string Path = FD->getLocation().printToString(SourceMgr); // Should take a detour
-  Path = Path.substr(0, Path.find_first_of(":"));
-  if (auto Err = Repls[Path].add(BodyRepl)) {
+  // string Path = FD->getLocation().printToString(SourceMgr); // Should take a detour
+  // Path = Path.substr(0, Path.find_first_of(":"));
+  // if (auto Err = Repls[Path].add(BodyRepl)) {
+  //   llvm::errs() << "CUDADeclRewriter error occur\n";
+  //   exit(0);
+  // }
+  string FilePath = BodyRepl.getFilePath().str();
+  if (auto Err = Repls[FilePath].add(BodyRepl)) {
     llvm::errs() << "CUDADeclRewriter error occur\n";
     exit(0);
   }
+
+  // TODO: need to validate that kernels are all existed
 }
 //---------------------------------------------------------------------------
 DeclarationMatcher CUDADeclExtractor::getFuncDeclMatcher(const string &KName)
@@ -143,8 +150,8 @@ void CUDAFuncParamAnalyzer::run(const MatchFinder::MatchResult& Result)
   auto PName    = PD->getNameAsString();
   auto ParamUSR = getUSRsForDeclaration(PD->getUnderlyingDecl(), *Context);
 
-  ParamListMap[FName].push_back(PName);
-  USRsListMap[FName].push_back(ParamUSR);
+  ParmListMap[FName].push_back(PName);
+  ParmUSRsListMap[FName].push_back(ParamUSR);
 }
 //---------------------------------------------------------------------------
 StatementMatcher CUDABlockInfoRewriter::getBlockInfoMatcher(const string &KName)
@@ -262,11 +269,13 @@ StatementMatcher CUDASharedDeclExtractor::getSharedDeclMatcher(const std::string
 void CUDASharedDeclExtractor::run(const MatchFinder::MatchResult &Result)
 {
   ASTContext *Context = Result.Context;
-  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
-  const DeclStmt *DS     = Result.Nodes.getNodeAs<DeclStmt>(CUDASharedDeclBindId);
+  const DeclStmt *DS = Result.Nodes.getNodeAs<DeclStmt>(CUDASharedDeclBindId);
   if (!DS) {
     return;
   }
+
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+  auto KName = FD->getNameAsString();
 
   // Add declaration at front
   string DeclStr;
@@ -274,6 +283,11 @@ void CUDASharedDeclExtractor::run(const MatchFinder::MatchResult &Result)
 
   DS->printPretty(DeclStream, nullptr, Context->getPrintingPolicy(), /*Indentation=*/1U);
   DeclStream.flush();
+
+  if (SharedDeclStringMap.find(KName) == SharedDeclStringMap.end()) {
+    SharedDeclStringMap[KName] = "\n";
+  }
+  auto &SharedDeclString = SharedDeclStringMap.at(KName);
   SharedDeclString += DeclStr;
 
   // Remove existing declaration
@@ -283,36 +297,154 @@ void CUDASharedDeclExtractor::run(const MatchFinder::MatchResult &Result)
   Replacement RemoveRepl{SourceMgr, SourceBeginLoc, 0, "// "};
   string RFPath = RemoveRepl.getFilePath().str();
   if (auto Err = Repls[RFPath].add(RemoveRepl)) {
-    llvm::errs() << "CUDASharedDeclExtractor-Remove error occur\n";
+    llvm::errs() << "CUDASharedDeclExtractor error occur\n";
     exit(0);
   }
 }
 //---------------------------------------------------------------------------
-DeclarationMatcher CUDASharedDeclRewriter::getFuncDeclMatcher(const string &KName)
+// DeclarationMatcher CUDASharedDeclRewriter::getFuncDeclMatcher(const string &KName)
+// {
+//   return functionDecl(
+//            hasAttr(attr::CUDAGlobal),
+//            hasName(KName)
+//          ).bind(CUDAFuncDeclBindId);
+// }
+//---------------------------------------------------------------------------
+StatementMatcher CUDASharedDeclRewriter::getSharedDeclMatcher(const std::string &KName)
 {
-  return functionDecl(
-           hasAttr(attr::CUDAGlobal),
-           hasName(KName)
-         ).bind(CUDAFuncDeclBindId);
+  return declStmt(
+           hasSingleDecl(
+             varDecl(
+               hasAttr(attr::CUDAShared)
+             )
+           ),
+           hasAncestor(
+             functionDecl(
+               hasAttr(attr::CUDAGlobal),
+               hasName(KName)
+             ).bind(CUDAFuncDeclBindId)
+           )
+         ).bind(CUDASharedDeclBindId);
 }
+//---------------------------------------------------------------------------
+// void CUDASharedDeclRewriter::run(const MatchFinder::MatchResult &Result)
+// {
+//   ASTContext *Context = Result.Context;
+//   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+//   if (!FD) {
+//     return;
+//   }
+
+//   auto &SourceMgr = Context->getSourceManager();
+//   auto SourceLoc  = FD->getBody()->getBeginLoc().getLocWithOffset(1);
+//   auto FName = FD->getNameAsString();
+//   auto &SharedDeclString = SharedDeclStringMap.at(FName);
+
+//   Replacement Repl{SourceMgr, SourceLoc, 0, SharedDeclString};
+//   string FilePath = Repl.getFilePath().str();
+//   if (auto Err = Repls[FilePath].add(Repl)) {
+//     llvm::errs() << "CUDASharedDeclRewriter-Remove error occur\n";
+//     exit(0);
+//   }
+// }
 //---------------------------------------------------------------------------
 void CUDASharedDeclRewriter::run(const MatchFinder::MatchResult &Result)
 {
   ASTContext *Context = Result.Context;
-  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
-  if (!FD) {
+  const DeclStmt *DS = Result.Nodes.getNodeAs<DeclStmt>(CUDASharedDeclBindId);
+  if (!DS) {
     return;
   }
 
-  auto &SourceMgr = Context->getSourceManager();
-  auto SourceLoc  = FD->getBody()->getBeginLoc().getLocWithOffset(1);
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+  auto FName = FD->getNameAsString();
 
-  Replacement Repl{SourceMgr, SourceLoc, 0, SharedDeclString};
-  string FilePath = Repl.getFilePath().str();
-  if (auto Err = Repls[FilePath].add(Repl)) {
-    llvm::errs() << "CUDASharedDeclRewriter-Remove error occur\n";
-    exit(0);
+  // Add declaration at front
+  string DeclStr;
+  llvm::raw_string_ostream DeclStream{DeclStr};
+
+  DS->printPretty(DeclStream, nullptr, Context->getPrintingPolicy(), /*Indentation=*/1U);
+  DeclStream.flush();
+
+
+  if (SharedDeclStringMap.find(FName) == SharedDeclStringMap.end()) {
+    SharedDeclStringMap[FName] = "\n";
   }
+  auto &SharedDeclString = SharedDeclStringMap.at(FName);
+  SharedDeclString += DeclStr;
+
+  if (ASTContextMap.find(FName) == ASTContextMap.end()) {
+    ASTContextMap[FName] = Context;
+  }
+
+  auto SourceLoc = FD->getBody()->getBeginLoc().getLocWithOffset(1);
+  if (SourceLocMap.find(FName) == SourceLocMap.end()) {
+    SourceLocMap[FName] = SourceLoc;
+  }
+
+  // auto &SourceMgr = Context->getSourceManager();
+
+  // Replacement Repl{SourceMgr, SourceLoc, 0, DeclStr};
+  // string FilePath = Repl.getFilePath().str();
+  // if (auto Err = Repls[FilePath].add(Repl)) {
+  //   llvm::errs() << "CUDASharedDeclRewriter error occur\n";
+  //   exit(0);
+  // }
+}
+//---------------------------------------------------------------------------
+void CUDASharedDeclRewriter::onEndOfTranslationUnit()
+{
+  for (auto &KName : Kernels) {
+    auto *Context   = ASTContextMap.at(KName);
+    auto &SourceLoc = SourceLocMap.at(KName);
+    auto &ShrdDeclStr = SharedDeclStringMap.at(KName);
+
+    Replacement Repl{Context->getSourceManager(), SourceLoc, 0, ShrdDeclStr};
+    string FilePath = Repl.getFilePath().str();
+    if (auto Err = Repls[FilePath].add(Repl)) {
+      llvm::errs() << "CUDASharedDeclRewriter error occur\n";
+      exit(0);
+    }
+  }
+}
+//---------------------------------------------------------------------------
+StatementMatcher CUDASharedVarAnalyzer::getSharedDeclMatcher(const std::string &KName)
+{
+  return declStmt(
+           hasSingleDecl(
+             varDecl(
+               hasAttr(attr::CUDAShared)
+             ).bind(CUDASharedVarBindId)
+           ),
+           hasAncestor(
+             functionDecl(
+               hasAttr(attr::CUDAGlobal),
+               hasName(KName)
+             ).bind(CUDAFuncDeclBindId)
+           )
+         ).bind(CUDASharedDeclBindId);
+}
+//---------------------------------------------------------------------------
+void CUDASharedVarAnalyzer::run(const MatchFinder::MatchResult &Result)
+{
+  ASTContext *Context = Result.Context;
+  const DeclStmt *DS  = Result.Nodes.getNodeAs<DeclStmt>(CUDASharedDeclBindId);
+  if (!DS) {
+    return;
+  }
+
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(CUDAFuncDeclBindId);
+  const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(CUDASharedVarBindId);
+
+  auto FName    = FD->getNameAsString();
+  auto VName    = VD->getNameAsString();
+  auto ParamUSR = getUSRsForDeclaration(VD->getUnderlyingDecl(), *Context);
+
+  ShrdVarListMap[FName].push_back(VName);
+  ShrdVarUSRsListMap[FName].push_back(ParamUSR);
+
+  auto TypeInfo = Context->getTypeInfo(VD->getType());
+  ShrdVarSizeListMap[FName].push_back(TypeInfo.Width / TypeInfo.Align);
 }
 //---------------------------------------------------------------------------
 DeclarationMatcher CUDAFuncBuilder::getFuncBuildMatcher(const string &KName)
@@ -411,7 +543,9 @@ R"(
   // Function body
   auto &BranchCondMap  = Analysis.BranchConditionMap;
   auto &Kernels        = Analysis.Kernels;
-  string CUDAFuncBody  = Analysis.NewBlockInfoString;
+  string CUDAFuncBody  = "";
+
+  CUDAFuncBody += Analysis.NewShrdDeclString + Analysis.NewBlockInfoString;
 
   for (long unsigned I = 0; I < Kernels.size(); ++I) {
     auto &KName   = Kernels[I];

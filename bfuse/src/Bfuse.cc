@@ -173,14 +173,18 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
       ERROR_MESSAGE("error occur while extracting shared memory declarations");
       exit(0);
     }
-    if (Tool.rewriteSharedDecls(AContext)) {
-      ERROR_MESSAGE("error occur while rewriting shared memory declarations");
-      exit(0);
-    }
-    // if (Tool.renameSharedVariables(AContext)) {
-    //   ERROR_MESSAGE("error occur while renaming shared memory variables");
+    // if (Tool.hoistSharedDecls(AContext)) {
+    //   ERROR_MESSAGE("error occur while rewriting shared memory declarations");
     //   exit(0);
     // }
+    if (Tool.analyzeSharedVariables(AContext)) {
+      ERROR_MESSAGE("error occur while renaming shared memory variables");
+      exit(0);
+    }
+    if (Tool.renameSharedVariables(AContext)) {
+      ERROR_MESSAGE("error occur while renaming shared memory variables");
+      exit(0);
+    }
 
     // 5. Create fused kerenl
     // -----------------------------------------------------------------

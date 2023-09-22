@@ -86,9 +86,9 @@ private:
 
 public:
   /// The map of function parameters' list
-  std::map<std::string, ParamList> ParamListMap;
+  std::map<std::string, ParamList> ParmListMap;
   /// The map of USRs lists for renaming parameters
-  std::map<std::string, USRsList> USRsListMap;
+  std::map<std::string, USRsList> ParmUSRsListMap;
 
   /// Get function parameters matcher
   clang::ast_matchers::DeclarationMatcher getFuncParamMatcher(const std::string &Kname);
@@ -167,7 +167,7 @@ private:
 
 public:
   /// The string of shared memory declarations
-  std::string SharedDeclString = "\n";
+  std::map<std::string, std::string> SharedDeclStringMap;
 
 public:
   /// Get shared memory declaration matcher
@@ -187,22 +187,64 @@ public:
 private:
   /// The cuda function declaration bind id
   const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
+  /// The shared memory variable declaration bind id
+  const std::string CUDASharedDeclBindId = "cudaSharedDecl";
 
   /// The container of refactoring replacements
   FileReplacementsMap &Repls;
   /// The string of shared memory declarations
-  std::string SharedDeclString;
+  std::map<std::string, std::string> SharedDeclStringMap;
+
+  /// [Temp]
+  // std::string SharedDeclString = "\n";
+  std::vector<std::string> Kernels;
+  std::map<std::string, clang::ASTContext *> ASTContextMap;
+  std::map<std::string, clang::SourceLocation> SourceLocMap;
 
 public:
-  /// Get function declaration matcher
-  clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(const std::string &KName);
+  // /// Get function declaration matcher
+  // clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(const std::string &KName);
+  /// Get shared memory declaration matcher
+  clang::ast_matchers::StatementMatcher getSharedDeclMatcher(const std::string &KName);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+  /// Run finder at the end of the translation unit
+  virtual void onEndOfTranslationUnit() override;
 
   /// The constructor
   CUDASharedDeclRewriter(FileReplacementsMap &OtherRepls,
-                         const std::string &OtherSharedDeclString)
-                        : Repls{OtherRepls}, SharedDeclString{OtherSharedDeclString} {}
+                         const std::map<std::string, std::string> &OtherSharedDeclStringMap,
+                         const std::vector<std::string> &OtherKernels)
+                        : Repls{OtherRepls}, SharedDeclStringMap{OtherSharedDeclStringMap}, Kernels{OtherKernels} {}
+};
+//---------------------------------------------------------------------------
+class CUDASharedVarAnalyzer
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+public:
+  using ShrdVarList      = std::vector<std::string>;
+  using ShrdVarUSRsList  = std::vector<std::vector<std::string>>;
+  using ShrdVarSizeList  = std::vector<uint64_t>;
+
+private:
+  /// The cuda function declaration bind id
+  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
+  /// The shared memory variable declaration bind id
+  const std::string CUDASharedDeclBindId = "cudaSharedDecl";
+  /// The shared memory variable  bind id
+  const std::string CUDASharedVarBindId = "cudaSharedVar";
+
+public:
+  /// The map of shared memory variables' list
+  std::map<std::string, ShrdVarList> ShrdVarListMap;
+  /// The map of USRs lists for renaming shared memory variables
+  std::map<std::string, ShrdVarUSRsList> ShrdVarUSRsListMap;
+  /// The map of shared memory variables' size
+  std::map<std::string, ShrdVarSizeList> ShrdVarSizeListMap;
+
+  /// Get shared memory declaration matcher
+  clang::ast_matchers::StatementMatcher getSharedDeclMatcher(const std::string &KName);
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
 //---------------------------------------------------------------------------
 class CUDAFuncBuilder

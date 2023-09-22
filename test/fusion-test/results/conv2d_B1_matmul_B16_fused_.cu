@@ -21,6 +21,9 @@
 #endif
 extern "C" __global__ __launch_bounds__(112) conv2d_B1_matmul_B16_fused_(float *__restrict conv2d_B1_data_, float *__restrict conv2d_B1_kernel_, float *__restrict conv2d_B1_conv2d_nhwc_, float *__restrict matmul_B16_data_, float *__restrict matmul_B16_weight_, float *__restrict matmul_B16_T_matmul_NT_)
 {
+  static float union_shared_0_[3200] __attribute__((shared));
+  static float union_shared_1_[2304] __attribute__((shared));
+
   /*
    * KernelID_ means...
    * 0: conv2d_B1
@@ -56,6 +59,7 @@ extern "C" __global__ __launch_bounds__(112) conv2d_B1_matmul_B16_fused_(float *
   {
       float conv2d_nhwc_local[4];
       conv2d_nhwc_local[0] = conv2d_B1_data_[0];
+      conv2d_nhwc_local[0] = union_shared_0_[0];
       int a = blockIdx_x_;
       int b = gridDim_x_;
       asm ("bar.sync 0, 112;");
@@ -65,6 +69,7 @@ extern "C" __global__ __launch_bounds__(112) conv2d_B1_matmul_B16_fused_(float *
   {
       float T_matmul_NT_local[4];
       T_matmul_NT_local[0] = matmul_B16_data_[0];
+      T_matmul_NT_local[0] = union_shared_1_[0];
       int a = blockIdx_x_;
       int b = gridDim_x_;
       asm ("bar.sync 0, 50;");

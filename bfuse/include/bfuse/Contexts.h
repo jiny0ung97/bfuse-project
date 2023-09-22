@@ -102,8 +102,9 @@ public:
 //---------------------------------------------------------------------------
 class AnalysisContext {
 public:
-  using ParamList = std::vector<std::string>;
+  using VarList   = std::vector<std::string>;
   using USRsList  = std::vector<std::vector<std::string>>;
+  using SizeList  = std::vector<uint64_t>;
 
   /// The kernels to be fused
   std::vector<std::string> Kernels;
@@ -122,13 +123,21 @@ public:
 
   /// Renaming Parameters ///
   /// The map of function parameters' list
-  std::map<std::string, ParamList> ParamListMap;
+  std::map<std::string, VarList> ParmListMap;
   /// The map of USRs lists for renaming parameters
-  std::map<std::string, USRsList> USRsListMap;
+  std::map<std::string, USRsList> ParmUSRsListMap;
 
-  /// Rewrite shared memory declarations ///
+  /// Renaming Shared memory Variables ///
   /// The string of shared memory declarations
-  std::string SharedDeclString;
+  std::map<std::string, std::string> SharedDeclStringMap;
+  /// The map of shared memory variables' list
+  std::map<std::string, VarList> ShrdVarListMap;
+  /// The map of USRs lists for renaming shared memory variables
+  std::map<std::string, USRsList> ShrdVarUSRsListMap;
+  /// The map of shared memory variables' size
+  std::map<std::string, SizeList> ShrdVarSizeListMap;
+  /// 
+  std::string NewShrdDeclString;
 
   /// The constructor
   AnalysisContext(std::vector<std::string> &&OtherKernels, std::map<std::string, int> &&OtherThreadNumMap,

@@ -80,8 +80,8 @@ int FusionTool::analyzeParameters(AnalysisContext &AContext)
     return Err;
   }
 
-  AContext.ParamListMap = ParamAnalyzer.ParamListMap;
-  AContext.USRsListMap  = ParamAnalyzer.USRsListMap;
+  AContext.ParmListMap      = ParamAnalyzer.ParmListMap;
+  AContext.ParmUSRsListMap  = ParamAnalyzer.ParmUSRsListMap;
   return Err;
 }
 //---------------------------------------------------------------------------
@@ -97,8 +97,8 @@ int FusionTool::renameParameters(const AnalysisContext &AContext)
   vector<vector<string>> USRs;
 
   for (auto &KName : AContext.Kernels) {
-    auto &PrevParamList = AContext.ParamListMap.at(KName);
-    auto &USRsList      = AContext.USRsListMap.at(KName);
+    auto &PrevParamList = AContext.ParmListMap.at(KName);
+    auto &USRsList      = AContext.ParmUSRsListMap.at(KName);
 
     vector<string> NewParamList{PrevParamList.size()};
     transform(PrevParamList.begin(), PrevParamList.end(),
@@ -151,9 +151,13 @@ int FusionTool::extractSharedDecls(AnalysisContext &AContext)
   // Add AST matchers
   MatchFinder Finder;
   CUDASharedDeclExtractor Extractor{Tool.getReplacements()};
+  CUDASharedDeclRewriter Writer(Tool.getReplacements(),
+                                AContext.SharedDeclStringMap,
+                                AContext.Kernels);
 
   for (auto &KName : AContext.Kernels) {
     Finder.addMatcher(Extractor.getSharedDeclMatcher(KName), &Extractor);
+    Finder.addMatcher(Writer.getSharedDeclMatcher(KName), &Writer);
   }
 
   auto Err = Tool.runAndSave(newFrontendActionFactory(&Finder).get());
@@ -161,25 +165,114 @@ int FusionTool::extractSharedDecls(AnalysisContext &AContext)
     return Err;
   }
 
-  AContext.SharedDeclString = Extractor.SharedDeclString;
+  AContext.SharedDeclStringMap = Extractor.SharedDeclStringMap;
   return Err;
 }
 //---------------------------------------------------------------------------
-int FusionTool::rewriteSharedDecls(const AnalysisContext &AContext)
+int FusionTool::hoistSharedDecls(const AnalysisContext &AContext)
+{
+  // // Refactoring Tool
+  // RefactoringTool Tool(OptionsParser.getCompilations(),
+  //                      OptionsParser.getSourcePathList());
+
+  // // Add AST matchers
+  // MatchFinder Finder;
+  // CUDASharedDeclRewriter Writer(Tool.getReplacements(),
+  //                               AContext.SharedDeclStringMap);
+
+  // for (auto &KName : AContext.Kernels) {
+  //   Finder.addMatcher(Writer.getFuncDeclMatcher(KName), &Writer);
+  // }
+  // return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionTool::analyzeSharedVariables(AnalysisContext &AContext)
 {
   // Clang Tool
-  RefactoringTool Tool(OptionsParser.getCompilations(),
-                       OptionsParser.getSourcePathList());
+  ClangTool Tool(OptionsParser.getCompilations(),
+                 OptionsParser.getSourcePathList());
 
   // Add AST matchers
   MatchFinder Finder;
-  CUDASharedDeclRewriter Writer(Tool.getReplacements(),
-                                AContext.SharedDeclString);
+  CUDASharedVarAnalyzer Analyzer;
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(Writer.getFuncDeclMatcher(KName), &Writer);
+    Finder.addMatcher(Analyzer.getSharedDeclMatcher(KName), &Analyzer);
   }
-  return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+
+  auto Err = Tool.run(newFrontendActionFactory(&Finder).get());
+  if (Err) {
+    return Err;
+  }
+
+  // Sorting containers
+  auto SortFunc = [](auto &Container, auto &Criteria) {
+    return [&Container, &Criteria](auto &A, auto &B) {
+      int AIdx = find(Container.begin(), Container.end(), A) - Container.begin();
+      int BIdx = find(Container.begin(), Container.end(), B) - Container.begin();
+      return Criteria[AIdx] > Criteria[BIdx];
+    };
+  };
+
+  auto ShrdVarListMap     = Analyzer.ShrdVarListMap;
+  auto ShrdVarUSRsListMap = Analyzer.ShrdVarUSRsListMap;
+  auto ShrdVarSizeListMap = Analyzer.ShrdVarSizeListMap;
+
+  for (auto &KName : AContext.Kernels) {
+    auto &ShrdVarList     = ShrdVarListMap.at(KName);
+    auto &ShrdVarUSRsList = ShrdVarUSRsListMap.at(KName);
+    auto &ShrdVarSizeList = ShrdVarSizeListMap.at(KName);
+
+    auto &OldShrdVarList     = Analyzer.ShrdVarListMap.at(KName);
+    auto &OldShrdVarUSRsList = Analyzer.ShrdVarUSRsListMap.at(KName);
+    auto &OldShrdVarSizeList = Analyzer.ShrdVarSizeListMap.at(KName);
+
+    sort(ShrdVarList.begin(), ShrdVarList.end(),
+         SortFunc(OldShrdVarList, OldShrdVarSizeList));
+    sort(ShrdVarUSRsList.begin(), ShrdVarUSRsList.end(),
+         SortFunc(OldShrdVarUSRsList, OldShrdVarSizeList));
+    sort(ShrdVarSizeList.begin(), ShrdVarSizeList.end(),
+         SortFunc(OldShrdVarSizeList, OldShrdVarSizeList));
+  }
+
+  AContext.ShrdVarListMap     = ShrdVarListMap;
+  AContext.ShrdVarUSRsListMap = ShrdVarUSRsListMap;
+  AContext.ShrdVarSizeListMap = ShrdVarSizeListMap;
+
+  // Generate new shared memory declarations for fused kernel
+  string ShrdDeclStr;
+  llvm::raw_string_ostream ShrdDeclStream{ShrdDeclStr};
+
+  string VNameBase = "union_shared_";
+  bool AllVisited;
+  uint64_t MaxSize;
+
+  for (long unsigned I = 0;; ++I) {
+    AllVisited = true;
+    MaxSize    = 0;
+
+    for (auto &KName : AContext.Kernels) {
+      auto &ShrdVarSizeList = ShrdVarSizeListMap.at(KName);
+
+      if (I >= ShrdVarSizeList.size())
+        continue;
+
+      AllVisited = false;
+      MaxSize    = ShrdVarSizeList[I] > MaxSize ? ShrdVarSizeList[I] : MaxSize;
+    }
+
+    if (AllVisited)
+      break;
+
+    // FIXME: need to print by more general methology
+    // i.e. static float pad_temp_shared[2320] __attribute__((shared));
+    ShrdDeclStream << "  static float union_shared_" << I << "_[" << MaxSize << "] __attribute__((shared));\n";
+  }
+  ShrdDeclStream << "\n";
+  ShrdDeclStream.flush();
+
+  AContext.NewShrdDeclString = ShrdDeclStr;
+  return Err;
 }
 //---------------------------------------------------------------------------
 int FusionTool::renameSharedVariables(const AnalysisContext &AContext)
@@ -188,7 +281,34 @@ int FusionTool::renameSharedVariables(const AnalysisContext &AContext)
   RefactoringTool Tool(OptionsParser.getCompilations(),
                        OptionsParser.getSourcePathList());
 
-  return 0;
+  // Generate new names
+  vector<string>         NewShrdVars;
+  vector<string>         PrevShrdVars;
+  vector<vector<string>> USRs;
+
+  for (auto &KName : AContext.Kernels) {
+    auto &PrevShrdVarList = AContext.ShrdVarListMap.at(KName);
+    auto &USRsList        = AContext.ShrdVarUSRsListMap.at(KName);
+
+    vector<string> NewShrdVarList;
+    string NewNameBase = "union_shared_";
+    for (long unsigned I = 0; I < PrevShrdVarList.size(); ++I) {
+      NewShrdVarList.push_back(NewNameBase + to_string(I) + "_");
+    }
+
+    NewShrdVars.insert(NewShrdVars.end(),
+                       NewShrdVarList.begin(), NewShrdVarList.end());
+    PrevShrdVars.insert(PrevShrdVars.end(),
+                        PrevShrdVarList.begin(), PrevShrdVarList.end());
+    USRs.insert(USRs.end(),
+                USRsList.begin(), USRsList.end());
+  }
+
+  // Run renaming frontend action
+  RenamingAction Renaming{NewShrdVars, PrevShrdVars,
+                          USRs, Tool.getReplacements()};
+
+  return Tool.runAndSave(newFrontendActionFactory(&Renaming).get());
 }
 //---------------------------------------------------------------------------
 int FusionTool::createFusedKernel(const AnalysisContext &AContext)

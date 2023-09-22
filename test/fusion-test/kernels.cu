@@ -25,6 +25,7 @@ extern "C" __global__ void __launch_bounds__(112) conv2d_B1(float* __restrict__ 
   __shared__ float kernel_shared[2304];
 
   conv2d_nhwc_local[0] = data[0];
+  conv2d_nhwc_local[0] = pad_temp_shared[0];
 
   int a = blockIdx.x;
   int b = gridDim.x;
@@ -37,6 +38,7 @@ extern "C" __global__ void __launch_bounds__(50) matmul_B16(float* __restrict__ 
   __shared__ float weight_shared[3200];
 
   T_matmul_NT_local[0] = data[0];
+  T_matmul_NT_local[0] = data_shared[0];
 
   int a = blockIdx.x;
   int b = gridDim.x;

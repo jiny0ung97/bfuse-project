@@ -7,7 +7,7 @@ set(BFUSE_SOURCES
   ${BFUSE_SOURCE_DIR}/Contexts.cc
   ${BFUSE_SOURCE_DIR}/Tools.cc
   ${BFUSE_SOURCE_DIR}/Matchers.cc
-  # ${BFUSE_SOURCE_DIR}/Instances.cc
+  ${BFUSE_SOURCE_DIR}/Algorithms.cc
   # Add your sources here
   # ${BFUSE_SOURCE_DIR}/foo/bar/your_source.cc
 )
@@ -20,7 +20,7 @@ set(BFUSE_HEADERS
   ${BFUSE_HEADER_DIR}/bfuse/Contexts.h
   ${BFUSE_HEADER_DIR}/bfuse/Tools.h
   ${BFUSE_HEADER_DIR}/bfuse/Matchers.h
-  # ${BFUSE_HEADER_DIR}/bfuse/Instances.h
+  ${BFUSE_HEADER_DIR}/bfuse/Algorithms.h
   # Add your headers here
   # ${BFUSE_HEADER_DIR}/foo/bar/your_header.h
 )

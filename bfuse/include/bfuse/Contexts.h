@@ -9,6 +9,14 @@
 namespace bfuse {
 namespace contexts {
 //---------------------------------------------------------------------------
+using IdxBoundPairTy = std::pair<int, int>;
+using VarListTy      = std::vector<std::string>;
+using USRsListTy     = std::vector<std::vector<std::string>>;
+using SizeListTy     = std::vector<uint64_t>;
+using VarListMapTy   = std::map<std::string, VarListTy>;
+using USRsListMapTy  = std::map<std::string, USRsListTy>;
+using SizeListMapTy  = std::map<std::string, SizeListTy>;
+//---------------------------------------------------------------------------
 struct GridDim {
   /// Grid's x, y, z dimension
   int x, y, z;
@@ -50,17 +58,15 @@ public:
 //---------------------------------------------------------------------------
 class KernelContext {
 public:
-  using IdxBoundPair = std::pair<int, int>;
-
   /// The kernel's threadIdx boudnary
-  IdxBoundPair threadIdxInfo;
+  IdxBoundPairTy threadIdxInfo;
   /// The kernel's blockIdx boundary
-  std::vector<IdxBoundPair> blockIdxInfo;
+  std::vector<IdxBoundPairTy> blockIdxInfo;
   /// Num of blocks from other fused kernels
   std::vector<int> otherBlocks;
 
   /// The constructor
-  explicit KernelContext(IdxBoundPair &&ThreadIdxInfo)
+  explicit KernelContext(IdxBoundPairTy &&ThreadIdxInfo)
                         : threadIdxInfo{std::move(ThreadIdxInfo)}, blockIdxInfo{}, otherBlocks{} {}
   /// Print KernelContext
   void print() const;
@@ -102,9 +108,6 @@ public:
 //---------------------------------------------------------------------------
 class AnalysisContext {
 public:
-  using VarList   = std::vector<std::string>;
-  using USRsList  = std::vector<std::vector<std::string>>;
-  using SizeList  = std::vector<uint64_t>;
 
   /// The kernels to be fused
   std::vector<std::string> Kernels;
@@ -112,9 +115,9 @@ public:
   std::map<std::string, int> ThreadNumMap;
   /// The Branch Condition
   std::map<std::string, std::string> BranchConditionMap;
-  /// The map of temp blockIdx, gridDim declarations
+  /// The temp blockIdx, gridDim declarations
   std::string TmpBlockInfoString;
-  /// The map of new blockIdx, gridDim declarations
+  /// The new blockIdx, gridDim declarations
   std::string NewBlockInfoString;
   /// The name of fused kernel
   std::string NewFuncName;
@@ -123,19 +126,17 @@ public:
 
   /// Renaming Parameters ///
   /// The map of function parameters' list
-  std::map<std::string, VarList> ParmListMap;
+  VarListMapTy ParmListMap;
   /// The map of USRs lists for renaming parameters
-  std::map<std::string, USRsList> ParmUSRsListMap;
+  USRsListMapTy ParmUSRsListMap;
 
   /// Renaming Shared memory Variables ///
-  /// The string of shared memory declarations
-  std::map<std::string, std::string> SharedDeclStringMap;
   /// The map of shared memory variables' list
-  std::map<std::string, VarList> ShrdVarListMap;
+  VarListMapTy ShrdVarListMap;
   /// The map of USRs lists for renaming shared memory variables
-  std::map<std::string, USRsList> ShrdVarUSRsListMap;
+  USRsListMapTy ShrdVarUSRsListMap;
   /// The map of shared memory variables' size
-  std::map<std::string, SizeList> ShrdVarSizeListMap;
+  SizeListMapTy ShrdVarSizeListMap;
   /// 
   std::string NewShrdDeclString;
 

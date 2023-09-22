@@ -32,10 +32,8 @@ public:
   /// Rewrite the source code
   int rewriteCUDAVariables(const contexts::AnalysisContext &AContext);
 
-  /// Extract shared memory variable declarations
-  int extractSharedDecls(contexts::AnalysisContext &AContext);
-  /// Hoist shared memory variables
-  int hoistSharedDecls(const contexts::AnalysisContext &AContext);
+  /// Hoist shared memory variable declarations
+  int hoistSharedDecls(contexts::AnalysisContext &AContext);
   /// Analyze shared memory variables
   int analyzeSharedVariables(contexts::AnalysisContext &AContext);
   /// Rename shared memory variables

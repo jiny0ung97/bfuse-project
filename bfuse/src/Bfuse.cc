@@ -164,19 +164,15 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
       exit(0);
     }
 
-    // 4. Renaming shared memory variables
+    // 4. Hoisting & Renaming shared memory variables
     // -----------------------------------------------------------------
     // TODO: add comments
 
-    cout << "Renaming shared memory declarations...\n";
-    if (Tool.extractSharedDecls(AContext)) {
+    cout << "Hoisting & Renaming shared memory variables...\n";
+    if (Tool.hoistSharedDecls(AContext)) {
       ERROR_MESSAGE("error occur while extracting shared memory declarations");
       exit(0);
     }
-    // if (Tool.hoistSharedDecls(AContext)) {
-    //   ERROR_MESSAGE("error occur while rewriting shared memory declarations");
-    //   exit(0);
-    // }
     if (Tool.analyzeSharedVariables(AContext)) {
       ERROR_MESSAGE("error occur while renaming shared memory variables");
       exit(0);
@@ -189,7 +185,7 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
     // 5. Create fused kerenl
     // -----------------------------------------------------------------
     // Fuse two different kernels and
-    // save it into the result path directory.
+    // save it in the result path directory.
 
     cout << "Creating fused kernel...\n";
     if (Tool.createFusedKernel(AContext)) {

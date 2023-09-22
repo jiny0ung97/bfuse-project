@@ -225,7 +225,7 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
 
   llvm::raw_string_ostream TmpVarStream{TmpBlockInfoString};
   TmpVarStream << "\n"
-               << "  // FIXME: need to be deleted later\n"
+               << "  // Temp declaration to avoid semantic errors\n"
                << "  int gridDim_x_  = 0; // temp declaration\n"
                << "  int blockIdx_x_ = 0; // temp declaration\n";
   TmpVarStream.flush();

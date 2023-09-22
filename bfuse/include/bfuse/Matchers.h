@@ -15,234 +15,170 @@
 namespace bfuse {
 namespace matchers {
 //---------------------------------------------------------------------------
-class CUDAFuncDeclPrinter
-      : public clang::ast_matchers::MatchFinder::MatchCallback {
-private:
-  /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
-
+using FileReplacementsMapTy = std::map<std::string, clang::tooling::Replacements>;
+using VarListTy      = contexts::VarListTy;
+using USRsListTy     = contexts::USRsListTy;
+using SizeListTy     = contexts::SizeListTy;
+using VarListMapTy   = contexts::VarListMapTy;
+using USRsListMapTy  = contexts::USRsListMapTy;
+using SizeListMapTy  = contexts::SizeListMapTy;
+//---------------------------------------------------------------------------
+class ASTPatternMatcher {
 public:
   /// Get function declaration matcher
-  clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(const std::string &KName);
-  /// Run AST match finder
-  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
-};
-//---------------------------------------------------------------------------
-class CUDADeclRewriter
-      : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
-
-private:
-  /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
-
-  /// The container of refactoring replacements
-  FileReplacementsMap &Repls;
-
-public:
+  static clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(const std::string &KName);
+  /// Get function parameters matcher
+  static clang::ast_matchers::DeclarationMatcher getFuncParmMatcher(const std::string &KName);
+  /// Get block information declarations' reference matcher
+  static clang::ast_matchers::StatementMatcher getBlockIdxMatcher(const std::string &KName);
+  /// Get synchronization matcher
+  static clang::ast_matchers::StatementMatcher getSyncMatcher(const std::string &KName);
+  /// Get shared memory declaration matcher
+  static clang::ast_matchers::StatementMatcher getSharedDeclMatcher(const std::string &KName);
   /// Get function declaration matcher
-  clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(const std::string &KName);
-  /// Run AST match finder
-  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+  static clang::ast_matchers::DeclarationMatcher getFuncBuildMatcher(const std::string &KName);
 
-  /// The constructor
-  explicit CUDADeclRewriter(FileReplacementsMap &OtherRepls) : Repls{OtherRepls} {}
-};
-//---------------------------------------------------------------------------
-class CUDADeclExtractor
-      : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
-  
-private:
   /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
-
-  /// The container of refactoring replacements
-  FileReplacementsMap &Repls;
-
-public:
-  /// Get function declaration matcher
-  clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(const std::string &KName);
-  /// Run AST match finder
-  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
-
-  /// The constructor
-  explicit CUDADeclExtractor(FileReplacementsMap &OtherRepls) : Repls{OtherRepls} {}
-};
-//---------------------------------------------------------------------------
-class CUDAFuncParamAnalyzer
-      : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  using ParamList = std::vector<std::string>;
-  using USRsList  = std::vector<std::vector<std::string>>;
-
-private:
-  /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
+  static const std::string CUDAFuncDecl;
   /// The cuda function parameters bind id
-  const std::string CUDAFuncParamBindId = "cudaFuncParam";
+  static const std::string CUDAFuncParm;
+  /// The cuda block information member (x, y, z) bind id
+  static const std::string CUDABlockIdxVarMember;
+  /// The cuda block information bind id
+  static const std::string CUDABlockIdxVar;
+  /// The cuda synchronization bind id
+  static const std::string CUDASync;
+  /// The shared memory variable declaration bind id
+  static const std::string CUDASharedDecl;
+  /// The shared memory variable bind id
+  static const std::string CUDASharedVar;
+};
+//---------------------------------------------------------------------------
+class CUDAKernelRewriter
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+private:
+  /// The container of refactoring replacements
+  FileReplacementsMapTy &Repls;
 
+public:
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+
+  /// The constructor
+  explicit CUDAKernelRewriter(FileReplacementsMapTy &OtherRepls) : Repls{OtherRepls} {}
+};
+//---------------------------------------------------------------------------
+class CUDACompStmtRewriter
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+private:
+  /// The container of refactoring replacements
+  FileReplacementsMapTy &Repls;
+  /// The temp blockIdx, gridDim declarations
+  const std::string &TmpBlockInfoString;
+
+public:
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+
+  /// The constructor
+  explicit CUDACompStmtRewriter(FileReplacementsMapTy &OtherRepls,
+                                const std::string &OtherTmpBlockInfoString)
+                               : Repls{OtherRepls}, TmpBlockInfoString{OtherTmpBlockInfoString} {}
+};
+//---------------------------------------------------------------------------
+class CUDAFuncParmAnalyzer
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
   /// The map of function parameters' list
-  std::map<std::string, ParamList> ParmListMap;
+  VarListMapTy ParmListMap;
   /// The map of USRs lists for renaming parameters
-  std::map<std::string, USRsList> ParmUSRsListMap;
+  USRsListMapTy ParmUSRsListMap;
 
-  /// Get function parameters matcher
-  clang::ast_matchers::DeclarationMatcher getFuncParamMatcher(const std::string &Kname);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
 //---------------------------------------------------------------------------
 class CUDABlockInfoRewriter
       : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
-
 private:
-  /// The cuda block information member (x, y, z) bind id
-  const std::string CUDAIdxAndDimMemberBindId = "cudaIdxAndDimMember";
-  /// The cuda block information bind id
-  const std::string CUDAIdxAndDimBindId = "cudaIdxAndDim";
-
   /// The container of refactoring replacements
-  FileReplacementsMap &Repls;
-  /// The map of new blockIdx, gridDim declarations
-  std::string TmpBlockInfoString;
+  FileReplacementsMapTy &Repls;
 
 public:
-  /// Get block information declarations' reference matcher
-  clang::ast_matchers::StatementMatcher getBlockInfoMatcher(const std::string &KName);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  CUDABlockInfoRewriter(FileReplacementsMap &OtherRepls, const std::string &OtherInfoString)
-                       : Repls{OtherRepls}, TmpBlockInfoString{OtherInfoString} {}
+  CUDABlockInfoRewriter(FileReplacementsMapTy &OtherRepls) : Repls{OtherRepls} {}
 };
 //---------------------------------------------------------------------------
 class CUDASyncRewriter
       : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  using FileReplacementsMap  = std::map<std::string, clang::tooling::Replacements>;
-  using NameKernelContextMap = std::map<std::string, contexts::KernelContext>;
-
 private:
-  /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
-  /// The cuda synchronization bind id
-  const std::string CUDASyncBindId = "cudaSync";
-
   /// The container of refactoring replacements
-  FileReplacementsMap &Repls;
+  FileReplacementsMapTy &Repls;
   /// The map of threads' number
-  std::map<std::string, int> ThreadNumMap;
+  const std::map<std::string, int> &ThreadNumMap;
 
 public:
-  /// Get synchronization matcher
-  clang::ast_matchers::StatementMatcher getSyncMatcher(const std::string &KName);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  CUDASyncRewriter(FileReplacementsMap &OtherRepls, const std::map<std::string, int> &OtherThreadNumMap)
+  CUDASyncRewriter(FileReplacementsMapTy &OtherRepls, const std::map<std::string, int> &OtherThreadNumMap)
                   : Repls{OtherRepls}, ThreadNumMap{OtherThreadNumMap} {}
 };
 //---------------------------------------------------------------------------
 class CUDASharedDeclExtractor
       : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
-
 private:
-  /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
-  /// The shared memory variable declaration bind id
-  const std::string CUDASharedDeclBindId = "cudaSharedDecl";
-
   /// The container of refactoring replacements
-  FileReplacementsMap &Repls;
+  FileReplacementsMapTy &Repls;
 
 public:
-  /// The string of shared memory declarations
-  std::map<std::string, std::string> SharedDeclStringMap;
-
-public:
-  /// Get shared memory declaration matcher
-  clang::ast_matchers::StatementMatcher getSharedDeclMatcher(const std::string &KName);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  CUDASharedDeclExtractor(FileReplacementsMap &OtherRepls) : Repls{OtherRepls} {}
+  CUDASharedDeclExtractor(FileReplacementsMapTy &OtherRepls) : Repls{OtherRepls} {}
 };
 //---------------------------------------------------------------------------
 class CUDASharedDeclRewriter
       : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  using FileReplacementsMap = std::map<std::string, clang::tooling::Replacements>;
-
 private:
-  /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
-  /// The shared memory variable declaration bind id
-  const std::string CUDASharedDeclBindId = "cudaSharedDecl";
-
   /// The container of refactoring replacements
-  FileReplacementsMap &Repls;
-  /// The string of shared memory declarations
+  FileReplacementsMapTy &Repls;
+    /// The kernels to be fused
+  const std::vector<std::string> &Kernels;
+  /// The map of ASTContexts
+  std::map<std::string, clang::ASTContext *> ASTContextMap;
+  /// The map of source locations
+  std::map<std::string, clang::SourceLocation> SourceLocMap;
+  /// The map of shared memory declarations
   std::map<std::string, std::string> SharedDeclStringMap;
 
-  /// [Temp]
-  // std::string SharedDeclString = "\n";
-  std::vector<std::string> Kernels;
-  std::map<std::string, clang::ASTContext *> ASTContextMap;
-  std::map<std::string, clang::SourceLocation> SourceLocMap;
-
 public:
-  // /// Get function declaration matcher
-  // clang::ast_matchers::DeclarationMatcher getFuncDeclMatcher(const std::string &KName);
-  /// Get shared memory declaration matcher
-  clang::ast_matchers::StatementMatcher getSharedDeclMatcher(const std::string &KName);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
   /// Run finder at the end of the translation unit
   virtual void onEndOfTranslationUnit() override;
 
   /// The constructor
-  CUDASharedDeclRewriter(FileReplacementsMap &OtherRepls,
-                         const std::map<std::string, std::string> &OtherSharedDeclStringMap,
+  CUDASharedDeclRewriter(FileReplacementsMapTy &OtherRepls,
                          const std::vector<std::string> &OtherKernels)
-                        : Repls{OtherRepls}, SharedDeclStringMap{OtherSharedDeclStringMap}, Kernels{OtherKernels} {}
+                        : Repls{OtherRepls}, Kernels{OtherKernels} {}
 };
 //---------------------------------------------------------------------------
 class CUDASharedVarAnalyzer
       : public clang::ast_matchers::MatchFinder::MatchCallback {
 public:
-  using ShrdVarList      = std::vector<std::string>;
-  using ShrdVarUSRsList  = std::vector<std::vector<std::string>>;
-  using ShrdVarSizeList  = std::vector<uint64_t>;
-
-private:
-  /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
-  /// The shared memory variable declaration bind id
-  const std::string CUDASharedDeclBindId = "cudaSharedDecl";
-  /// The shared memory variable  bind id
-  const std::string CUDASharedVarBindId = "cudaSharedVar";
-
-public:
   /// The map of shared memory variables' list
-  std::map<std::string, ShrdVarList> ShrdVarListMap;
+  VarListMapTy ShrdVarListMap;
   /// The map of USRs lists for renaming shared memory variables
-  std::map<std::string, ShrdVarUSRsList> ShrdVarUSRsListMap;
+  USRsListMapTy ShrdVarUSRsListMap;
   /// The map of shared memory variables' size
-  std::map<std::string, ShrdVarSizeList> ShrdVarSizeListMap;
+  SizeListMapTy ShrdVarSizeListMap;
 
-  /// Get shared memory declaration matcher
-  clang::ast_matchers::StatementMatcher getSharedDeclMatcher(const std::string &KName);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
@@ -250,11 +186,6 @@ public:
 class CUDAFuncBuilder
       : public clang::ast_matchers::MatchFinder::MatchCallback {
 private:
-  /// The cuda function declaration bind id
-  const std::string CUDAFuncDeclBindId = "cudaFuncDecl";
-  /// The cuda function parameters bind id
-  const std::string CUDAFuncParamBindId = "cudaFuncParam";
-
   /// The analysis of functions to be fused
   const contexts::AnalysisContext &Analysis;
   /// The string stream of fused function
@@ -265,8 +196,6 @@ private:
   std::vector<std::string> ParmStringList;
 
 public:
-  /// Get function declaration matcher
-  clang::ast_matchers::DeclarationMatcher getFuncBuildMatcher(const std::string &KName);
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
   /// Run finder at the end of the translation unit
@@ -275,6 +204,13 @@ public:
   /// The constructor
   CUDAFuncBuilder(const contexts::AnalysisContext &OtherAnalysis, std::string &FuncStr)
                  : Analysis{OtherAnalysis}, FuncStream{FuncStr} {}
+};
+//---------------------------------------------------------------------------
+class CUDAFuncDeclPrinter
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+public:
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
 //---------------------------------------------------------------------------
 } // namespace matchers

@@ -1,4 +1,5 @@
 
+#include <utility>
 #include <algorithm>
 #include <numeric>
 #include <string>
@@ -13,9 +14,10 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include "bfuse/Contexts.h"
+#include "bfuse/Algorithms.h"
 #include "bfuse/Matchers.h"
-#include "bfuse/Tools.h"
 #include "bfuse/Utils.h"
+#include "bfuse/Tools.h"
 
 using namespace std;
 
@@ -36,10 +38,10 @@ int FusionTool::initiallyRewriteKernels(const AnalysisContext &AContext)
 
   // Add AST matchers
   MatchFinder Finder;
-  CUDADeclRewriter Rewriter{Tool.getReplacements()};
+  CUDAKernelRewriter Rewriter{Tool.getReplacements()};
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(Rewriter.getFuncDeclMatcher(KName), &Rewriter);
+    Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Rewriter);
   }
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }
@@ -52,10 +54,10 @@ int FusionTool::rewriteCompStmt(const contexts::AnalysisContext &AContext)
 
   // Add AST matchers
   MatchFinder Finder;
-  CUDADeclExtractor Extractor{Tool.getReplacements()};
+  CUDACompStmtRewriter Rewriter{Tool.getReplacements(), AContext.TmpBlockInfoString};
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(Extractor.getFuncDeclMatcher(KName), &Extractor);
+    Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Rewriter);
   }
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }
@@ -68,11 +70,10 @@ int FusionTool::analyzeParameters(AnalysisContext &AContext)
 
   // Add AST matchers
   MatchFinder Finder;
-  CUDAFuncParamAnalyzer ParamAnalyzer;
+  CUDAFuncParmAnalyzer Analyzer;
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(ParamAnalyzer.getFuncParamMatcher(KName),
-                      &ParamAnalyzer);
+    Finder.addMatcher(ASTPatternMatcher::getFuncParmMatcher(KName), &Analyzer);
   }
 
   int Err = Tool.run(newFrontendActionFactory(&Finder).get());
@@ -80,8 +81,8 @@ int FusionTool::analyzeParameters(AnalysisContext &AContext)
     return Err;
   }
 
-  AContext.ParmListMap      = ParamAnalyzer.ParmListMap;
-  AContext.ParmUSRsListMap  = ParamAnalyzer.ParmUSRsListMap;
+  AContext.ParmListMap      = move(Analyzer.ParmListMap);
+  AContext.ParmUSRsListMap  = move(Analyzer.ParmUSRsListMap);
   return Err;
 }
 //---------------------------------------------------------------------------
@@ -91,29 +92,8 @@ int FusionTool::renameParameters(const AnalysisContext &AContext)
   RefactoringTool Tool(OptionsParser.getCompilations(),
                        OptionsParser.getSourcePathList());
 
-  // Collect informations of parameters to be renamed
-  vector<string>         NewParams;
-  vector<string>         PrevParams;
-  vector<vector<string>> USRs;
-
-  for (auto &KName : AContext.Kernels) {
-    auto &PrevParamList = AContext.ParmListMap.at(KName);
-    auto &USRsList      = AContext.ParmUSRsListMap.at(KName);
-
-    vector<string> NewParamList{PrevParamList.size()};
-    transform(PrevParamList.begin(), PrevParamList.end(),
-              NewParamList.begin(),
-              [&KName](const string &PName) {
-                return KName + "_" + PName + "_";
-              });
-
-    NewParams.insert(NewParams.end(),
-                     NewParamList.begin(), NewParamList.end());
-    PrevParams.insert(PrevParams.end(),
-                      PrevParamList.begin(), PrevParamList.end());
-    USRs.insert(USRs.end(),
-                USRsList.begin(), USRsList.end());
-  }
+  // Collect parameters' information and return renamed parameter lists
+  auto [NewParams, PrevParams, USRs] = algorithms::getNewParmLists(AContext);
 
   // Run renaming frontend action
   RenamingAction Renaming{NewParams, PrevParams,
@@ -130,19 +110,19 @@ int FusionTool::rewriteCUDAVariables(const AnalysisContext &AContext)
 
   // Add AST matchers
   MatchFinder Finder;
-  CUDABlockInfoRewriter BlockInfoRewriter{Tool.getReplacements(), AContext.TmpBlockInfoString};
+  CUDABlockInfoRewriter BInfoRewriter{Tool.getReplacements()};
   CUDASyncRewriter      SyncRewriter{Tool.getReplacements(), AContext.ThreadNumMap};
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(BlockInfoRewriter.getBlockInfoMatcher(KName),
-                      &BlockInfoRewriter);
-    Finder.addMatcher(SyncRewriter.getSyncMatcher(KName),
+    Finder.addMatcher(ASTPatternMatcher::getBlockIdxMatcher(KName),
+                      &BInfoRewriter);
+    Finder.addMatcher(ASTPatternMatcher::getSyncMatcher(KName),
                       &SyncRewriter);
   }
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
-int FusionTool::extractSharedDecls(AnalysisContext &AContext)
+int FusionTool::hoistSharedDecls(AnalysisContext &AContext)
 {
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser.getCompilations(),
@@ -151,39 +131,14 @@ int FusionTool::extractSharedDecls(AnalysisContext &AContext)
   // Add AST matchers
   MatchFinder Finder;
   CUDASharedDeclExtractor Extractor{Tool.getReplacements()};
-  CUDASharedDeclRewriter Writer(Tool.getReplacements(),
-                                AContext.SharedDeclStringMap,
-                                AContext.Kernels);
+  CUDASharedDeclRewriter  Writer(Tool.getReplacements(), AContext.Kernels);
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(Extractor.getSharedDeclMatcher(KName), &Extractor);
-    Finder.addMatcher(Writer.getSharedDeclMatcher(KName), &Writer);
+    Finder.addMatcher(ASTPatternMatcher::getSharedDeclMatcher(KName), &Extractor);
+    Finder.addMatcher(ASTPatternMatcher::getSharedDeclMatcher(KName), &Writer);
   }
 
-  auto Err = Tool.runAndSave(newFrontendActionFactory(&Finder).get());
-  if (Err) {
-    return Err;
-  }
-
-  AContext.SharedDeclStringMap = Extractor.SharedDeclStringMap;
-  return Err;
-}
-//---------------------------------------------------------------------------
-int FusionTool::hoistSharedDecls(const AnalysisContext &AContext)
-{
-  // // Refactoring Tool
-  // RefactoringTool Tool(OptionsParser.getCompilations(),
-  //                      OptionsParser.getSourcePathList());
-
-  // // Add AST matchers
-  // MatchFinder Finder;
-  // CUDASharedDeclRewriter Writer(Tool.getReplacements(),
-  //                               AContext.SharedDeclStringMap);
-
-  // for (auto &KName : AContext.Kernels) {
-  //   Finder.addMatcher(Writer.getFuncDeclMatcher(KName), &Writer);
-  // }
-  // return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+  return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
 int FusionTool::analyzeSharedVariables(AnalysisContext &AContext)
@@ -197,7 +152,7 @@ int FusionTool::analyzeSharedVariables(AnalysisContext &AContext)
   CUDASharedVarAnalyzer Analyzer;
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(Analyzer.getSharedDeclMatcher(KName), &Analyzer);
+    Finder.addMatcher(ASTPatternMatcher::getSharedDeclMatcher(KName), &Analyzer);
   }
 
   auto Err = Tool.run(newFrontendActionFactory(&Finder).get());
@@ -205,73 +160,14 @@ int FusionTool::analyzeSharedVariables(AnalysisContext &AContext)
     return Err;
   }
 
-  // Sorting containers
-  auto SortFunc = [](auto &Container, auto &Criteria) {
-    return [&Container, &Criteria](auto &A, auto &B) {
-      int AIdx = find(Container.begin(), Container.end(), A) - Container.begin();
-      int BIdx = find(Container.begin(), Container.end(), B) - Container.begin();
-      return Criteria[AIdx] > Criteria[BIdx];
-    };
-  };
+  auto [ShrdVarListMap, ShrdVarUSRsListMap, ShrdVarSizeListMap, ShrdDeclStr]
+       = algorithms::getShrdVarAnalysis(AContext, Analyzer.ShrdVarListMap,
+                                        Analyzer.ShrdVarUSRsListMap, Analyzer.ShrdVarSizeListMap);
 
-  auto ShrdVarListMap     = Analyzer.ShrdVarListMap;
-  auto ShrdVarUSRsListMap = Analyzer.ShrdVarUSRsListMap;
-  auto ShrdVarSizeListMap = Analyzer.ShrdVarSizeListMap;
-
-  for (auto &KName : AContext.Kernels) {
-    auto &ShrdVarList     = ShrdVarListMap.at(KName);
-    auto &ShrdVarUSRsList = ShrdVarUSRsListMap.at(KName);
-    auto &ShrdVarSizeList = ShrdVarSizeListMap.at(KName);
-
-    auto &OldShrdVarList     = Analyzer.ShrdVarListMap.at(KName);
-    auto &OldShrdVarUSRsList = Analyzer.ShrdVarUSRsListMap.at(KName);
-    auto &OldShrdVarSizeList = Analyzer.ShrdVarSizeListMap.at(KName);
-
-    sort(ShrdVarList.begin(), ShrdVarList.end(),
-         SortFunc(OldShrdVarList, OldShrdVarSizeList));
-    sort(ShrdVarUSRsList.begin(), ShrdVarUSRsList.end(),
-         SortFunc(OldShrdVarUSRsList, OldShrdVarSizeList));
-    sort(ShrdVarSizeList.begin(), ShrdVarSizeList.end(),
-         SortFunc(OldShrdVarSizeList, OldShrdVarSizeList));
-  }
-
-  AContext.ShrdVarListMap     = ShrdVarListMap;
-  AContext.ShrdVarUSRsListMap = ShrdVarUSRsListMap;
-  AContext.ShrdVarSizeListMap = ShrdVarSizeListMap;
-
-  // Generate new shared memory declarations for fused kernel
-  string ShrdDeclStr;
-  llvm::raw_string_ostream ShrdDeclStream{ShrdDeclStr};
-
-  string VNameBase = "union_shared_";
-  bool AllVisited;
-  uint64_t MaxSize;
-
-  for (long unsigned I = 0;; ++I) {
-    AllVisited = true;
-    MaxSize    = 0;
-
-    for (auto &KName : AContext.Kernels) {
-      auto &ShrdVarSizeList = ShrdVarSizeListMap.at(KName);
-
-      if (I >= ShrdVarSizeList.size())
-        continue;
-
-      AllVisited = false;
-      MaxSize    = ShrdVarSizeList[I] > MaxSize ? ShrdVarSizeList[I] : MaxSize;
-    }
-
-    if (AllVisited)
-      break;
-
-    // FIXME: need to print by more general methology
-    // i.e. static float pad_temp_shared[2320] __attribute__((shared));
-    ShrdDeclStream << "  static float union_shared_" << I << "_[" << MaxSize << "] __attribute__((shared));\n";
-  }
-  ShrdDeclStream << "\n";
-  ShrdDeclStream.flush();
-
-  AContext.NewShrdDeclString = ShrdDeclStr;
+  AContext.ShrdVarListMap     = move(ShrdVarListMap);
+  AContext.ShrdVarUSRsListMap = move(ShrdVarUSRsListMap);
+  AContext.ShrdVarSizeListMap = move(ShrdVarSizeListMap);
+  AContext.NewShrdDeclString  = move(ShrdDeclStr);
   return Err;
 }
 //---------------------------------------------------------------------------
@@ -282,27 +178,7 @@ int FusionTool::renameSharedVariables(const AnalysisContext &AContext)
                        OptionsParser.getSourcePathList());
 
   // Generate new names
-  vector<string>         NewShrdVars;
-  vector<string>         PrevShrdVars;
-  vector<vector<string>> USRs;
-
-  for (auto &KName : AContext.Kernels) {
-    auto &PrevShrdVarList = AContext.ShrdVarListMap.at(KName);
-    auto &USRsList        = AContext.ShrdVarUSRsListMap.at(KName);
-
-    vector<string> NewShrdVarList;
-    string NewNameBase = "union_shared_";
-    for (long unsigned I = 0; I < PrevShrdVarList.size(); ++I) {
-      NewShrdVarList.push_back(NewNameBase + to_string(I) + "_");
-    }
-
-    NewShrdVars.insert(NewShrdVars.end(),
-                       NewShrdVarList.begin(), NewShrdVarList.end());
-    PrevShrdVars.insert(PrevShrdVars.end(),
-                        PrevShrdVarList.begin(), PrevShrdVarList.end());
-    USRs.insert(USRs.end(),
-                USRsList.begin(), USRsList.end());
-  }
+  auto [NewShrdVars, PrevShrdVars, USRs] = algorithms::getNewShrdVarLists(AContext);
 
   // Run renaming frontend action
   RenamingAction Renaming{NewShrdVars, PrevShrdVars,
@@ -322,8 +198,7 @@ int FusionTool::createFusedKernel(const AnalysisContext &AContext)
   CUDAFuncBuilder Builder{AContext, FuncStr};
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(Builder.getFuncBuildMatcher(KName),
-                      &Builder);
+    Finder.addMatcher(ASTPatternMatcher::getFuncParmMatcher(KName), &Builder);
   }
   return Tool.run(newFrontendActionFactory(&Finder).get());
 }
@@ -351,8 +226,7 @@ int FusionTool::printFuncDecl(const AnalysisContext &AContext)
   CUDAFuncDeclPrinter Printer;
 
   for (auto &KName : AContext.Kernels) {
-    auto Matcher = Printer.getFuncDeclMatcher(KName);
-    Finder.addMatcher(Matcher, &Printer);
+    Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Printer);
   }
   return Tool.run(newFrontendActionFactory(&Finder).get());
 }

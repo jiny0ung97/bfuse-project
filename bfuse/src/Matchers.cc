@@ -419,7 +419,8 @@ R"(
   CUDALaunchAttr += "__launch_bounds__(" + to_string(Analysis.MaxThreadBound) + ")";
 
   // Function declaration (name)
-  string CUDAFuncName = Analysis.NewFuncName;
+  string CUDAFuncRtrTy = "void";
+  string CUDAFuncName  = Analysis.NewFuncName;
 
   // Function declaration (paramenter)
   // FIXME: need to fix __restrict -> __restrict__
@@ -458,7 +459,7 @@ R"(
   // Create fused function
   FuncStream << TVMMacros
              << ExternAttr << " " << CUDAGlobalAttr << " "
-             << CUDALaunchAttr << " " << CUDAFuncName << "("
+             << CUDALaunchAttr << " " << CUDAFuncRtrTy << " " << CUDAFuncName << "("
              << CUDAFuncParam << ")\n"
              << "{\n"
              <<    CUDAFuncBody

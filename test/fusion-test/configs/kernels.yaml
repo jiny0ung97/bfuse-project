@@ -1,4 +1,26 @@
-conv2d_B1:
+# conv2d_B1:
+#   File: kernels.cu
+#   HasBarriers: true
+#   GridDim:
+#     X: 224
+#     Y: 1
+#     Z: 1
+#   BlockDim:
+#     X: 112
+#     Y: 1
+#     Z: 1
+# conv2d_B2:
+#   File: kernels.cu
+#   HasBarriers: true
+#   GridDim:
+#     X: 224
+#     Y: 1
+#     Z: 1
+#   BlockDim:
+#     X: 112
+#     Y: 1
+#     Z: 1
+conv2d_B4:
   File: kernels.cu
   HasBarriers: true
   GridDim:
@@ -6,18 +28,61 @@ conv2d_B1:
     Y: 1
     Z: 1
   BlockDim:
-    X: 112
+    X: 128
     Y: 1
     Z: 1
-
-matmul_B16:
+conv2d_B8:
   File: kernels.cu
   HasBarriers: true
   GridDim:
-    X: 80
+    X: 392
     Y: 1
     Z: 1
   BlockDim:
-    X: 50
+    X: 128
+    Y: 1
+    Z: 1
+# matmul_B16:
+#   File: kernels.cu
+#   HasBarriers: true
+#   GridDim:
+#     X: 80
+#     Y: 1
+#     Z: 1
+#   BlockDim:
+#     X: 50
+#     Y: 1
+#     Z: 1
+matmul_B32:
+  File: kernels.cu
+  HasBarriers: true
+  GridDim:
+    X: 125
+    Y: 1
+    Z: 1
+  BlockDim:
+    X: 32
+    Y: 1
+    Z: 1
+matmul_B64:
+  File: kernels.cu
+  HasBarriers: true
+  GridDim:
+    X: 400
+    Y: 1
+    Z: 1
+  BlockDim:
+    X: 32
+    Y: 1
+    Z: 1
+matmul_B128:
+  File: kernels.cu
+  HasBarriers: true
+  GridDim:
+    X: 500
+    Y: 1
+    Z: 1
+  BlockDim:
+    X: 32
     Y: 1
     Z: 1

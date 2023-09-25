@@ -1,0 +1,326 @@
+
+#if (((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)) || \
+     (__CUDACC_VER_MAJOR__ > 11))
+#define TVM_ENABLE_L2_PREFETCH 1
+#else
+#define TVM_ENABLE_L2_PREFETCH 0
+#endif
+
+#ifdef _WIN32
+  using uint = unsigned int;
+  using uchar = unsigned char;
+  using ushort = unsigned short;
+  using int64_t = long long;
+  using uint64_t = unsigned long long;
+#else
+  #define uint unsigned int
+  #define uchar unsigned char
+  #define ushort unsigned short
+  #define int64_t long long
+  #define uint64_t unsigned long long
+#endif
+extern "C" __global__ void __launch_bounds__(50) matmul_B16(float* __restrict__ data, float* __restrict__ weight, float* __restrict__ T_matmul_NT) {
+  float T_matmul_NT_local[4];
+  __shared__ float data_shared[256];
+  __shared__ float weight_shared[3200];
+  T_matmul_NT_local[0] = 0.000000e+00f;
+  T_matmul_NT_local[1] = 0.000000e+00f;
+  T_matmul_NT_local[2] = 0.000000e+00f;
+  T_matmul_NT_local[3] = 0.000000e+00f;
+  for (int k_outer_outer = 0; k_outer_outer < 8; ++k_outer_outer) {
+    __syncthreads();
+    data_shared[(((int)threadIdx.x) * 4)] = data[(((((((int)blockIdx.x) / 20) * 2048) + ((((int)threadIdx.x) >> 4) * 512)) + (k_outer_outer * 64)) + ((((int)threadIdx.x) & 15) * 4))];
+    data_shared[((((int)threadIdx.x) * 4) + 1)] = data[((((((((int)blockIdx.x) / 20) * 2048) + ((((int)threadIdx.x) >> 4) * 512)) + (k_outer_outer * 64)) + ((((int)threadIdx.x) & 15) * 4)) + 1)];
+    data_shared[((((int)threadIdx.x) * 4) + 2)] = data[((((((((int)blockIdx.x) / 20) * 2048) + ((((int)threadIdx.x) >> 4) * 512)) + (k_outer_outer * 64)) + ((((int)threadIdx.x) & 15) * 4)) + 2)];
+    data_shared[((((int)threadIdx.x) * 4) + 3)] = data[((((((((int)blockIdx.x) / 20) * 2048) + ((((int)threadIdx.x) >> 4) * 512)) + (k_outer_outer * 64)) + ((((int)threadIdx.x) & 15) * 4)) + 3)];
+    if (((int)threadIdx.x) < 14) {
+      data_shared[((((int)threadIdx.x) * 4) + 200)] = data[((((((((int)blockIdx.x) / 20) * 2048) + (((((int)threadIdx.x) + 50) >> 4) * 512)) + (k_outer_outer * 64)) + (((int)threadIdx.x) * 4)) + 8)];
+    }
+    if (((int)threadIdx.x) < 14) {
+      data_shared[((((int)threadIdx.x) * 4) + 201)] = data[((((((((int)blockIdx.x) / 20) * 2048) + (((((int)threadIdx.x) + 50) >> 4) * 512)) + (k_outer_outer * 64)) + (((int)threadIdx.x) * 4)) + 9)];
+    }
+    if (((int)threadIdx.x) < 14) {
+      data_shared[((((int)threadIdx.x) * 4) + 202)] = data[((((((((int)blockIdx.x) / 20) * 2048) + (((((int)threadIdx.x) + 50) >> 4) * 512)) + (k_outer_outer * 64)) + (((int)threadIdx.x) * 4)) + 10)];
+    }
+    if (((int)threadIdx.x) < 14) {
+      data_shared[((((int)threadIdx.x) * 4) + 203)] = data[((((((((int)blockIdx.x) / 20) * 2048) + (((((int)threadIdx.x) + 50) >> 4) * 512)) + (k_outer_outer * 64)) + (((int)threadIdx.x) * 4)) + 11)];
+    }
+    *(float4*)(weight_shared + (((int)threadIdx.x) * 4)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((int)threadIdx.x) >> 4) * 512)) + (k_outer_outer * 64)) + ((((int)threadIdx.x) & 15) * 4)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 200)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 200) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 8) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 400)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 400) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 16) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 600)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 600) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 24) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 800)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 800) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 32) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 1000)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 1000) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 40) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 1200)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 1200) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 48) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 1400)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 1400) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 56) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 1600)) = *(float4*)(weight + ((((((((int)blockIdx.x) % 20) * 25600) + ((((int)threadIdx.x) >> 4) * 512)) + (k_outer_outer * 64)) + ((((int)threadIdx.x) & 15) * 4)) + 12800));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 1800)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 1800) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 8) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 2000)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 2000) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 16) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 2200)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 2200) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 24) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 2400)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 2400) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 32) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 2600)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 2600) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 40) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 2800)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 2800) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 48) & 63)));
+    *(float4*)(weight_shared + ((((int)threadIdx.x) * 4) + 3000)) = *(float4*)(weight + (((((((int)blockIdx.x) % 20) * 25600) + ((((((int)threadIdx.x) * 4) + 3000) >> 6) * 512)) + (k_outer_outer * 64)) + (((((int)threadIdx.x) * 4) + 56) & 63)));
+    __syncthreads();
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[0] * weight_shared[(((int)threadIdx.x) * 64)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[1] * weight_shared[((((int)threadIdx.x) * 64) + 1)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[2] * weight_shared[((((int)threadIdx.x) * 64) + 2)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[3] * weight_shared[((((int)threadIdx.x) * 64) + 3)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[4] * weight_shared[((((int)threadIdx.x) * 64) + 4)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[5] * weight_shared[((((int)threadIdx.x) * 64) + 5)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[6] * weight_shared[((((int)threadIdx.x) * 64) + 6)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[7] * weight_shared[((((int)threadIdx.x) * 64) + 7)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[8] * weight_shared[((((int)threadIdx.x) * 64) + 8)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[9] * weight_shared[((((int)threadIdx.x) * 64) + 9)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[10] * weight_shared[((((int)threadIdx.x) * 64) + 10)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[11] * weight_shared[((((int)threadIdx.x) * 64) + 11)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[12] * weight_shared[((((int)threadIdx.x) * 64) + 12)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[13] * weight_shared[((((int)threadIdx.x) * 64) + 13)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[14] * weight_shared[((((int)threadIdx.x) * 64) + 14)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[15] * weight_shared[((((int)threadIdx.x) * 64) + 15)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[64] * weight_shared[(((int)threadIdx.x) * 64)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[65] * weight_shared[((((int)threadIdx.x) * 64) + 1)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[66] * weight_shared[((((int)threadIdx.x) * 64) + 2)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[67] * weight_shared[((((int)threadIdx.x) * 64) + 3)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[68] * weight_shared[((((int)threadIdx.x) * 64) + 4)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[69] * weight_shared[((((int)threadIdx.x) * 64) + 5)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[70] * weight_shared[((((int)threadIdx.x) * 64) + 6)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[71] * weight_shared[((((int)threadIdx.x) * 64) + 7)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[72] * weight_shared[((((int)threadIdx.x) * 64) + 8)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[73] * weight_shared[((((int)threadIdx.x) * 64) + 9)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[74] * weight_shared[((((int)threadIdx.x) * 64) + 10)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[75] * weight_shared[((((int)threadIdx.x) * 64) + 11)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[76] * weight_shared[((((int)threadIdx.x) * 64) + 12)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[77] * weight_shared[((((int)threadIdx.x) * 64) + 13)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[78] * weight_shared[((((int)threadIdx.x) * 64) + 14)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[79] * weight_shared[((((int)threadIdx.x) * 64) + 15)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[128] * weight_shared[(((int)threadIdx.x) * 64)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[129] * weight_shared[((((int)threadIdx.x) * 64) + 1)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[130] * weight_shared[((((int)threadIdx.x) * 64) + 2)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[131] * weight_shared[((((int)threadIdx.x) * 64) + 3)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[132] * weight_shared[((((int)threadIdx.x) * 64) + 4)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[133] * weight_shared[((((int)threadIdx.x) * 64) + 5)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[134] * weight_shared[((((int)threadIdx.x) * 64) + 6)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[135] * weight_shared[((((int)threadIdx.x) * 64) + 7)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[136] * weight_shared[((((int)threadIdx.x) * 64) + 8)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[137] * weight_shared[((((int)threadIdx.x) * 64) + 9)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[138] * weight_shared[((((int)threadIdx.x) * 64) + 10)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[139] * weight_shared[((((int)threadIdx.x) * 64) + 11)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[140] * weight_shared[((((int)threadIdx.x) * 64) + 12)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[141] * weight_shared[((((int)threadIdx.x) * 64) + 13)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[142] * weight_shared[((((int)threadIdx.x) * 64) + 14)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[143] * weight_shared[((((int)threadIdx.x) * 64) + 15)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[192] * weight_shared[(((int)threadIdx.x) * 64)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[193] * weight_shared[((((int)threadIdx.x) * 64) + 1)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[194] * weight_shared[((((int)threadIdx.x) * 64) + 2)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[195] * weight_shared[((((int)threadIdx.x) * 64) + 3)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[196] * weight_shared[((((int)threadIdx.x) * 64) + 4)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[197] * weight_shared[((((int)threadIdx.x) * 64) + 5)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[198] * weight_shared[((((int)threadIdx.x) * 64) + 6)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[199] * weight_shared[((((int)threadIdx.x) * 64) + 7)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[200] * weight_shared[((((int)threadIdx.x) * 64) + 8)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[201] * weight_shared[((((int)threadIdx.x) * 64) + 9)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[202] * weight_shared[((((int)threadIdx.x) * 64) + 10)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[203] * weight_shared[((((int)threadIdx.x) * 64) + 11)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[204] * weight_shared[((((int)threadIdx.x) * 64) + 12)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[205] * weight_shared[((((int)threadIdx.x) * 64) + 13)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[206] * weight_shared[((((int)threadIdx.x) * 64) + 14)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[207] * weight_shared[((((int)threadIdx.x) * 64) + 15)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[16] * weight_shared[((((int)threadIdx.x) * 64) + 16)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[17] * weight_shared[((((int)threadIdx.x) * 64) + 17)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[18] * weight_shared[((((int)threadIdx.x) * 64) + 18)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[19] * weight_shared[((((int)threadIdx.x) * 64) + 19)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[20] * weight_shared[((((int)threadIdx.x) * 64) + 20)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[21] * weight_shared[((((int)threadIdx.x) * 64) + 21)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[22] * weight_shared[((((int)threadIdx.x) * 64) + 22)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[23] * weight_shared[((((int)threadIdx.x) * 64) + 23)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[24] * weight_shared[((((int)threadIdx.x) * 64) + 24)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[25] * weight_shared[((((int)threadIdx.x) * 64) + 25)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[26] * weight_shared[((((int)threadIdx.x) * 64) + 26)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[27] * weight_shared[((((int)threadIdx.x) * 64) + 27)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[28] * weight_shared[((((int)threadIdx.x) * 64) + 28)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[29] * weight_shared[((((int)threadIdx.x) * 64) + 29)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[30] * weight_shared[((((int)threadIdx.x) * 64) + 30)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[31] * weight_shared[((((int)threadIdx.x) * 64) + 31)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[80] * weight_shared[((((int)threadIdx.x) * 64) + 16)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[81] * weight_shared[((((int)threadIdx.x) * 64) + 17)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[82] * weight_shared[((((int)threadIdx.x) * 64) + 18)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[83] * weight_shared[((((int)threadIdx.x) * 64) + 19)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[84] * weight_shared[((((int)threadIdx.x) * 64) + 20)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[85] * weight_shared[((((int)threadIdx.x) * 64) + 21)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[86] * weight_shared[((((int)threadIdx.x) * 64) + 22)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[87] * weight_shared[((((int)threadIdx.x) * 64) + 23)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[88] * weight_shared[((((int)threadIdx.x) * 64) + 24)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[89] * weight_shared[((((int)threadIdx.x) * 64) + 25)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[90] * weight_shared[((((int)threadIdx.x) * 64) + 26)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[91] * weight_shared[((((int)threadIdx.x) * 64) + 27)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[92] * weight_shared[((((int)threadIdx.x) * 64) + 28)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[93] * weight_shared[((((int)threadIdx.x) * 64) + 29)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[94] * weight_shared[((((int)threadIdx.x) * 64) + 30)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[95] * weight_shared[((((int)threadIdx.x) * 64) + 31)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[144] * weight_shared[((((int)threadIdx.x) * 64) + 16)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[145] * weight_shared[((((int)threadIdx.x) * 64) + 17)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[146] * weight_shared[((((int)threadIdx.x) * 64) + 18)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[147] * weight_shared[((((int)threadIdx.x) * 64) + 19)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[148] * weight_shared[((((int)threadIdx.x) * 64) + 20)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[149] * weight_shared[((((int)threadIdx.x) * 64) + 21)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[150] * weight_shared[((((int)threadIdx.x) * 64) + 22)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[151] * weight_shared[((((int)threadIdx.x) * 64) + 23)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[152] * weight_shared[((((int)threadIdx.x) * 64) + 24)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[153] * weight_shared[((((int)threadIdx.x) * 64) + 25)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[154] * weight_shared[((((int)threadIdx.x) * 64) + 26)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[155] * weight_shared[((((int)threadIdx.x) * 64) + 27)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[156] * weight_shared[((((int)threadIdx.x) * 64) + 28)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[157] * weight_shared[((((int)threadIdx.x) * 64) + 29)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[158] * weight_shared[((((int)threadIdx.x) * 64) + 30)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[159] * weight_shared[((((int)threadIdx.x) * 64) + 31)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[208] * weight_shared[((((int)threadIdx.x) * 64) + 16)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[209] * weight_shared[((((int)threadIdx.x) * 64) + 17)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[210] * weight_shared[((((int)threadIdx.x) * 64) + 18)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[211] * weight_shared[((((int)threadIdx.x) * 64) + 19)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[212] * weight_shared[((((int)threadIdx.x) * 64) + 20)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[213] * weight_shared[((((int)threadIdx.x) * 64) + 21)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[214] * weight_shared[((((int)threadIdx.x) * 64) + 22)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[215] * weight_shared[((((int)threadIdx.x) * 64) + 23)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[216] * weight_shared[((((int)threadIdx.x) * 64) + 24)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[217] * weight_shared[((((int)threadIdx.x) * 64) + 25)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[218] * weight_shared[((((int)threadIdx.x) * 64) + 26)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[219] * weight_shared[((((int)threadIdx.x) * 64) + 27)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[220] * weight_shared[((((int)threadIdx.x) * 64) + 28)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[221] * weight_shared[((((int)threadIdx.x) * 64) + 29)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[222] * weight_shared[((((int)threadIdx.x) * 64) + 30)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[223] * weight_shared[((((int)threadIdx.x) * 64) + 31)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[32] * weight_shared[((((int)threadIdx.x) * 64) + 32)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[33] * weight_shared[((((int)threadIdx.x) * 64) + 33)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[34] * weight_shared[((((int)threadIdx.x) * 64) + 34)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[35] * weight_shared[((((int)threadIdx.x) * 64) + 35)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[36] * weight_shared[((((int)threadIdx.x) * 64) + 36)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[37] * weight_shared[((((int)threadIdx.x) * 64) + 37)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[38] * weight_shared[((((int)threadIdx.x) * 64) + 38)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[39] * weight_shared[((((int)threadIdx.x) * 64) + 39)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[40] * weight_shared[((((int)threadIdx.x) * 64) + 40)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[41] * weight_shared[((((int)threadIdx.x) * 64) + 41)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[42] * weight_shared[((((int)threadIdx.x) * 64) + 42)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[43] * weight_shared[((((int)threadIdx.x) * 64) + 43)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[44] * weight_shared[((((int)threadIdx.x) * 64) + 44)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[45] * weight_shared[((((int)threadIdx.x) * 64) + 45)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[46] * weight_shared[((((int)threadIdx.x) * 64) + 46)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[47] * weight_shared[((((int)threadIdx.x) * 64) + 47)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[96] * weight_shared[((((int)threadIdx.x) * 64) + 32)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[97] * weight_shared[((((int)threadIdx.x) * 64) + 33)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[98] * weight_shared[((((int)threadIdx.x) * 64) + 34)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[99] * weight_shared[((((int)threadIdx.x) * 64) + 35)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[100] * weight_shared[((((int)threadIdx.x) * 64) + 36)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[101] * weight_shared[((((int)threadIdx.x) * 64) + 37)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[102] * weight_shared[((((int)threadIdx.x) * 64) + 38)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[103] * weight_shared[((((int)threadIdx.x) * 64) + 39)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[104] * weight_shared[((((int)threadIdx.x) * 64) + 40)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[105] * weight_shared[((((int)threadIdx.x) * 64) + 41)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[106] * weight_shared[((((int)threadIdx.x) * 64) + 42)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[107] * weight_shared[((((int)threadIdx.x) * 64) + 43)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[108] * weight_shared[((((int)threadIdx.x) * 64) + 44)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[109] * weight_shared[((((int)threadIdx.x) * 64) + 45)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[110] * weight_shared[((((int)threadIdx.x) * 64) + 46)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[111] * weight_shared[((((int)threadIdx.x) * 64) + 47)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[160] * weight_shared[((((int)threadIdx.x) * 64) + 32)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[161] * weight_shared[((((int)threadIdx.x) * 64) + 33)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[162] * weight_shared[((((int)threadIdx.x) * 64) + 34)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[163] * weight_shared[((((int)threadIdx.x) * 64) + 35)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[164] * weight_shared[((((int)threadIdx.x) * 64) + 36)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[165] * weight_shared[((((int)threadIdx.x) * 64) + 37)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[166] * weight_shared[((((int)threadIdx.x) * 64) + 38)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[167] * weight_shared[((((int)threadIdx.x) * 64) + 39)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[168] * weight_shared[((((int)threadIdx.x) * 64) + 40)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[169] * weight_shared[((((int)threadIdx.x) * 64) + 41)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[170] * weight_shared[((((int)threadIdx.x) * 64) + 42)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[171] * weight_shared[((((int)threadIdx.x) * 64) + 43)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[172] * weight_shared[((((int)threadIdx.x) * 64) + 44)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[173] * weight_shared[((((int)threadIdx.x) * 64) + 45)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[174] * weight_shared[((((int)threadIdx.x) * 64) + 46)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[175] * weight_shared[((((int)threadIdx.x) * 64) + 47)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[224] * weight_shared[((((int)threadIdx.x) * 64) + 32)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[225] * weight_shared[((((int)threadIdx.x) * 64) + 33)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[226] * weight_shared[((((int)threadIdx.x) * 64) + 34)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[227] * weight_shared[((((int)threadIdx.x) * 64) + 35)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[228] * weight_shared[((((int)threadIdx.x) * 64) + 36)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[229] * weight_shared[((((int)threadIdx.x) * 64) + 37)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[230] * weight_shared[((((int)threadIdx.x) * 64) + 38)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[231] * weight_shared[((((int)threadIdx.x) * 64) + 39)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[232] * weight_shared[((((int)threadIdx.x) * 64) + 40)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[233] * weight_shared[((((int)threadIdx.x) * 64) + 41)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[234] * weight_shared[((((int)threadIdx.x) * 64) + 42)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[235] * weight_shared[((((int)threadIdx.x) * 64) + 43)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[236] * weight_shared[((((int)threadIdx.x) * 64) + 44)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[237] * weight_shared[((((int)threadIdx.x) * 64) + 45)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[238] * weight_shared[((((int)threadIdx.x) * 64) + 46)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[239] * weight_shared[((((int)threadIdx.x) * 64) + 47)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[48] * weight_shared[((((int)threadIdx.x) * 64) + 48)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[49] * weight_shared[((((int)threadIdx.x) * 64) + 49)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[50] * weight_shared[((((int)threadIdx.x) * 64) + 50)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[51] * weight_shared[((((int)threadIdx.x) * 64) + 51)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[52] * weight_shared[((((int)threadIdx.x) * 64) + 52)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[53] * weight_shared[((((int)threadIdx.x) * 64) + 53)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[54] * weight_shared[((((int)threadIdx.x) * 64) + 54)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[55] * weight_shared[((((int)threadIdx.x) * 64) + 55)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[56] * weight_shared[((((int)threadIdx.x) * 64) + 56)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[57] * weight_shared[((((int)threadIdx.x) * 64) + 57)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[58] * weight_shared[((((int)threadIdx.x) * 64) + 58)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[59] * weight_shared[((((int)threadIdx.x) * 64) + 59)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[60] * weight_shared[((((int)threadIdx.x) * 64) + 60)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[61] * weight_shared[((((int)threadIdx.x) * 64) + 61)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[62] * weight_shared[((((int)threadIdx.x) * 64) + 62)]));
+    T_matmul_NT_local[0] = (T_matmul_NT_local[0] + (data_shared[63] * weight_shared[((((int)threadIdx.x) * 64) + 63)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[112] * weight_shared[((((int)threadIdx.x) * 64) + 48)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[113] * weight_shared[((((int)threadIdx.x) * 64) + 49)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[114] * weight_shared[((((int)threadIdx.x) * 64) + 50)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[115] * weight_shared[((((int)threadIdx.x) * 64) + 51)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[116] * weight_shared[((((int)threadIdx.x) * 64) + 52)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[117] * weight_shared[((((int)threadIdx.x) * 64) + 53)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[118] * weight_shared[((((int)threadIdx.x) * 64) + 54)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[119] * weight_shared[((((int)threadIdx.x) * 64) + 55)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[120] * weight_shared[((((int)threadIdx.x) * 64) + 56)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[121] * weight_shared[((((int)threadIdx.x) * 64) + 57)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[122] * weight_shared[((((int)threadIdx.x) * 64) + 58)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[123] * weight_shared[((((int)threadIdx.x) * 64) + 59)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[124] * weight_shared[((((int)threadIdx.x) * 64) + 60)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[125] * weight_shared[((((int)threadIdx.x) * 64) + 61)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[126] * weight_shared[((((int)threadIdx.x) * 64) + 62)]));
+    T_matmul_NT_local[1] = (T_matmul_NT_local[1] + (data_shared[127] * weight_shared[((((int)threadIdx.x) * 64) + 63)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[176] * weight_shared[((((int)threadIdx.x) * 64) + 48)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[177] * weight_shared[((((int)threadIdx.x) * 64) + 49)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[178] * weight_shared[((((int)threadIdx.x) * 64) + 50)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[179] * weight_shared[((((int)threadIdx.x) * 64) + 51)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[180] * weight_shared[((((int)threadIdx.x) * 64) + 52)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[181] * weight_shared[((((int)threadIdx.x) * 64) + 53)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[182] * weight_shared[((((int)threadIdx.x) * 64) + 54)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[183] * weight_shared[((((int)threadIdx.x) * 64) + 55)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[184] * weight_shared[((((int)threadIdx.x) * 64) + 56)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[185] * weight_shared[((((int)threadIdx.x) * 64) + 57)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[186] * weight_shared[((((int)threadIdx.x) * 64) + 58)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[187] * weight_shared[((((int)threadIdx.x) * 64) + 59)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[188] * weight_shared[((((int)threadIdx.x) * 64) + 60)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[189] * weight_shared[((((int)threadIdx.x) * 64) + 61)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[190] * weight_shared[((((int)threadIdx.x) * 64) + 62)]));
+    T_matmul_NT_local[2] = (T_matmul_NT_local[2] + (data_shared[191] * weight_shared[((((int)threadIdx.x) * 64) + 63)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[240] * weight_shared[((((int)threadIdx.x) * 64) + 48)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[241] * weight_shared[((((int)threadIdx.x) * 64) + 49)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[242] * weight_shared[((((int)threadIdx.x) * 64) + 50)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[243] * weight_shared[((((int)threadIdx.x) * 64) + 51)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[244] * weight_shared[((((int)threadIdx.x) * 64) + 52)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[245] * weight_shared[((((int)threadIdx.x) * 64) + 53)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[246] * weight_shared[((((int)threadIdx.x) * 64) + 54)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[247] * weight_shared[((((int)threadIdx.x) * 64) + 55)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[248] * weight_shared[((((int)threadIdx.x) * 64) + 56)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[249] * weight_shared[((((int)threadIdx.x) * 64) + 57)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[250] * weight_shared[((((int)threadIdx.x) * 64) + 58)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[251] * weight_shared[((((int)threadIdx.x) * 64) + 59)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[252] * weight_shared[((((int)threadIdx.x) * 64) + 60)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[253] * weight_shared[((((int)threadIdx.x) * 64) + 61)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[254] * weight_shared[((((int)threadIdx.x) * 64) + 62)]));
+    T_matmul_NT_local[3] = (T_matmul_NT_local[3] + (data_shared[255] * weight_shared[((((int)threadIdx.x) * 64) + 63)]));
+  }
+  for (int i_inner = 0; i_inner < 4; ++i_inner) {
+    T_matmul_NT[(((((((int)blockIdx.x) / 20) * 4000) + (i_inner * 1000)) + ((((int)blockIdx.x) % 20) * 50)) + ((int)threadIdx.x))] = T_matmul_NT_local[i_inner];
+  }
+}
+

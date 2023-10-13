@@ -23,9 +23,7 @@
 namespace bfuse {
 namespace utils {
 //---------------------------------------------------------------------------
-bool checkFusionValid(contexts::FusionInfo& FInfo, std::map<std::string, contexts::KernelInfo>& KInfoMap);
-//---------------------------------------------------------------------------
-std::string extractFilePath(contexts::FusionInfo& FInfo, std::map<std::string, contexts::KernelInfo>& KInfoMap);
+std::string extractFilePath(contexts::FusionInfo& FInfo);
 //---------------------------------------------------------------------------
 void backUpFiles(const std::string &FileName);
 //---------------------------------------------------------------------------
@@ -59,10 +57,12 @@ template <>
 struct llvm::yaml::MappingTraits<bfuse::contexts::KernelInfo> {
   static void mapping(llvm::yaml::IO &Io, bfuse::contexts::KernelInfo &Info)
   {
+    Io.mapRequired("KernelName",  Info.kernelName);
     Io.mapRequired("HasBarriers", Info.hasBarriers);
     Io.mapRequired("GridDim",     Info.gridDim);
     Io.mapRequired("BlockDim",    Info.blockDim);
-    Io.mapRequired("File",        Info.filePath);
+    Io.mapRequired("Reg",         Info.reg);
+    Io.mapOptional("ExecTime",    Info.execTime, -1);
   }
 };
 //---------------------------------------------------------------------------
@@ -70,6 +70,7 @@ template <>
 struct llvm::yaml::MappingTraits<bfuse::contexts::FusionInfo> {
   static void mapping(llvm::yaml::IO &Io, bfuse::contexts::FusionInfo &Info)
   {
+    Io.mapRequired("File",    Info.filePath);
     Io.mapRequired("Kernels", Info.kernels);
   }
 };

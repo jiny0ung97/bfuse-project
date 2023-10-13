@@ -182,18 +182,38 @@ void CUDAFuncParmAnalyzer::run(const MatchFinder::MatchResult& Result)
 {
   ASTContext *Context = Result.Context;
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
-  const ParmVarDecl  *PD = Result.Nodes.getNodeAs<ParmVarDecl>(ASTPatternMatcher::CUDAFuncParm);
-  if (!PD) {
+  if (!FD) {
     return;
   }
 
-  // Analyze function parameters
-  string FName  = FD->getNameAsString();
-  string PName  = PD->getNameAsString();
-  auto ParamUSR = getUSRsForDeclaration(PD->getUnderlyingDecl(), *Context);
+  string FName = FD->getNameAsString();
 
-  ParmListMap[FName].push_back(PName);
-  ParmUSRsListMap[FName].push_back(ParamUSR);
+  // Analyze function template arguments
+  if (FD->isTemplateInstantiation()) {
+    auto *TD     = FD->getDescribedFunctionTemplate();
+    auto *PDList = TD->getTemplateParameters();
+
+    for (auto *PD : *PDList) {
+      string PName = PD->getNameAsString();
+      if (PName.empty())
+        continue;
+
+      auto ParamUSR = getUSRsForDeclaration(PD->getUnderlyingDecl(), *Context);
+      ParmListMap[FName].push_back(PName);
+      ParmUSRsListMap[FName].push_back(ParamUSR);      
+    }
+  }
+
+  // Analyze function parameters
+  for (auto *PD : FD->parameters()) {
+    string PName = PD->getNameAsString();
+    if (PName.empty())
+      continue;
+
+    auto ParamUSR = getUSRsForDeclaration(PD->getUnderlyingDecl(), *Context);
+    ParmListMap[FName].push_back(PName);
+    ParmUSRsListMap[FName].push_back(ParamUSR);
+  }
 }
 //---------------------------------------------------------------------------
 void CUDABlockInfoRewriter::run(const MatchFinder::MatchResult &Result)
@@ -208,8 +228,8 @@ void CUDABlockInfoRewriter::run(const MatchFinder::MatchResult &Result)
   // Rewrite Block informations
   map<string, string> MemberReNamingMap = {
     {"__fetch_builtin_x", "x"},
-    // {"__fetch_builtin_y", "y"},
-    // {"__fetch_builtin_z", "z"}
+    {"__fetch_builtin_y", "y"},
+    {"__fetch_builtin_z", "z"}
   };
   auto ReNamingFunc = [](string &Var, string &Member) { return Var + "_" + Member + "_"; };
 
@@ -353,13 +373,39 @@ void CUDASharedVarAnalyzer::run(const MatchFinder::MatchResult &Result)
 void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
 {
   ASTContext *Context = Result.Context;
-  const ParmVarDecl  *PD = Result.Nodes.getNodeAs<ParmVarDecl>(ASTPatternMatcher::CUDAFuncParm);
-  if (!PD) {
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
+  if (!FD) {
     return;
   }
 
+  // Print function template parameters
+  string TemplStr;
+  llvm::raw_string_ostream TemplStream{TemplStr};
+
+  if (FD->isTemplateInstantiation()) {
+    IsFuncTemplate = true;
+
+    auto *TD     = FD->getDescribedFunctionTemplate();
+    auto *PDList = TD->getTemplateParameters();
+
+    for (auto *PD : *PDList) {
+      PD->print(TemplStream, Context->getPrintingPolicy());
+      TemplStream.flush();
+      TemplStringList.push_back(TemplStr);
+    }
+  }
+
+  // Print function parameters
+  string ParamStr;
+  llvm::raw_string_ostream ParamStream{ParamStr};
+
+  for (auto *PD : FD->parameters()) {
+    PD->print(ParamStream, Context->getPrintingPolicy());
+    ParamStream.flush();
+    ParmStringList.push_back(ParamStr);
+  }
+
   // Print function body
-  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
   string FName      = FD->getNameAsString();
   auto &PrintPolicy = Context->getPrintingPolicy();
 
@@ -375,14 +421,6 @@ void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
     BodyStream.flush();
     FuncBodyStringMap[FName] = BodyStr;
   }
-
-  // Print function parameters
-  string ParamStr;
-  llvm::raw_string_ostream ParamStream{ParamStr};
-
-  PD->print(ParamStream, Context->getPrintingPolicy());
-  ParamStream.flush();
-  ParmStringList.push_back(ParamStr);
 }
 //---------------------------------------------------------------------------
 void CUDAFuncBuilder::onEndOfTranslationUnit()
@@ -420,17 +458,40 @@ R"(
 
   // Function declaration (name)
   string CUDAFuncRtrTy = "void";
-  string CUDAFuncName  = Analysis.NewFuncName;
+  // string CUDAFuncName  = Analysis.NewFuncName + "fused_kernel_bfuse";
+  string CUDAFuncName  = Analysis.NewFuncName + "fused_kernel_hfuse_idx_0";
+
+  // Function declaration (template parameter)
+  auto AccFunc = [](string a, string b) { return a + ", " + b; };
+
+  string CUDAFuncTempl = "";
+  if (IsFuncTemplate) {
+    CUDAFuncTempl += "template <";
+    if (TemplStringList.size() > 1) {
+      CUDAFuncTempl += accumulate(TemplStringList.begin() + 1,
+                            TemplStringList.end(),
+                            TemplStringList[0],
+                            AccFunc);
+    }
+    else if (TemplStringList.size() == 1) {
+      CUDAFuncTempl += TemplStringList[0];
+    }
+    CUDAFuncTempl += ">";
+  }
 
   // Function declaration (paramenter)
   // FIXME: need to fix __restrict -> __restrict__
   // Maybe bug?
-  auto AccFunc = [](string a, string b) { return a + ", " + b; };
-
-  string CUDAFuncParam = accumulate(ParmStringList.begin() + 1,
-                                    ParmStringList.end(),
-                                    ParmStringList[0],
-                                    AccFunc);
+  string CUDAFuncParam = "";
+  if (ParmStringList.size() > 1) {
+    CUDAFuncParam += accumulate(ParmStringList.begin() + 1,
+                                ParmStringList.end(),
+                                ParmStringList[0],
+                                AccFunc);
+  }
+  else if (ParmStringList.size() == 1) {
+    CUDAFuncParam += ParmStringList[0];
+  }
   
   // Function body
   auto &BranchCondMap  = Analysis.BranchConditionMap;
@@ -457,7 +518,9 @@ R"(
   }
 
   // Create fused function
-  FuncStream << TVMMacros
+  FuncStream << ""
+  // FuncStream << TVMMacros
+             << CUDAFuncTempl << "\n"
              << ExternAttr << " " << CUDAGlobalAttr << " "
              << CUDALaunchAttr << " " << CUDAFuncRtrTy << " " << CUDAFuncName << "("
              << CUDAFuncParam << ")\n"

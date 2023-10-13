@@ -73,7 +73,8 @@ int FusionTool::analyzeParameters(AnalysisContext &AContext)
   CUDAFuncParmAnalyzer Analyzer;
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(ASTPatternMatcher::getFuncParmMatcher(KName), &Analyzer);
+    // Finder.addMatcher(ASTPatternMatcher::getFuncParmMatcher(KName), &Analyzer);
+    Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Analyzer);
   }
 
   int Err = Tool.run(newFrontendActionFactory(&Finder).get());
@@ -198,7 +199,8 @@ int FusionTool::createFusedKernel(const AnalysisContext &AContext)
   CUDAFuncBuilder Builder{AContext, FuncStr};
 
   for (auto &KName : AContext.Kernels) {
-    Finder.addMatcher(ASTPatternMatcher::getFuncParmMatcher(KName), &Builder);
+    // Finder.addMatcher(ASTPatternMatcher::getFuncParmMatcher(KName), &Builder);
+    Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Builder);
   }
   return Tool.run(newFrontendActionFactory(&Finder).get());
 }

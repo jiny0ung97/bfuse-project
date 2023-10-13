@@ -34,14 +34,18 @@ struct BlockDim {
 //---------------------------------------------------------------------------
 class KernelInfo {
 public:
-  /// The kernels' file path
-  std::string filePath;
+  /// The kernel's name
+  std::string kernelName;
   /// Whether the kernel code has synchronization barriers
   bool hasBarriers;
   /// The kernel's grid dimension
   GridDim gridDim;
   /// The kernel's block dimension
   BlockDim blockDim;
+  /// The count of kernel's used register
+  int reg;
+  /// The kernel's execution time
+  int execTime;
 
   /// Print KernelInfo
   void print(const std::string& KName) const;
@@ -49,6 +53,8 @@ public:
 //---------------------------------------------------------------------------
 class FusionInfo {
 public:
+  /// The kernels' file path
+  std::string filePath;
   /// The kernels to be fused
   std::vector<std::string> kernels;
 

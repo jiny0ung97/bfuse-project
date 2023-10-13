@@ -16,9 +16,8 @@ namespace contexts {
 //---------------------------------------------------------------------------
 void KernelInfo::print(const string& KName) const
 {
-  cout << "[KernelInfo]\n";
-  cout << KName << "\n";
-  cout << "  File: " << filePath << "\n";
+  cout << KName << ":\n";
+  cout << "  KernelName: " << kernelName << "\n";
   cout << "  Barriers: " << hasBarriers << "\n";
   cout << "  GridDim:\n";
   cout << "    X: " << gridDim.x << "\n";
@@ -27,17 +26,19 @@ void KernelInfo::print(const string& KName) const
   cout << "  BlockDim:\n";
   cout << "    X: " << blockDim.x << "\n";
   cout << "    Y: " << blockDim.y << "\n";
-  cout << "    Z: " << blockDim.z << "\n\n";
+  cout << "    Z: " << blockDim.z << "\n";
+  cout << "  Reg: " << reg << "\n";
+  cout << "  ExecTime: " << execTime << "\n";
 }
 //---------------------------------------------------------------------------
 void FusionInfo::print() const
 {
   cout << "[FusionInfo]\n";
-  cout << "  - Kernels:\n";
+  cout << "- File: " << filePath << "\n";
+  cout << "  Kernels:\n";
   for (auto& KName : kernels) {
-    cout << "    - " << KName << "\n";
+    cout << "   - " << KName << "\n";
   }
-  cout << "\n";
 }
 //---------------------------------------------------------------------------
 void KernelContext::print() const
@@ -195,7 +196,6 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
     NewFuncName += KName + "_";
     MaxThreadBound = TInfo.second > MaxThreadBound ? TInfo.second : MaxThreadBound;
   }
-  NewFuncName += "fused_";
 
   // 2. Initialize BranchConditionMap
   // -----------------------------------------------------------------
@@ -213,7 +213,8 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
     CondStream << "(KernelID_ == " << I << ") && ";
 
     // threadIdx condition check
-    CondStream << "(" << PrintInfoToCondFunc("threadIdx.x", TInfo) << ")";
+    string CurrentThreadIdx = "threadIdx.x + threadIdx.y * threadIdx.x + threadIdx.z * threadIdx.y * threadIdx.z";
+    CondStream << "(" << PrintInfoToCondFunc(CurrentThreadIdx, TInfo) << ")";
     CondStream.flush();
 
     BranchConditionMap[KName] = CondStr;
@@ -247,9 +248,9 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
   VarStream << "   */\n";
 
   // Declarations
-  VarStream << "  int gridDim_x_;\n"
-            << "  int blockIdx_x_;\n"
-            << "  int Others_;\n"
+  VarStream << "  int gridDim_x_, gridDim_y_, gridDim_z_;\n"
+            << "  int blockIdx_x_, blockIdx_y_, blockIdx_z_;\n"
+            << "  int TotalBlockIdx_;\n"
             << "  int KernelID_;\n"
             << "  \n";
 
@@ -275,15 +276,20 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
         VarStream << "  else ";
       }
 
-      VarStream << "if " << PrintInfoToCondFunc("blockIdx.x", BInfo[VI]) << "\n"
+      string CurrentBlockIdx = "blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y";
+      VarStream << "if " << PrintInfoToCondFunc(CurrentBlockIdx, BInfo[VI]) << "\n"
                 << "  {\n"
-                << "    gridDim_x_ = " << KInfo.gridDim.size() << ";\n"
-                << "    Others_    = " << OBs[VI] << ";\n"
-                << "    KernelID_  = " << KI << ";\n"
+                << "    TotalBlockIdx_ = " << CurrentBlockIdx << " - " << OBs[VI] << ";\n"
+                << "    KernelID_      = " << KI << ";\n"
+                << "    gridDim_x_ = " << KInfo.gridDim.x << ";\n"
+                << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
+                << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
                 << "  }\n";
     }
   }
-  VarStream << "  blockIdx_x_ = blockIdx.x - Others_;\n"
+  VarStream << "  blockIdx_x_ = TotalBlockIdx_ % gridDim_x_;\n"
+            << "  blockIdx_y_ = TotalBlockIdx_ / gridDim_x_ % gridDim_y_;\n"
+            << "  blockIdx_z_ = TotalBlockIdx_ / (gridDim_x_ * gridDim_y_);\n"
             << "  \n";
   VarStream.flush();
 

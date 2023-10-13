@@ -72,13 +72,8 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
 
   // Run block-level fusion
   for (auto& Info : FusionYAML) {
-    if (!utils::checkFusionValid(Info, KernelYAML)) {
-      ERROR_MESSAGE("invalid fusion definition exist");
-      exit(0);
-    }
-
     // Create compilation database
-    string CodePath = CompileCommandsPath + "/" + utils::extractFilePath(Info, KernelYAML);
+    string CodePath = CompileCommandsPath + "/" + utils::extractFilePath(Info);
     OptionsParserArguments Args{ProgName, CompileCommandsPath, CodePath};
 
     auto [argc, argv]   = Args.getArguments();

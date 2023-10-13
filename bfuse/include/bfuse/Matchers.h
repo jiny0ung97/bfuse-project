@@ -192,6 +192,10 @@ private:
   llvm::raw_string_ostream FuncStream;
   /// The list of functions to be fused
   std::map<std::string, std::string> FuncBodyStringMap;
+  /// Check whether at least one of the functions have template parameters
+  bool IsFuncTemplate = false;
+  /// The string list of template parameters
+  std::vector<std::string> TemplStringList;
   /// The string list of parameters
   std::vector<std::string> ParmStringList;
 

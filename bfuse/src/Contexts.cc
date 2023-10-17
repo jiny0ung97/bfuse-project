@@ -280,7 +280,7 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
       VarStream << "if " << PrintInfoToCondFunc(CurrentBlockIdx, BInfo[VI]) << "\n"
                 << "  {\n"
                 << "    TotalBlockIdx_ = " << CurrentBlockIdx << " - " << OBs[VI] << ";\n"
-                << "    KernelID_      = " << KI << ";\n"
+                << "    KernelID_  = " << KI << ";\n"
                 << "    gridDim_x_ = " << KInfo.gridDim.x << ";\n"
                 << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
                 << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"

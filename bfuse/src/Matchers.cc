@@ -1,7 +1,8 @@
 
 #include <cstdlib>
-#include <numeric>
 #include <string>
+#include <numeric>
+#include <algorithm>
 
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
@@ -189,10 +190,8 @@ void CUDAFuncParmAnalyzer::run(const MatchFinder::MatchResult& Result)
   string FName = FD->getNameAsString();
 
   // Analyze function template arguments
-  if (FD->isTemplateInstantiation()) {
-    auto *TD     = FD->getDescribedFunctionTemplate();
+  if (auto *TD = FD->getDescribedFunctionTemplate()) {
     auto *PDList = TD->getTemplateParameters();
-
     for (auto *PD : *PDList) {
       string PName = PD->getNameAsString();
       if (PName.empty())
@@ -200,7 +199,7 @@ void CUDAFuncParmAnalyzer::run(const MatchFinder::MatchResult& Result)
 
       auto ParamUSR = getUSRsForDeclaration(PD->getUnderlyingDecl(), *Context);
       ParmListMap[FName].push_back(PName);
-      ParmUSRsListMap[FName].push_back(ParamUSR);      
+      ParmUSRsListMap[FName].push_back(ParamUSR);
     }
   }
 
@@ -360,14 +359,70 @@ void CUDASharedVarAnalyzer::run(const MatchFinder::MatchResult &Result)
   const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
 
   string FName  = FD->getNameAsString();
-  string VName  = VD->getNameAsString();
-  auto ParamUSR = getUSRsForDeclaration(VD->getUnderlyingDecl(), *Context);
+  if (DeclsMap.find(FName) != DeclsMap.end()) {
+    return;
+  }
 
-  ShrdVarListMap[FName].push_back(VName);
-  ShrdVarUSRsListMap[FName].push_back(ParamUSR);
+  Kernels.push_back(FName);
+  DeclsMap[FName].push_back(DeclContext{VD, Context, false});
 
-  auto TypeInfo = Context->getTypeInfo(VD->getType());
-  ShrdVarSizeListMap[FName].push_back(TypeInfo.Width / TypeInfo.Align);
+  // string VName  = VD->getNameAsString();
+  // auto ParamUSR = getUSRsForDeclaration(VD->getUnderlyingDecl(), *Context);
+
+  // ShrdVarListMap[FName].push_back(VName);
+  // ShrdVarUSRsListMap[FName].push_back(ParamUSR);
+
+  // // FIXME: need to fix
+  // auto TypeInfo = Context->getTypeInfo(VD->getType());
+  // ShrdVarSizeListMap[FName].push_back(TypeInfo.Width / TypeInfo.Align);
+}
+//---------------------------------------------------------------------------
+map<string, vector<DeclContext>> CUDASharedVarAnalyzer::getSameTypeDecls(DeclContext &DContext)
+{
+  map<string, vector<DeclContext>> SameTypeDeclsMap;
+
+  for (auto &KName : Kernels) {
+    auto &DeclsList = DeclsMap.at(KName);
+
+    for (auto &Decl : DeclsList) {
+      if (Decl.isVisited) {
+        continue;
+      }
+
+      // Assume that all decls will be in the same context
+      // if (Decl.Context != DContext.Context)
+      //   continue;
+
+      auto *Context = DContext.Context;
+      auto *Type1   = (DContext.Decl)->getType();
+      auto *Type2   = (Decl.Decl)->getType();
+
+      if (!Context->hasSameType(Type1, Type2)) {
+        continue;
+      }
+
+      Decl.isVisited = true;
+      SameTypeDecls[KName].push_back(Decl);
+    }
+  }
+
+  return SameTypeDeclsMap;
+}
+//---------------------------------------------------------------------------
+void CUDASharedVarAnalyzer::onEndOfTranslationUnit()
+{
+  for (auto &KName : Kernels) {
+    auto &DeclsList = DeclsMap.at(KName);
+
+    for (auto &Decl : DeclsList) {
+      if (Decl.isVisited) {
+        continue;
+      }
+
+      auto SameTypeDeclsMap = getSameTypeDecls(Decl);
+      // TODO: implement sorting algorithm
+    }
+  }
 }
 //---------------------------------------------------------------------------
 void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
@@ -379,16 +434,14 @@ void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
   }
 
   // Print function template parameters
-  string TemplStr;
-  llvm::raw_string_ostream TemplStream{TemplStr};
-
-  if (FD->isTemplateInstantiation()) {
+  if (auto *TD = FD->getDescribedFunctionTemplate()) {
     IsFuncTemplate = true;
 
-    auto *TD     = FD->getDescribedFunctionTemplate();
     auto *PDList = TD->getTemplateParameters();
-
     for (auto *PD : *PDList) {
+      string TemplStr;
+      llvm::raw_string_ostream TemplStream{TemplStr};
+
       PD->print(TemplStream, Context->getPrintingPolicy());
       TemplStream.flush();
       TemplStringList.push_back(TemplStr);
@@ -396,10 +449,10 @@ void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
   }
 
   // Print function parameters
-  string ParamStr;
-  llvm::raw_string_ostream ParamStream{ParamStr};
-
   for (auto *PD : FD->parameters()) {
+    string ParamStr;
+    llvm::raw_string_ostream ParamStream{ParamStr};
+
     PD->print(ParamStream, Context->getPrintingPolicy());
     ParamStream.flush();
     ParmStringList.push_back(ParamStr);
@@ -466,17 +519,18 @@ R"(
 
   string CUDAFuncTempl = "";
   if (IsFuncTemplate) {
-    CUDAFuncTempl += "template <";
+    string FuncTemplDecl;
     if (TemplStringList.size() > 1) {
-      CUDAFuncTempl += accumulate(TemplStringList.begin() + 1,
-                            TemplStringList.end(),
-                            TemplStringList[0],
-                            AccFunc);
+      FuncTemplDecl = accumulate(TemplStringList.begin() + 1,
+                                 TemplStringList.end(),
+                                 TemplStringList[0],
+                                 AccFunc);
     }
     else if (TemplStringList.size() == 1) {
-      CUDAFuncTempl += TemplStringList[0];
+      FuncTemplDecl = TemplStringList[0];
     }
-    CUDAFuncTempl += ">";
+
+    CUDAFuncTempl += "template <" + FuncTemplDecl + ">";
   }
 
   // Function declaration (paramenter)
@@ -521,7 +575,8 @@ R"(
   FuncStream << ""
   // FuncStream << TVMMacros
              << CUDAFuncTempl << "\n"
-             << ExternAttr << " " << CUDAGlobalAttr << " "
+            //  << ExternAttr << " " << CUDAGlobalAttr << " "
+             << CUDAGlobalAttr << " "
              << CUDALaunchAttr << " " << CUDAFuncRtrTy << " " << CUDAFuncName << "("
              << CUDAFuncParam << ")\n"
              << "{\n"

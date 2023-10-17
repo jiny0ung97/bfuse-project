@@ -19,7 +19,8 @@
   #define int64_t long long
   #define uint64_t unsigned long long
 #endif
-extern "C" __global__ void __launch_bounds__(112) conv2d_B1(float* __restrict__ data, float* __restrict__ kernel, float* __restrict__ conv2d_nhwc) {
+template <typename TypeA, typename TypeB>
+__global__ __launch_bounds__(112) void conv2d_B1(float* __restrict__ data, float* __restrict__ kernel, float* __restrict__ conv2d_nhwc) {
   float conv2d_nhwc_local[4];
   __shared__ float pad_temp_shared[2320];
   __shared__ float kernel_shared[2304];
@@ -30,9 +31,14 @@ extern "C" __global__ void __launch_bounds__(112) conv2d_B1(float* __restrict__ 
   int a = blockIdx.x;
   int b = gridDim.x;
   __syncthreads();
+
+  TypeA A;
+  TypeB B;
+  A = B;
 }
 
-extern "C" __global__ void __launch_bounds__(50) matmul_B16(float* __restrict__ data, float* __restrict__ weight, float* __restrict__ T_matmul_NT) {
+template <typename TypeA, typename TypeB>
+__global__ __launch_bounds__(50) void matmul_B16(float* __restrict__ data, float* __restrict__ weight, float* __restrict__ T_matmul_NT) {
   float T_matmul_NT_local[4];
   __shared__ float data_shared[256];
   __shared__ float weight_shared[3200];
@@ -43,4 +49,8 @@ extern "C" __global__ void __launch_bounds__(50) matmul_B16(float* __restrict__ 
   int a = blockIdx.x;
   int b = gridDim.x;
   __syncthreads();
+
+  TypeA A;
+  TypeB B;
+  A = B;
 }

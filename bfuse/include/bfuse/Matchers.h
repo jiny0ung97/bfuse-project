@@ -16,12 +16,12 @@ namespace bfuse {
 namespace matchers {
 //---------------------------------------------------------------------------
 using FileReplacementsMapTy = std::map<std::string, clang::tooling::Replacements>;
-using VarListTy      = contexts::VarListTy;
-using USRsListTy     = contexts::USRsListTy;
-using SizeListTy     = contexts::SizeListTy;
-using VarListMapTy   = contexts::VarListMapTy;
-using USRsListMapTy  = contexts::USRsListMapTy;
-using SizeListMapTy  = contexts::SizeListMapTy;
+using VarListTy     = contexts::VarListTy;
+using USRsListTy    = contexts::USRsListTy;
+using SizeListTy    = contexts::SizeListTy;
+using VarListMapTy  = contexts::VarListMapTy;
+using USRsListMapTy = contexts::USRsListMapTy;
+using SizeListMapTy = contexts::SizeListMapTy;
 //---------------------------------------------------------------------------
 class ASTPatternMatcher {
 public:
@@ -171,6 +171,21 @@ public:
 //---------------------------------------------------------------------------
 class CUDASharedVarAnalyzer
       : public clang::ast_matchers::MatchFinder::MatchCallback {
+private:
+  struct DeclContext {
+    ///
+    clang::VarDecl *Decl;
+    ///
+    clang::ASTContext *Context;
+    ///
+    bool isVisited;
+  };
+
+  /// The list of kernels
+  std::vector<std::string> Kernels;
+  ///
+  std::map<std::string, std::vector<DeclContext>> DeclsMap;
+
 public:
   /// The map of shared memory variables' list
   VarListMapTy ShrdVarListMap;
@@ -179,8 +194,14 @@ public:
   /// The map of shared memory variables' size
   SizeListMapTy ShrdVarSizeListMap;
 
+private:
+  std::map<std::string, std::vector<DeclContext>> getSameTypeDecls(DeclContext &DContext);
+
+public:
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+  /// Run finder at the end of the translation unit
+  virtual void onEndOfTranslationUnit() override;
 };
 //---------------------------------------------------------------------------
 class CUDAFuncBuilder

@@ -617,8 +617,7 @@ R"(
 
   // Function declaration (name)
   string CUDAFuncRtrTy = "void";
-  // string CUDAFuncName  = Analysis.NewFuncName + "fused_kernel_bfuse";
-  string CUDAFuncName  = Analysis.NewFuncName + "fused_kernel_hfuse_idx_0";
+  string CUDAFuncName  = Analysis.NewFuncName + "fused_kernel_bfuse_idx_0";
 
   // Function declaration (template parameter)
   auto AccFunc = [](string a, string b) { return a + ", " + b; };

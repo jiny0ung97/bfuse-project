@@ -146,6 +146,13 @@ public:
   /// 
   std::string NewShrdDeclString;
 
+  ///
+  VarListTy PrevShrdVars;
+  ///
+  VarListTy NewShrdVars;
+  ///
+  USRsListTy ShrdVarUSRs;
+
   /// The constructor
   AnalysisContext(std::vector<std::string> &&OtherKernels, std::map<std::string, int> &&OtherThreadNumMap,
                   std::map<std::string, std::string> &&OtherBranchConditionMap,

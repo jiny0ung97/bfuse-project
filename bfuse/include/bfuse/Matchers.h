@@ -171,10 +171,10 @@ public:
 //---------------------------------------------------------------------------
 class CUDASharedVarAnalyzer
       : public clang::ast_matchers::MatchFinder::MatchCallback {
-private:
+public:
   struct DeclContext {
     ///
-    clang::VarDecl *Decl;
+    const clang::VarDecl *Decl;
     ///
     clang::ASTContext *Context;
     ///
@@ -194,10 +194,21 @@ public:
   /// The map of shared memory variables' size
   SizeListMapTy ShrdVarSizeListMap;
 
-private:
-  std::map<std::string, std::vector<DeclContext>> getSameTypeDecls(DeclContext &DContext);
+  ///
+  VarListTy PrevShrdVars;
+  ///
+  VarListTy NewShrdVars;
+  ///
+  USRsListTy USRs;
+  ///
+  std::string NewShrdDeclsString = "";
 
 public:
+  ///
+  std::map<std::string, std::vector<DeclContext>> getSameTypeDecls(DeclContext &DContext);
+  ///
+  void setRenamingInfo(std::map<std::string, std::vector<DeclContext>> &SameTypeDeclsMap);
+
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
   /// Run finder at the end of the translation unit

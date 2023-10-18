@@ -161,14 +161,20 @@ int FusionTool::analyzeSharedVariables(AnalysisContext &AContext)
     return Err;
   }
 
-  auto [ShrdVarListMap, ShrdVarUSRsListMap, ShrdVarSizeListMap, ShrdDeclStr]
-       = algorithms::getShrdVarAnalysis(AContext, Analyzer.ShrdVarListMap,
-                                        Analyzer.ShrdVarUSRsListMap, Analyzer.ShrdVarSizeListMap);
+  // auto [ShrdVarListMap, ShrdVarUSRsListMap, ShrdVarSizeListMap, ShrdDeclStr]
+  //      = algorithms::getShrdVarAnalysis(AContext, Analyzer.ShrdVarListMap,
+  //                                       Analyzer.ShrdVarUSRsListMap, Analyzer.ShrdVarSizeListMap);
 
-  AContext.ShrdVarListMap     = move(ShrdVarListMap);
-  AContext.ShrdVarUSRsListMap = move(ShrdVarUSRsListMap);
-  AContext.ShrdVarSizeListMap = move(ShrdVarSizeListMap);
-  AContext.NewShrdDeclString  = move(ShrdDeclStr);
+  // AContext.ShrdVarListMap     = move(ShrdVarListMap);
+  // AContext.ShrdVarUSRsListMap = move(ShrdVarUSRsListMap);
+  // AContext.ShrdVarSizeListMap = move(ShrdVarSizeListMap);
+  // AContext.NewShrdDeclString  = move(ShrdDeclStr);
+
+  AContext.PrevShrdVars = Analyzer.PrevShrdVars;
+  AContext.NewShrdVars  = Analyzer.NewShrdVars;
+  AContext.ShrdVarUSRs  = Analyzer.USRs;
+  AContext.NewShrdDeclString = Analyzer.NewShrdDeclsString;
+
   return Err;
 }
 //---------------------------------------------------------------------------
@@ -179,7 +185,11 @@ int FusionTool::renameSharedVariables(const AnalysisContext &AContext)
                        OptionsParser.getSourcePathList());
 
   // Generate new names
-  auto [NewShrdVars, PrevShrdVars, USRs] = algorithms::getNewShrdVarLists(AContext);
+  // auto [NewShrdVars, PrevShrdVars, USRs] = algorithms::getNewShrdVarLists(AContext);
+
+  auto &NewShrdVars  = AContext.NewShrdVars;
+  auto &PrevShrdVars = AContext.PrevShrdVars;
+  auto &USRs         = AContext.ShrdVarUSRs;
 
   // Run renaming frontend action
   RenamingAction Renaming{NewShrdVars, PrevShrdVars,

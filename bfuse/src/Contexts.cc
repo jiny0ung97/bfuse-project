@@ -227,8 +227,12 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
   llvm::raw_string_ostream TmpVarStream{TmpBlockInfoString};
   TmpVarStream << "\n"
                << "  // Temp declaration to avoid semantic errors\n"
-               << "  int gridDim_x_  = 0; // temp declaration\n"
-               << "  int blockIdx_x_ = 0; // temp declaration\n";
+               << "  int gridDim_x_  = 0;\n"
+               << "  int gridDim_y_  = 0;\n"
+               << "  int gridDim_z_  = 0;\n"
+               << "  int blockIdx_x_ = 0;\n"
+               << "  int blockIdx_y_ = 0;\n"
+               << "  int blockIdx_z_ = 0;\n";
   TmpVarStream.flush();
 
   // 4. Initialize NewBlockInfoString
@@ -289,8 +293,7 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
   }
   VarStream << "  blockIdx_x_ = TotalBlockIdx_ % gridDim_x_;\n"
             << "  blockIdx_y_ = TotalBlockIdx_ / gridDim_x_ % gridDim_y_;\n"
-            << "  blockIdx_z_ = TotalBlockIdx_ / (gridDim_x_ * gridDim_y_);\n"
-            << "  \n";
+            << "  blockIdx_z_ = TotalBlockIdx_ / (gridDim_x_ * gridDim_y_);\n";
   VarStream.flush();
 
   return AnalysisContext{move(Kernels), move(ThreadNumMap), move(BranchConditionMap),

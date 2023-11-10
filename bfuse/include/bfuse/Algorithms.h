@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <tuple>
+#include <map>
 
 #include "bfuse/Contexts.h"
 //---------------------------------------------------------------------------
@@ -16,6 +17,12 @@ using SizeListTy    = contexts::SizeListTy;
 using VarListMapTy  = contexts::VarListMapTy;
 using USRsListMapTy = contexts::USRsListMapTy;
 using SizeListMapTy = contexts::SizeListMapTy;
+//---------------------------------------------------------------------------
+std::map<std::string, contexts::KernelContext> zigZagBlockPattern(std::vector<std::string> &Kernels,
+                                                                  std::map<std::string, contexts::KernelInfo> &KInfoMap);
+//---------------------------------------------------------------------------
+std::map<std::string, contexts::KernelContext> sequentialBlockPattern(std::vector<std::string> &Kernels,
+                                                                      std::map<std::string, contexts::KernelInfo> &KInfoMap);
 //---------------------------------------------------------------------------
 std::tuple<VarListTy, VarListTy, USRsListTy> getNewParmLists(const contexts::AnalysisContext &AContext);
 //---------------------------------------------------------------------------

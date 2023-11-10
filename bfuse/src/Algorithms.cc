@@ -1,6 +1,7 @@
 
 #include <algorithm>
 #include <tuple>
+#include <map>
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -13,6 +14,90 @@ using namespace bfuse::contexts;
 //---------------------------------------------------------------------------
 namespace bfuse {
 namespace algorithms {
+//---------------------------------------------------------------------------
+map<string, KernelContext> zigZagBlockPattern(vector<string> &Kernels, map<string, KernelInfo> &KInfoMap)
+{
+  map<string, int>           CurBounds;
+  map<string, int>           EndBounds;
+  map<string, KernelContext> KernelContextMap;
+
+  // Intialize containers
+  for (auto& KName : Kernels) {
+    auto& Info = KInfoMap.at(KName);
+
+    CurBounds[KName] = 0;
+    EndBounds[KName] = Info.gridDim.size();  
+
+    IdxBoundPairTy ThreadIdxInfo;
+    
+    ThreadIdxInfo           = make_pair(0, Info.blockDim.size());
+    KernelContextMap[KName] = KernelContext{move(ThreadIdxInfo)};
+  }
+
+  /*
+   * <Total SM Counts>
+   * V100 : 84
+   * 
+   */
+  int TotalSM     = 84;
+  int Idx         = 0;
+  int TotalBounds = 0;
+  bool LastLoop   = false;
+
+  // Calcalate blockIdx boundary and other blocks
+  while(true) {
+    auto& KName        = Kernels[Idx];
+    auto& Context      = KernelContextMap.at(KName);
+    auto& BlockIdxInfo = Context.blockIdxInfo;
+    auto& OtherBlocks  = Context.otherBlocks;
+
+    int Stride = EndBounds[KName] - CurBounds[KName];
+
+    if (!LastLoop && Stride > TotalSM)
+      Stride = TotalSM;
+    
+    BlockIdxInfo.emplace_back(TotalBounds, TotalBounds + Stride);
+    OtherBlocks.push_back(TotalBounds - CurBounds[KName]);
+
+    if (LastLoop)
+      break;
+
+    CurBounds[KName] += Stride;
+    TotalBounds      += Stride;
+
+    if (CurBounds[KName] == EndBounds[KName])
+      LastLoop = true;
+
+    Idx = (Idx + 1) % Kernels.size();
+  }
+
+  return KernelContextMap;
+}
+//---------------------------------------------------------------------------
+map<string, KernelContext> sequentialBlockPattern(vector<string> &Kernels, map<string, KernelInfo> &KInfoMap)
+{
+  map<string, KernelContext> KernelContextMap;
+  int TotalBounds = 0;
+
+  // Intialize containers & Calcalate blockIdx boundary
+  for (auto& KName : Kernels) {
+    auto& Info = KInfoMap.at(KName);
+
+    IdxBoundPairTy         ThreadIdxInfo;
+    vector<IdxBoundPairTy> BlockIdxInfo;
+    vector<int>            OtherBlocks;
+
+    ThreadIdxInfo = make_pair(0, Info.blockDim.size());
+    BlockIdxInfo.push_back(make_pair(TotalBounds, TotalBounds + Info.gridDim.size()));
+    OtherBlocks.push_back(TotalBounds);
+
+    KernelContextMap[KName] = KernelContext{move(ThreadIdxInfo), move(BlockIdxInfo), move(OtherBlocks)};
+
+    TotalBounds += Info.gridDim.size();
+  }
+
+  return KernelContextMap;
+}
 //---------------------------------------------------------------------------
 tuple<VarListTy, VarListTy, USRsListTy> getNewParmLists(const AnalysisContext &AContext)
 {

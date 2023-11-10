@@ -32,7 +32,7 @@ extern "C" __global__ __launch_bounds__(112) void conv2d_B1_test_matmul_B16_test
   int TotalBlockIdx_;
   int KernelID_;
   
-  if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 0 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 84)
+  if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 0 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 224)
   {
     TotalBlockIdx_ = blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y - 0;
     KernelID_  = 0;
@@ -40,19 +40,11 @@ extern "C" __global__ __launch_bounds__(112) void conv2d_B1_test_matmul_B16_test
     gridDim_y_ = 1;
     gridDim_z_ = 1;
   }
-  else if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 84 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 164)
+  else if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 224 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 304)
   {
-    TotalBlockIdx_ = blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y - 84;
+    TotalBlockIdx_ = blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y - 224;
     KernelID_  = 1;
     gridDim_x_ = 80;
-    gridDim_y_ = 1;
-    gridDim_z_ = 1;
-  }
-  else if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 164 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 304)
-  {
-    TotalBlockIdx_ = blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y - 80;
-    KernelID_  = 0;
-    gridDim_x_ = 224;
     gridDim_y_ = 1;
     gridDim_z_ = 1;
   }
@@ -65,7 +57,7 @@ extern "C" __global__ __launch_bounds__(112) void conv2d_B1_test_matmul_B16_test
 
 
   // conv2d_B1_test
-  if ((KernelID_ == 0) && ((threadIdx.x + threadIdx.y * threadIdx.x + threadIdx.z * threadIdx.y * threadIdx.z >= 0 && threadIdx.x + threadIdx.y * threadIdx.x + threadIdx.z * threadIdx.y * threadIdx.z < 112)))
+  if ((KernelID_ == 0) && ((threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y >= 0 && threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y < 112)))
   {
       float conv2d_nhwc_local[4];
       conv2d_nhwc_local[0] = conv2d_B1_test_data_[0];
@@ -78,7 +70,7 @@ extern "C" __global__ __launch_bounds__(112) void conv2d_B1_test_matmul_B16_test
       A = B;
   }
   // matmul_B16_test
-  else if ((KernelID_ == 1) && ((threadIdx.x + threadIdx.y * threadIdx.x + threadIdx.z * threadIdx.y * threadIdx.z >= 0 && threadIdx.x + threadIdx.y * threadIdx.x + threadIdx.z * threadIdx.y * threadIdx.z < 50)))
+  else if ((KernelID_ == 1) && ((threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y >= 0 && threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y < 50)))
   {
       float T_matmul_NT_local[4];
       T_matmul_NT_local[0] = matmul_B16_test_data_[0];

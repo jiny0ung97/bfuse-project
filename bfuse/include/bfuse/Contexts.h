@@ -74,6 +74,8 @@ public:
   /// The constructor
   explicit KernelContext(IdxBoundPairTy &&ThreadIdxInfo)
                         : threadIdxInfo{std::move(ThreadIdxInfo)}, blockIdxInfo{}, otherBlocks{} {}
+  KernelContext(IdxBoundPairTy &&ThreadIdxInfo, std::vector<IdxBoundPairTy> &&BlockIdxInfo, std::vector<int> &&OtherBlocks)
+               : threadIdxInfo{std::move(ThreadIdxInfo)}, blockIdxInfo{std::move(BlockIdxInfo)}, otherBlocks{std::move(OtherBlocks)} {}
   /// Print KernelContext
   void print() const;
 

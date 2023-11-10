@@ -7,6 +7,7 @@
 
 #include "llvm/Support/raw_ostream.h"
 
+#include "bfuse/Algorithms.h"
 #include "bfuse/Contexts.h"
 
 using namespace std;
@@ -102,60 +103,16 @@ FusionContext FusionContext::create(FusionInfo &FInfo, map<string, KernelInfo> &
 {
   vector<string>             Kernels;
   map<string, KernelInfo>    KernelInfoMap;
-  map<string, KernelContext> KernelContextMap;
-
-  map<string, int> CurBounds;
-  map<string, int> EndBounds;
-
-  /*
-   * <Total SM Counts>
-   * V100 : 84
-   * 
-   */
-  const int TotalSM = 84;
-
-  int Idx         = 0;
-  int TotalBounds = 0;
-  bool LastLoop   = false;
 
   // Intialize containers
   for (auto& KName : FInfo.kernels) {
     auto& Info = KInfoMap.at(KName);
 
-    CurBounds[KName]     = 0;
-    EndBounds[KName]     = Info.gridDim.size();
-
     Kernels.push_back(KName);
-    KernelInfoMap[KName]    = Info;
-    KernelContextMap[KName] = KernelContext{make_pair(0, Info.blockDim.size())};
+    KernelInfoMap[KName] = Info;
   }
-
-  // Calcalate blockIdx boundary and other blocks
-  while(true) {
-    auto& KName        = Kernels[Idx];
-    auto& Context      = KernelContextMap.at(KName);
-    auto& BlockIdxInfo = Context.blockIdxInfo;
-    auto& OtherBlocks  = Context.otherBlocks;
-
-    int Stride = EndBounds[KName] - CurBounds[KName];
-
-    if (!LastLoop && Stride > TotalSM)
-      Stride = TotalSM;
-    
-    BlockIdxInfo.emplace_back(TotalBounds, TotalBounds + Stride);
-    OtherBlocks.push_back(TotalBounds - CurBounds[KName]);
-
-    if (LastLoop)
-      break;
-
-    CurBounds[KName] += Stride;
-    TotalBounds      += Stride;
-
-    if (CurBounds[KName] == EndBounds[KName])
-      LastLoop = true;
-
-    Idx = (Idx + 1) % Kernels.size();
-  }
+  // auto KernelContextMap = algorithms::zigZagBlockPattern(Kernels, KInfoMap);
+  auto KernelContextMap = algorithms::sequentialBlockPattern(Kernels, KInfoMap);
 
   return FusionContext{move(Kernels), move(KernelInfoMap), move(KernelContextMap)};
 }
@@ -213,7 +170,7 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
     CondStream << "(KernelID_ == " << I << ") && ";
 
     // threadIdx condition check
-    string CurrentThreadIdx = "threadIdx.x + threadIdx.y * threadIdx.x + threadIdx.z * threadIdx.y * threadIdx.z";
+    string CurrentThreadIdx = "threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y";
     CondStream << "(" << PrintInfoToCondFunc(CurrentThreadIdx, TInfo) << ")";
     CondStream.flush();
 

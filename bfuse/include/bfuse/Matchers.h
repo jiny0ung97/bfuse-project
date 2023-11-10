@@ -59,6 +59,8 @@ class CUDAKernelRewriter
 private:
   /// The container of refactoring replacements
   FileReplacementsMapTy &Repls;
+  /// The map of visited functions
+  std::map<std::string, bool> isVisitedMap;
 
 public:
   /// Run AST match finder
@@ -75,6 +77,8 @@ private:
   FileReplacementsMapTy &Repls;
   /// The temp blockIdx, gridDim declarations
   const std::string &TmpBlockInfoString;
+  /// The map of visited functions
+  std::map<std::string, bool> isVisitedMap;
 
 public:
   /// Run AST match finder
@@ -88,6 +92,10 @@ public:
 //---------------------------------------------------------------------------
 class CUDAFuncParmAnalyzer
       : public clang::ast_matchers::MatchFinder::MatchCallback {
+private:
+  /// The map of visited functions
+  std::map<std::string, bool> isVisitedMap;
+
 public:
   /// The map of function parameters' list
   VarListMapTy ParmListMap;
@@ -148,8 +156,8 @@ class CUDASharedDeclRewriter
 private:
   /// The container of refactoring replacements
   FileReplacementsMapTy &Repls;
-    /// The kernels to be fused
-  const std::vector<std::string> &Kernels;
+  /// The kernels to be fused
+  std::vector<std::string> Kernels;
   /// The map of ASTContexts
   std::map<std::string, clang::ASTContext *> ASTContextMap;
   /// The map of source locations
@@ -164,28 +172,11 @@ public:
   virtual void onEndOfTranslationUnit() override;
 
   /// The constructor
-  CUDASharedDeclRewriter(FileReplacementsMapTy &OtherRepls,
-                         const std::vector<std::string> &OtherKernels)
-                        : Repls{OtherRepls}, Kernels{OtherKernels} {}
+  CUDASharedDeclRewriter(FileReplacementsMapTy &OtherRepls) : Repls{OtherRepls} {}
 };
 //---------------------------------------------------------------------------
 class CUDASharedVarAnalyzer
       : public clang::ast_matchers::MatchFinder::MatchCallback {
-public:
-  struct DeclContext {
-    ///
-    const clang::VarDecl *Decl;
-    ///
-    clang::ASTContext *Context;
-    ///
-    bool isVisited;
-  };
-
-  /// The list of kernels
-  std::vector<std::string> Kernels;
-  ///
-  std::map<std::string, std::vector<DeclContext>> DeclsMap;
-
 public:
   /// The map of shared memory variables' list
   VarListMapTy ShrdVarListMap;
@@ -194,25 +185,9 @@ public:
   /// The map of shared memory variables' size
   SizeListMapTy ShrdVarSizeListMap;
 
-  ///
-  VarListTy PrevShrdVars;
-  ///
-  VarListTy NewShrdVars;
-  ///
-  USRsListTy USRs;
-  ///
-  std::string NewShrdDeclsString = "";
-
 public:
-  ///
-  std::map<std::string, std::vector<DeclContext>> getSameTypeDecls(DeclContext &DContext);
-  ///
-  void setRenamingInfo(std::map<std::string, std::vector<DeclContext>> &SameTypeDeclsMap);
-
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
-  /// Run finder at the end of the translation unit
-  virtual void onEndOfTranslationUnit() override;
 };
 //---------------------------------------------------------------------------
 class CUDAFuncBuilder

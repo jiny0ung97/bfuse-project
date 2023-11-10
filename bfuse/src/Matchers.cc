@@ -129,6 +129,15 @@ void CUDAKernelRewriter::run(const MatchFinder::MatchResult& Result)
     return;
   }
 
+  string FName = FD->getNameAsString();
+  if (isVisitedMap.find(FName) != isVisitedMap.end()) {
+    return;
+  }
+  isVisitedMap[FName] = true;
+
+  if (FD->isTemplateInstantiation())
+    return;
+
   auto &SourceMgr = Context->getSourceManager();
   auto *FuncBody  = FD->getBody();
 
@@ -139,13 +148,14 @@ void CUDAKernelRewriter::run(const MatchFinder::MatchResult& Result)
   BodyStream.flush();
 
   Replacement BodyRepl{SourceMgr, FuncBody, BodyStr};
-  string FilePath = BodyRepl.getFilePath().str();
+  // string FilePath = BodyRepl.getFilePath().str();
+  string FilePath = FD->getLocation().printToString(SourceMgr);
+  FilePath = FilePath.substr(0, FilePath.find_first_of(":"));
+
   if (auto Err = Repls[FilePath].add(BodyRepl)) {
-    llvm::errs() << "CUDADeclRewriter error occur\n";
+    llvm::errs() << "CUDAKernelRewriter error occur\n";
     exit(0);
   }
-
-  // TODO: need to validate that kernels are all existed
 }
 //---------------------------------------------------------------------------
 void CUDACompStmtRewriter::run(const MatchFinder::MatchResult& Result)
@@ -155,6 +165,12 @@ void CUDACompStmtRewriter::run(const MatchFinder::MatchResult& Result)
   if (!FD) {
     return;
   }
+
+  string FName = FD->getNameAsString();
+  if (isVisitedMap.find(FName) != isVisitedMap.end()) {
+    return;
+  }
+  isVisitedMap[FName] = true;
 
   // Append compound {}
   auto &SourceMgr     = Context->getSourceManager();
@@ -188,6 +204,10 @@ void CUDAFuncParmAnalyzer::run(const MatchFinder::MatchResult& Result)
   }
 
   string FName = FD->getNameAsString();
+  if (isVisitedMap.find(FName) != isVisitedMap.end()) {
+    return;
+  }
+  isVisitedMap[FName] = true;
 
   // Analyze function template arguments
   if (auto *TD = FD->getDescribedFunctionTemplate()) {
@@ -286,10 +306,7 @@ void CUDASharedDeclExtractor::run(const MatchFinder::MatchResult &Result)
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
   const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
 
-  if (VD->hasExternalStorage()) {
-    return;
-  }
-  string KName = FD->getNameAsString();
+  string FName = FD->getNameAsString();
 
   auto &SourceMgr     = Context->getSourceManager();
   auto SourceBeginLoc = DS->getBeginLoc();
@@ -314,9 +331,6 @@ void CUDASharedDeclRewriter::run(const MatchFinder::MatchResult &Result)
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
   const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
 
-  if (VD->hasExternalStorage()) {
-    return;
-  }
   string FName = FD->getNameAsString();
 
   string DeclStr;
@@ -326,6 +340,7 @@ void CUDASharedDeclRewriter::run(const MatchFinder::MatchResult &Result)
 
   if (SharedDeclStringMap.find(FName) == SharedDeclStringMap.end()) {
     SharedDeclStringMap[FName] = "\n";
+    Kernels.push_back(FName);
   }
   auto &SharedDeclString = SharedDeclStringMap.at(FName);
   SharedDeclString += DeclStr;
@@ -368,167 +383,16 @@ void CUDASharedVarAnalyzer::run(const MatchFinder::MatchResult &Result)
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
   const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
 
-  string FName = FD->getNameAsString();
-  if (DeclsMap.find(FName) == DeclsMap.end()) {
-    Kernels.push_back(FName);
-  }
+  string FName  = FD->getNameAsString();
+  string VName  = VD->getNameAsString();
+  auto ParamUSR = getUSRsForDeclaration(VD->getUnderlyingDecl(), *Context);
 
-  if (VD->hasExternalStorage()) {
-    return;
-  }
-  DeclsMap[FName].push_back(DeclContext{VD, Context, false});
+  ShrdVarListMap[FName].push_back(VName);
+  ShrdVarUSRsListMap[FName].push_back(ParamUSR);
 
-  // string VName  = VD->getNameAsString();
-  // auto ParamUSR = getUSRsForDeclaration(VD->getUnderlyingDecl(), *Context);
-
-  // ShrdVarListMap[FName].push_back(VName);
-  // ShrdVarUSRsListMap[FName].push_back(ParamUSR);
-
-  // // FIXME: need to fix
-  // auto TypeInfo = Context->getTypeInfo(VD->getType());
-  // ShrdVarSizeListMap[FName].push_back(TypeInfo.Width / TypeInfo.Align);
-}
-//---------------------------------------------------------------------------
-map<string, vector<CUDASharedVarAnalyzer::DeclContext>> CUDASharedVarAnalyzer::getSameTypeDecls(CUDASharedVarAnalyzer::DeclContext &DContext)
-{
-  map<string, vector<DeclContext>> SameTypeDeclsMap;
-
-  for (auto &KName : Kernels) {
-    auto &DeclsList = DeclsMap.at(KName);
-
-    for (auto &Decl : DeclsList) {
-      if (Decl.isVisited) {
-        continue;
-      }
-
-      // Assume that all decls will be in the same context
-      // if (Decl.Context != DContext.Context)
-      //   continue;
-
-      auto *Context = DContext.Context;
-      auto Type1    = (DContext.Decl)->getType();
-      auto Type2    = (Decl.Decl)->getType();
-
-      if (Type1->isArrayType() && Type2->isArrayType()) {
-        Type1 = Context->getArrayDecayedType(Type1);
-        Type2 = Context->getArrayDecayedType(Type2);
-      }
-
-      if (!Context->hasSameType(Type1, Type2)) {
-        continue;
-      }
-
-      Decl.isVisited = true;
-      SameTypeDeclsMap[KName].push_back(Decl);
-    }
-  }
-
-  return SameTypeDeclsMap;
-}
-//---------------------------------------------------------------------------
-static int ShrdVarNameIdx = 0;
-//---------------------------------------------------------------------------
-void CUDASharedVarAnalyzer::setRenamingInfo(map<string, vector<CUDASharedVarAnalyzer::DeclContext>> &SameTypeDeclsMap)
-{
-  auto CompareFunc = [](const DeclContext &A, const DeclContext &B) {
-    auto *DeclA = A.Decl;
-    auto *DeclB = B.Decl;
-
-    auto TypeA = DeclA->getType();
-    auto TypeB = DeclB->getType();
-
-    if (TypeA->isArrayType() && TypeB->isArrayType()) {
-      auto *ContextA = A.Context;
-      auto *ContextB = B.Context;
-
-      auto TypeInfoA = ContextA->getTypeInfo(TypeA);
-      auto TypeInfoB = ContextB->getTypeInfo(TypeB);
-
-      auto SizeA = TypeInfoA.Width / TypeInfoA.Align;
-      auto SizeB = TypeInfoB.Width / TypeInfoB.Align;
-
-      return SizeA > SizeB;
-    }
-    return TypeA->isArrayType();
-  };
-
-  for (auto &KName : Kernels) {
-    if (SameTypeDeclsMap.find(KName) == SameTypeDeclsMap.end()) {
-      continue;
-    }
-
-    auto &DeclsList = SameTypeDeclsMap.at(KName);
-    sort(DeclsList.begin(), DeclsList.end(), CompareFunc);
-  }
-
-  unsigned I = 0;
-  bool Done  = false;
-  string NewNameBase = "UnionShrdVar";
-
-  while (!Done) {
-    Done = true;
-
-    DeclContext *MaxDecl = nullptr;
-    for (auto &KName : Kernels) {
-      if (SameTypeDeclsMap.find(KName) == SameTypeDeclsMap.end()) {
-        continue;
-      }
-
-      auto &DeclsList = SameTypeDeclsMap.at(KName);
-      if (I >= DeclsList.size())
-        continue;
-      
-      Done = false;
-
-      auto *VD      = DeclsList[I].Decl;
-      auto *Context = DeclsList[I].Context;
-      auto VUSR     = getUSRsForDeclaration(VD->getUnderlyingDecl(), *Context);
-      string VName  = VD->getNameAsString();
-
-      PrevShrdVars.push_back(VName);
-      NewShrdVars.push_back(NewNameBase + to_string(ShrdVarNameIdx));
-      USRs.push_back(VUSR);
-
-      if (MaxDecl == nullptr) {
-        MaxDecl = &(DeclsList[I]);
-        continue;
-      }
-
-      if (CompareFunc(DeclsList[I], *MaxDecl)) {
-        MaxDecl = &(DeclsList[I]);
-      }
-    }
-
-    if (!Done) {
-      auto *VD      = MaxDecl->Decl;
-      auto Type     = VD->getType();
-
-      string TypeStr = "";
-      if (VD->isStaticLocal()) {
-        TypeStr += "static ";
-      }
-      TypeStr += Type.getAsString();
-
-      NewShrdDeclsString += "  " + TypeStr + " " + NewNameBase + to_string(ShrdVarNameIdx) + " __attribute__((shared));\n";
-      ShrdVarNameIdx++;
-      I++;
-    }
-  }
-}
-//---------------------------------------------------------------------------
-void CUDASharedVarAnalyzer::onEndOfTranslationUnit()
-{
-  for (auto &KName : Kernels) {
-    auto &DeclsList = DeclsMap.at(KName);
-
-    for (auto &Decl : DeclsList) {
-      if (Decl.isVisited) {
-        continue;
-      }
-      auto SameTypeDeclsMap = getSameTypeDecls(Decl);
-      setRenamingInfo(SameTypeDeclsMap);
-    }
-  }
+  // FIXME: need to fix
+  auto TypeInfo = Context->getTypeInfo(VD->getType());
+  ShrdVarSizeListMap[FName].push_back(TypeInfo.Width / TypeInfo.Align);
 }
 //---------------------------------------------------------------------------
 void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
@@ -678,11 +542,9 @@ R"(
   }
 
   // Create fused function
-  FuncStream << ""
-  // FuncStream << TVMMacros
+  FuncStream << TVMMacros
              << CUDAFuncTempl << "\n"
-            //  << ExternAttr << " " << CUDAGlobalAttr << " "
-             << CUDAGlobalAttr << " "
+             << ExternAttr << " " << CUDAGlobalAttr << " "
              << CUDALaunchAttr << " " << CUDAFuncRtrTy << " " << CUDAFuncName << "("
              << CUDAFuncParam << ")\n"
              << "{\n"

@@ -73,7 +73,6 @@ int FusionTool::analyzeParameters(AnalysisContext &AContext)
   CUDAFuncParmAnalyzer Analyzer;
 
   for (auto &KName : AContext.Kernels) {
-    // Finder.addMatcher(ASTPatternMatcher::getFuncParmMatcher(KName), &Analyzer);
     Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Analyzer);
   }
 
@@ -132,7 +131,7 @@ int FusionTool::hoistSharedDecls(AnalysisContext &AContext)
   // Add AST matchers
   MatchFinder Finder;
   CUDASharedDeclExtractor Extractor{Tool.getReplacements()};
-  CUDASharedDeclRewriter  Writer(Tool.getReplacements(), AContext.Kernels);
+  CUDASharedDeclRewriter  Writer{Tool.getReplacements()};
 
   for (auto &KName : AContext.Kernels) {
     Finder.addMatcher(ASTPatternMatcher::getSharedDeclMatcher(KName), &Extractor);
@@ -161,19 +160,14 @@ int FusionTool::analyzeSharedVariables(AnalysisContext &AContext)
     return Err;
   }
 
-  // auto [ShrdVarListMap, ShrdVarUSRsListMap, ShrdVarSizeListMap, ShrdDeclStr]
-  //      = algorithms::getShrdVarAnalysis(AContext, Analyzer.ShrdVarListMap,
-  //                                       Analyzer.ShrdVarUSRsListMap, Analyzer.ShrdVarSizeListMap);
+  auto [ShrdVarListMap, ShrdVarUSRsListMap, ShrdVarSizeListMap, ShrdDeclStr]
+       = algorithms::getShrdVarAnalysis(AContext, Analyzer.ShrdVarListMap,
+                                        Analyzer.ShrdVarUSRsListMap, Analyzer.ShrdVarSizeListMap);
 
-  // AContext.ShrdVarListMap     = move(ShrdVarListMap);
-  // AContext.ShrdVarUSRsListMap = move(ShrdVarUSRsListMap);
-  // AContext.ShrdVarSizeListMap = move(ShrdVarSizeListMap);
-  // AContext.NewShrdDeclString  = move(ShrdDeclStr);
-
-  AContext.PrevShrdVars = Analyzer.PrevShrdVars;
-  AContext.NewShrdVars  = Analyzer.NewShrdVars;
-  AContext.ShrdVarUSRs  = Analyzer.USRs;
-  AContext.NewShrdDeclString = Analyzer.NewShrdDeclsString;
+  AContext.ShrdVarListMap     = move(ShrdVarListMap);
+  AContext.ShrdVarUSRsListMap = move(ShrdVarUSRsListMap);
+  AContext.ShrdVarSizeListMap = move(ShrdVarSizeListMap);
+  AContext.NewShrdDeclString  = move(ShrdDeclStr);
 
   return Err;
 }
@@ -185,11 +179,7 @@ int FusionTool::renameSharedVariables(const AnalysisContext &AContext)
                        OptionsParser.getSourcePathList());
 
   // Generate new names
-  // auto [NewShrdVars, PrevShrdVars, USRs] = algorithms::getNewShrdVarLists(AContext);
-
-  auto &NewShrdVars  = AContext.NewShrdVars;
-  auto &PrevShrdVars = AContext.PrevShrdVars;
-  auto &USRs         = AContext.ShrdVarUSRs;
+  auto [NewShrdVars, PrevShrdVars, USRs] = algorithms::getNewShrdVarLists(AContext);
 
   // Run renaming frontend action
   RenamingAction Renaming{NewShrdVars, PrevShrdVars,
@@ -209,7 +199,6 @@ int FusionTool::createFusedKernel(const AnalysisContext &AContext)
   CUDAFuncBuilder Builder{AContext, FuncStr};
 
   for (auto &KName : AContext.Kernels) {
-    // Finder.addMatcher(ASTPatternMatcher::getFuncParmMatcher(KName), &Builder);
     Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Builder);
   }
   return Tool.run(newFrontendActionFactory(&Finder).get());

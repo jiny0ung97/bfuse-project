@@ -21,6 +21,10 @@ tuple<VarListTy, VarListTy, USRsListTy> getNewParmLists(const AnalysisContext &A
   USRsListTy USRs;
 
   for (auto &KName : AContext.Kernels) {
+    if (AContext.ParmListMap.find(KName) == AContext.ParmListMap.end()) {
+      continue;
+    }
+    
     auto &PrevParmList = AContext.ParmListMap.at(KName);
     auto &USRsList     = AContext.ParmUSRsListMap.at(KName);
 
@@ -59,6 +63,10 @@ getShrdVarAnalysis(const AnalysisContext &AContext, VarListMapTy &VarListMap, US
   SizeListMapTy ShrdVarSizeListMap = SizeListMap;
 
   for (auto &KName : AContext.Kernels) {
+    // If kernel has no shared memory variable, skip it.
+    if (ShrdVarListMap.find(KName) == ShrdVarListMap.end())
+      continue;
+
     auto &ShrdVarList     = ShrdVarListMap.at(KName);
     auto &ShrdVarUSRsList = ShrdVarUSRsListMap.at(KName);
     auto &ShrdVarSizeList = ShrdVarSizeListMap.at(KName);
@@ -119,6 +127,10 @@ tuple<VarListTy, VarListTy, USRsListTy> getNewShrdVarLists(const AnalysisContext
   string NewNameBase = "union_shared_";
 
   for (auto &KName : AContext.Kernels) {
+    // If kernel has no shared memory variable, skip it.
+    if (AContext.ShrdVarListMap.find(KName) == AContext.ShrdVarListMap.end())
+      continue;
+
     auto &PrevShrdVarList = AContext.ShrdVarListMap.at(KName);
     auto &USRsList        = AContext.ShrdVarUSRsListMap.at(KName);
 

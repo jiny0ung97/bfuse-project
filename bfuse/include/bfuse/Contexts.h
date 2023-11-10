@@ -143,15 +143,8 @@ public:
   USRsListMapTy ShrdVarUSRsListMap;
   /// The map of shared memory variables' size
   SizeListMapTy ShrdVarSizeListMap;
-  /// 
+  /// The string of new shared memory variable declarations
   std::string NewShrdDeclString;
-
-  ///
-  VarListTy PrevShrdVars;
-  ///
-  VarListTy NewShrdVars;
-  ///
-  USRsListTy ShrdVarUSRs;
 
   /// The constructor
   AnalysisContext(std::vector<std::string> &&OtherKernels, std::map<std::string, int> &&OtherThreadNumMap,

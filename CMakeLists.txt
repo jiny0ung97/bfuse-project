@@ -39,18 +39,12 @@ add_executable(${CMAKE_PROJECT_NAME} main.cc)
 # ------------------------------------------------------------------
 # Options for libraries
 option(USE_BFUSE "Use the bfuse library" ON)
-option(USE_TEST "Use the test library" ON)
 
 # BFuse project library
 if(USE_BFUSE)
   add_subdirectory(bfuse)
   list(APPEND EXTRA_LIBS bfuse)
   target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE "USE_BFUSE")
-endif()
-
-# Test
-if(USE_TEST)
-  add_subdirectory(test)
 endif()
 
 # ------------------------------------------------------------------

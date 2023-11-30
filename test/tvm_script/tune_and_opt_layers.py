@@ -40,11 +40,12 @@ def pool2d_layer(N, H, W, C, KH, KW, stride, padding):
 
     return [data, out]
 #--------------------------------------------------------------------------
-def conv2d_layer_tuning(batch_size, target, log_file):
+def conv2d_layer_tuning(target, log_file):
     # Extract search tasks
     print("Search tasks...")
     task = tvm.auto_scheduler.SearchTask(func=conv2d_layer,
-                                         args=(batch_size, 56, 56, 128, 64, 3, 3, 2, 1),
+                                        #  args=(128, 56, 56, 128, 64, 3, 3, 2, 1),
+                                         args=(128, 14, 14, 128, 64, 3, 3, 1, 1),
                                          target=target,
                                          )
 
@@ -59,11 +60,12 @@ def conv2d_layer_tuning(batch_size, target, log_file):
 
     return task
 #--------------------------------------------------------------------------
-def bgemm_layer_tuning(batch_size, target, log_file):
+def bgemm_layer_tuning(target, log_file):
     # Extract search tasks
     print("Search tasks...")
     task = tvm.auto_scheduler.SearchTask(func=bgemm_layer,
-                                         args=(batch_size, 1024, 1024, 1024),
+                                        #  args=(128, 1024, 1024, 1024),
+                                         args=(128, 1, 512, 1024),
                                          target=target,
                                          )
 
@@ -78,11 +80,11 @@ def bgemm_layer_tuning(batch_size, target, log_file):
 
     return task
 #--------------------------------------------------------------------------
-def softmax_layer_tuning(batch_size, target, log_file):
+def softmax_layer_tuning(target, log_file):
     # Extract search tasks
     print("Search tasks...")
     task = tvm.auto_scheduler.SearchTask(func=softmax_layer,
-                                         args=(batch_size, 1, 1000),
+                                         args=(128, 1, 1000),
                                          target=target,
                                          )
 
@@ -97,11 +99,11 @@ def softmax_layer_tuning(batch_size, target, log_file):
 
     return task
 #--------------------------------------------------------------------------
-def pool2d_layer_tuning(batch_size, target, log_file):
+def pool2d_layer_tuning(target, log_file):
     # Extract search tasks
     print("Search tasks...")
     task = tvm.auto_scheduler.SearchTask(func=pool2d_layer,
-                                         args=(batch_size, 56, 56, 64, 3, 3, 2, 0),
+                                         args=(128, 56, 56, 64, 3, 3, 2, 0),
                                          target=target,
                                          )
 
@@ -138,11 +140,15 @@ def analyze_sch(sch, args, target, cu_file, cuda_save=False):
             mod = tvm.build(sch, args, target=target)
             f.write(mod.imported_modules[0].get_source())
 #--------------------------------------------------------------------------
-def conv2d_layer_eval(batch_size, sch, args, target):
+def conv2d_layer_eval(sch, args, target):
     # Parameters
-    data_shape   = (batch_size, 56, 56, 64)  # (batch, height, width, channel)
-    kernel_shape = (3, 3, 64, 128)           # (height, width, in_channel, out_channel)
-    output_shape = (batch_size, 28, 28, 128)
+    # data_shape   = (128, 56, 56, 64)  # (batch, height, width, channel)
+    # kernel_shape = (3, 3, 64, 128)    # (height, width, in_channel, out_channel)
+    # output_shape = (128, 28, 28, 128)
+
+    data_shape   = (128, 14, 14, 64)  # (batch, height, width, channel)
+    kernel_shape = (3, 3, 64, 128)    # (height, width, in_channel, out_channel)
+    output_shape = (128, 14, 14, 128)
 
     # Build func & tensors
     func = tvm.build(sch, args, target)
@@ -164,11 +170,11 @@ def conv2d_layer_eval(batch_size, sch, args, target):
         % (np.median(evaluator(a_tvm, b_tvm, c_tvm).results) * 1000)
     )
 #--------------------------------------------------------------------------
-def bgemm_layer_eval(batch_size, sch, args, target):
+def bgemm_layer_eval(sch, args, target):
     # Parameters
-    A_shape      = (batch_size, 1024, 1024) # (batch, M, K)
-    B_shape      = (batch_size, 1024, 1024) # (batch, N, K)
-    output_shape = (batch_size, 1024, 1024)
+    A_shape      = (128, 1, 512) # (batch, M, K)
+    B_shape      = (128, 1024, 512) # (batch, N, K)
+    output_shape = (128, 1, 1024)
 
     # Build func & tensors
     func = tvm.build(sch, args, target)
@@ -190,10 +196,10 @@ def bgemm_layer_eval(batch_size, sch, args, target):
         % (np.median(evaluator(a_tvm, b_tvm, c_tvm).results) * 1000)
     )
 #--------------------------------------------------------------------------
-def softmax_layer_eval(batch_size, sch, args, target):
+def softmax_layer_eval(sch, args, target):
     # Parameters
-    data_shape   = (batch_size, 1, 1000) # (batch, M, N)
-    output_shape = (batch_size, 1, 1000)
+    data_shape   = (128, 1, 1000) # (batch, M, N)
+    output_shape = (128, 1, 1000)
 
     # Build func & tensors
     func = tvm.build(sch, args, target)
@@ -213,10 +219,10 @@ def softmax_layer_eval(batch_size, sch, args, target):
         % (np.median(evaluator(a_tvm, b_tvm).results) * 1000)
     )
 #--------------------------------------------------------------------------
-def pool2d_layer_eval(batch_size, sch, args, target):
+def pool2d_layer_eval(sch, args, target):
     # Parameters
-    data_shape   = (batch_size, 56, 56, 64) # (batch, height, width, channel)
-    output_shape = (batch_size, 27, 27, 64)
+    data_shape   = (128, 56, 56, 64) # (batch, height, width, channel)
+    output_shape = (128, 27, 27, 64)
 
     # Build func & tensors
     func = tvm.build(sch, args, target)
@@ -236,15 +242,16 @@ def pool2d_layer_eval(batch_size, sch, args, target):
         % (np.median(evaluator(a_tvm, b_tvm).results) * 1000)
     )
 #--------------------------------------------------------------------------
-def conv2d_layer_schedule(batch_size, target, cu_save=False):
-    args = conv2d_layer(batch_size, 56, 56, 128, 64, 3, 3, 2, 1)
+def conv2d_layer_schedule():
+    # args = conv2d_layer(128, 56, 56, 128, 64, 3, 3, 2, 1)
+    args = conv2d_layer(128, 14, 14, 128, 64, 3, 3, 1, 1)
     s    = te.create_schedule(args[2].op)
 
-    # ========== Task (workload key: ["conv2d_layer", 128, 56, 56, 128, 64, 3, 3, 2, 1]) ==========
-    # data = PLACEHOLDER [128, 56, 56, 64]
-    # pad_temp(i0, i1, i2, i3) = tir.if_then_else(((((i1 >= 1) && (i1 < 57)) && (i2 >= 1)) && (i2 < 57)), data[i0, (i1 - 1), (i2 - 1), i3], 0f)
+    # ========== Task (workload key: ["conv2d_layer", 128, 14, 14, 128, 64, 3, 3, 1, 1]) ==========
+    # data = PLACEHOLDER [128, 14, 14, 64]
+    # pad_temp(i0, i1, i2, i3) = tir.if_then_else(((((i1 >= 1) && (i1 < 15)) && (i2 >= 1)) && (i2 < 15)), data[i0, (i1 - 1), (i2 - 1), i3], 0f)
     # kernel = PLACEHOLDER [3, 3, 64, 128]
-    # conv2d_nhwc(nn, yy, xx, ff) += (pad_temp[nn, ((yy*2) + ry), ((xx*2) + rx), rc]*kernel[ry, rx, rc, ff])
+    # conv2d_nhwc(nn, yy, xx, ff) += (pad_temp[nn, (yy + ry), (xx + rx), rc]*kernel[ry, rx, rc, ff])
 
     # Parameters
     conv2d_nhwc = args[2]                                     # args[2]
@@ -260,41 +267,41 @@ def conv2d_layer_schedule(batch_size, target, cu_save=False):
     conv2d_nhwc_nn, conv2d_nhwc_yy, conv2d_nhwc_xx, conv2d_nhwc_ff, conv2d_nhwc_ry, conv2d_nhwc_rx, conv2d_nhwc_rc = tuple(conv2d_nhwc.op.axis) + tuple(conv2d_nhwc.op.reduce_axis)
     conv2d_nhwc_local, = s.cache_write([conv2d_nhwc], "local")
     conv2d_nhwc_local_nn_c, conv2d_nhwc_local_yy_c, conv2d_nhwc_local_xx_c, conv2d_nhwc_local_ff_c, conv2d_nhwc_local_ry, conv2d_nhwc_local_rx, conv2d_nhwc_local_rc = tuple(conv2d_nhwc_local.op.axis) + tuple(conv2d_nhwc_local.op.reduce_axis)
-    conv2d_nhwc_local_nn_c_o_i, conv2d_nhwc_local_nn_c_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_nn_c, factor=1)
-    conv2d_nhwc_local_nn_c_o_o_i, conv2d_nhwc_local_nn_c_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_nn_c_o_i, factor=4)
-    conv2d_nhwc_local_nn_c_o_o_o_i, conv2d_nhwc_local_nn_c_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_nn_c_o_o_i, factor=1)
+    conv2d_nhwc_local_nn_c_o_i, conv2d_nhwc_local_nn_c_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_nn_c, factor=8)
+    conv2d_nhwc_local_nn_c_o_o_i, conv2d_nhwc_local_nn_c_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_nn_c_o_i, factor=1)
+    conv2d_nhwc_local_nn_c_o_o_o_i, conv2d_nhwc_local_nn_c_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_nn_c_o_o_i, factor=4)
     conv2d_nhwc_local_nn_c_o_o_o_o, conv2d_nhwc_local_nn_c_o_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_nn_c_o_o_o_i, factor=1)
     conv2d_nhwc_local_yy_c_o_i, conv2d_nhwc_local_yy_c_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_yy_c, factor=1)
     conv2d_nhwc_local_yy_c_o_o_i, conv2d_nhwc_local_yy_c_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_yy_c_o_i, factor=1)
-    conv2d_nhwc_local_yy_c_o_o_o_i, conv2d_nhwc_local_yy_c_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_yy_c_o_o_i, factor=4)
+    conv2d_nhwc_local_yy_c_o_o_o_i, conv2d_nhwc_local_yy_c_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_yy_c_o_o_i, factor=1)
     conv2d_nhwc_local_yy_c_o_o_o_o, conv2d_nhwc_local_yy_c_o_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_yy_c_o_o_o_i, factor=1)
     conv2d_nhwc_local_xx_c_o_i, conv2d_nhwc_local_xx_c_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_xx_c, factor=2)
-    conv2d_nhwc_local_xx_c_o_o_i, conv2d_nhwc_local_xx_c_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_xx_c_o_i, factor=2)
+    conv2d_nhwc_local_xx_c_o_o_i, conv2d_nhwc_local_xx_c_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_xx_c_o_i, factor=1)
     conv2d_nhwc_local_xx_c_o_o_o_i, conv2d_nhwc_local_xx_c_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_xx_c_o_o_i, factor=1)
     conv2d_nhwc_local_xx_c_o_o_o_o, conv2d_nhwc_local_xx_c_o_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_xx_c_o_o_o_i, factor=1)
-    conv2d_nhwc_local_ff_c_o_i, conv2d_nhwc_local_ff_c_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ff_c, factor=1)
-    conv2d_nhwc_local_ff_c_o_o_i, conv2d_nhwc_local_ff_c_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ff_c_o_i, factor=2)
-    conv2d_nhwc_local_ff_c_o_o_o_i, conv2d_nhwc_local_ff_c_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ff_c_o_o_i, factor=64)
-    conv2d_nhwc_local_ff_c_o_o_o_o, conv2d_nhwc_local_ff_c_o_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ff_c_o_o_o_i, factor=1)
+    conv2d_nhwc_local_ff_c_o_i, conv2d_nhwc_local_ff_c_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ff_c, factor=2)
+    conv2d_nhwc_local_ff_c_o_o_i, conv2d_nhwc_local_ff_c_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ff_c_o_i, factor=1)
+    conv2d_nhwc_local_ff_c_o_o_o_i, conv2d_nhwc_local_ff_c_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ff_c_o_o_i, factor=32)
+    conv2d_nhwc_local_ff_c_o_o_o_o, conv2d_nhwc_local_ff_c_o_o_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ff_c_o_o_o_i, factor=2)
     conv2d_nhwc_local_ry_o_i, conv2d_nhwc_local_ry_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ry, factor=1)
-    conv2d_nhwc_local_ry_o_o, conv2d_nhwc_local_ry_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ry_o_i, factor=3)
+    conv2d_nhwc_local_ry_o_o, conv2d_nhwc_local_ry_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_ry_o_i, factor=1)
     conv2d_nhwc_local_rx_o_i, conv2d_nhwc_local_rx_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_rx, factor=3)
     conv2d_nhwc_local_rx_o_o, conv2d_nhwc_local_rx_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_rx_o_i, factor=1)
-    conv2d_nhwc_local_rc_o_i, conv2d_nhwc_local_rc_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_rc, factor=4)
-    conv2d_nhwc_local_rc_o_o, conv2d_nhwc_local_rc_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_rc_o_i, factor=2)
+    conv2d_nhwc_local_rc_o_i, conv2d_nhwc_local_rc_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_rc, factor=1)
+    conv2d_nhwc_local_rc_o_o, conv2d_nhwc_local_rc_o_i = s[conv2d_nhwc_local].split(conv2d_nhwc_local_rc_o_i, factor=8)
     s[conv2d_nhwc_local].reorder(conv2d_nhwc_local_nn_c_o_o_o_o, conv2d_nhwc_local_yy_c_o_o_o_o, conv2d_nhwc_local_xx_c_o_o_o_o, conv2d_nhwc_local_ff_c_o_o_o_o, conv2d_nhwc_local_nn_c_o_o_o_i, conv2d_nhwc_local_yy_c_o_o_o_i, conv2d_nhwc_local_xx_c_o_o_o_i, conv2d_nhwc_local_ff_c_o_o_o_i, conv2d_nhwc_local_nn_c_o_o_i, conv2d_nhwc_local_yy_c_o_o_i, conv2d_nhwc_local_xx_c_o_o_i, conv2d_nhwc_local_ff_c_o_o_i, conv2d_nhwc_local_ry_o_o, conv2d_nhwc_local_rx_o_o, conv2d_nhwc_local_rc_o_o, conv2d_nhwc_local_ry_o_i, conv2d_nhwc_local_rx_o_i, conv2d_nhwc_local_rc_o_i, conv2d_nhwc_local_nn_c_o_i, conv2d_nhwc_local_yy_c_o_i, conv2d_nhwc_local_xx_c_o_i, conv2d_nhwc_local_ff_c_o_i, conv2d_nhwc_local_ry_i, conv2d_nhwc_local_rx_i, conv2d_nhwc_local_rc_i, conv2d_nhwc_local_nn_c_i, conv2d_nhwc_local_yy_c_i, conv2d_nhwc_local_xx_c_i, conv2d_nhwc_local_ff_c_i)
-    conv2d_nhwc_nn_o_i, conv2d_nhwc_nn_i = s[conv2d_nhwc].split(conv2d_nhwc_nn, factor=4)
-    conv2d_nhwc_nn_o_o_i, conv2d_nhwc_nn_o_i = s[conv2d_nhwc].split(conv2d_nhwc_nn_o_i, factor=1)
+    conv2d_nhwc_nn_o_i, conv2d_nhwc_nn_i = s[conv2d_nhwc].split(conv2d_nhwc_nn, factor=8)
+    conv2d_nhwc_nn_o_o_i, conv2d_nhwc_nn_o_i = s[conv2d_nhwc].split(conv2d_nhwc_nn_o_i, factor=4)
     conv2d_nhwc_nn_o_o_o, conv2d_nhwc_nn_o_o_i = s[conv2d_nhwc].split(conv2d_nhwc_nn_o_o_i, factor=1)
     conv2d_nhwc_yy_o_i, conv2d_nhwc_yy_i = s[conv2d_nhwc].split(conv2d_nhwc_yy, factor=1)
-    conv2d_nhwc_yy_o_o_i, conv2d_nhwc_yy_o_i = s[conv2d_nhwc].split(conv2d_nhwc_yy_o_i, factor=4)
+    conv2d_nhwc_yy_o_o_i, conv2d_nhwc_yy_o_i = s[conv2d_nhwc].split(conv2d_nhwc_yy_o_i, factor=1)
     conv2d_nhwc_yy_o_o_o, conv2d_nhwc_yy_o_o_i = s[conv2d_nhwc].split(conv2d_nhwc_yy_o_o_i, factor=1)
-    conv2d_nhwc_xx_o_i, conv2d_nhwc_xx_i = s[conv2d_nhwc].split(conv2d_nhwc_xx, factor=4)
+    conv2d_nhwc_xx_o_i, conv2d_nhwc_xx_i = s[conv2d_nhwc].split(conv2d_nhwc_xx, factor=2)
     conv2d_nhwc_xx_o_o_i, conv2d_nhwc_xx_o_i = s[conv2d_nhwc].split(conv2d_nhwc_xx_o_i, factor=1)
     conv2d_nhwc_xx_o_o_o, conv2d_nhwc_xx_o_o_i = s[conv2d_nhwc].split(conv2d_nhwc_xx_o_o_i, factor=1)
     conv2d_nhwc_ff_o_i, conv2d_nhwc_ff_i = s[conv2d_nhwc].split(conv2d_nhwc_ff, factor=2)
-    conv2d_nhwc_ff_o_o_i, conv2d_nhwc_ff_o_i = s[conv2d_nhwc].split(conv2d_nhwc_ff_o_i, factor=64)
-    conv2d_nhwc_ff_o_o_o, conv2d_nhwc_ff_o_o_i = s[conv2d_nhwc].split(conv2d_nhwc_ff_o_o_i, factor=1)
+    conv2d_nhwc_ff_o_o_i, conv2d_nhwc_ff_o_i = s[conv2d_nhwc].split(conv2d_nhwc_ff_o_i, factor=32)
+    conv2d_nhwc_ff_o_o_o, conv2d_nhwc_ff_o_o_i = s[conv2d_nhwc].split(conv2d_nhwc_ff_o_o_i, factor=2)
     s[conv2d_nhwc].reorder(conv2d_nhwc_nn_o_o_o, conv2d_nhwc_yy_o_o_o, conv2d_nhwc_xx_o_o_o, conv2d_nhwc_ff_o_o_o, conv2d_nhwc_nn_o_o_i, conv2d_nhwc_yy_o_o_i, conv2d_nhwc_xx_o_o_i, conv2d_nhwc_ff_o_o_i, conv2d_nhwc_nn_o_i, conv2d_nhwc_yy_o_i, conv2d_nhwc_xx_o_i, conv2d_nhwc_ff_o_i, conv2d_nhwc_nn_i, conv2d_nhwc_yy_i, conv2d_nhwc_xx_i, conv2d_nhwc_ff_i)
     s[conv2d_nhwc_local].compute_at(s[conv2d_nhwc], conv2d_nhwc_ff_o_i)
     kernel_shared = s.cache_read(kernel, "shared", [conv2d_nhwc_local])
@@ -313,20 +320,21 @@ def conv2d_layer_schedule(batch_size, target, cu_save=False):
     kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused = s[kernel_shared].fuse(kernel_shared_ax0, kernel_shared_ax1, kernel_shared_ax2, kernel_shared_ax3)
     kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o, kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_i = s[kernel_shared].split(kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused, factor=4)
     s[kernel_shared].vectorize(kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_i)
-    kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_o, kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_i = s[kernel_shared].split(kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o, factor=256)
+    kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_o, kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_i = s[kernel_shared].split(kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o, factor=128)
     s[kernel_shared].bind(kernel_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_i, te.thread_axis("threadIdx.x"))
     pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused = s[pad_temp_shared].fuse(pad_temp_shared_ax0, pad_temp_shared_ax1, pad_temp_shared_ax2, pad_temp_shared_ax3)
     pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o, pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_i = s[pad_temp_shared].split(pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused, factor=4)
     s[pad_temp_shared].vectorize(pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_i)
-    pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_o, pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_i = s[pad_temp_shared].split(pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o, factor=256)
+    pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_o, pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_i = s[pad_temp_shared].split(pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o, factor=128)
     s[pad_temp_shared].bind(pad_temp_shared_ax0_ax1_fused_ax2_fused_ax3_fused_o_i, te.thread_axis("threadIdx.x"))
     s[conv2d_nhwc_local].pragma(conv2d_nhwc_local_nn_c_o_o_o_o, "auto_unroll_max_step", 512)
     s[conv2d_nhwc_local].pragma(conv2d_nhwc_local_nn_c_o_o_o_o, "unroll_explicit", True)
 
     return s, args
 #--------------------------------------------------------------------------
-def bgemm_layer_schedule(batch_size, target, cu_save=False):
-    args = bgemm_layer(batch_size, 1024, 1024, 1024)
+def bgemm_layer_schedule():
+    # args = bgemm_layer(128, 1024, 1024, 1024)
+    args = bgemm_layer(128, 1, 512, 1024)
     s    = te.create_schedule(args[2].op)
 
     # ========== Task (workload key: ["bgemm_layer", 128, 1024, 1024, 1024]) ==========
@@ -399,8 +407,8 @@ def bgemm_layer_schedule(batch_size, target, cu_save=False):
 
     return s, args
 #--------------------------------------------------------------------------
-def softmax_layer_schedule(batch_size, target, cu_save=False):
-    args = softmax_layer(batch_size, 1, 1000)
+def softmax_layer_schedule():
+    args = softmax_layer(128, 1, 1000)
     s    = te.create_schedule(args[1].op)
 
     # ========== Task (workload key: ["softmax_layer", 128, 1, 1000]) ==========
@@ -424,13 +432,13 @@ def softmax_layer_schedule(batch_size, target, cu_save=False):
     T_softmax_exp_i0, T_softmax_exp_i1, T_softmax_exp_i2 = tuple(T_softmax_exp.op.axis) + tuple(T_softmax_exp.op.reduce_axis)
     T_softmax_expsum_i0, T_softmax_expsum_i1, T_softmax_expsum_k = tuple(T_softmax_expsum.op.axis) + tuple(T_softmax_expsum.op.reduce_axis)
     T_softmax_norm_i0, T_softmax_norm_i1, T_softmax_norm_i2 = tuple(T_softmax_norm.op.axis) + tuple(T_softmax_norm.op.reduce_axis)
-    T_softmax_norm_i2_o, T_softmax_norm_i2_i = s[T_softmax_norm].split(T_softmax_norm_i2, factor=64)
+    T_softmax_norm_i2_o, T_softmax_norm_i2_i = s[T_softmax_norm].split(T_softmax_norm_i2, factor=128)
     s[T_softmax_norm].bind(T_softmax_norm_i2_i, te.thread_axis("threadIdx.x"))
-    T_softmax_expsum_k_o, T_softmax_expsum_k_i = s[T_softmax_expsum].split(T_softmax_expsum_k, factor=64)
+    T_softmax_expsum_k_o, T_softmax_expsum_k_i = s[T_softmax_expsum].split(T_softmax_expsum_k, factor=128)
     s[T_softmax_expsum].bind(T_softmax_expsum_k_i, te.thread_axis("threadIdx.x"))
     s[T_softmax_expsum].compute_at(s[T_softmax_norm], T_softmax_norm_i1)
     s[T_softmax_exp].compute_inline()
-    T_softmax_maxelem_k_o, T_softmax_maxelem_k_i = s[T_softmax_maxelem].split(T_softmax_maxelem_k, factor=64)
+    T_softmax_maxelem_k_o, T_softmax_maxelem_k_i = s[T_softmax_maxelem].split(T_softmax_maxelem_k, factor=128)
     s[T_softmax_maxelem].bind(T_softmax_maxelem_k_i, te.thread_axis("threadIdx.x"))
     s[T_softmax_maxelem].compute_at(s[T_softmax_norm], T_softmax_norm_i1)
     T_softmax_norm_i0_i1_fused = s[T_softmax_norm].fuse(T_softmax_norm_i0, T_softmax_norm_i1)
@@ -442,8 +450,8 @@ def softmax_layer_schedule(batch_size, target, cu_save=False):
 
     return s, args
 #--------------------------------------------------------------------------
-def pool2d_layer_schedule(batch_size, target, cu_save=False):
-    args = pool2d_layer(batch_size, 56, 56, 64, 3, 3, 2, 0)
+def pool2d_layer_schedule():
+    args = pool2d_layer(128, 56, 56, 64, 3, 3, 2, 0)
     s    = te.create_schedule(args[1].op)
 
     # ========== Task (workload key: ["pool2d_layer", 128, 56, 56, 64, 3, 3, 2, 0]) ==========
@@ -473,70 +481,64 @@ def pool2d_layer_schedule(batch_size, target, cu_save=False):
 # ----------------------------------
 
 for batch_size in [128]:
-    target           = tvm.target.Target("cuda")
-    dtype            = "float32"
+    target = tvm.target.Target("cuda")
+    dtype  = "float32"
 
     # Auto-tuning log file paths
-    conv2d_log_file  = "json/conv2d_B%d-%s.json" % (batch_size, target.kind.name)
-    bgemm_log_file   = "json/bgemm_B%d-%s.json" % (batch_size, target.kind.name)
-    softmax_log_file = "json/softmax_B%d-%s.json" % (batch_size, target.kind.name)
-    pool2d_log_file  = "json/pool2d_B%d-%s.json" % (batch_size, target.kind.name)
+    conv2d_log_file  = "json/conv2d.json"
+    bgemm_log_file   = "json/bgemm.json"
+    softmax_log_file = "json/softmax.json"
+    pool2d_log_file  = "json/pool2d.json"
 
     # Kernel code paths
-    conv2d_cu_file   = "cuda/conv2d_B%d.cu" % (batch_size)
-    bgemm_cu_file    = "cuda/bgemm_B%d.cu" % (batch_size)
-    softmax_cu_file  = "cuda/softmax_B%d.cu" % (batch_size)
-    pool2d_cu_file   = "cuda/pool2d_B%d.cu" % (batch_size)
-
-    # Modified kernel code paths
-    conv2d_modified_cu_file  = "cuda_modified/conv2d_B%s.cu" % (batch_size)
-    bgemm_modified_cu_file   = "cuda_modified/bgemm_B%s.cu" % (batch_size)
-    softmax_modified_cu_file = "cuda_modified/softmax_B%s.cu" % (batch_size)
-    pool2d_modified_cu_file  = "cuda_modified/pool2d_B%s.cu" % (batch_size)
+    conv2d_cu_file   = "cuda/conv2d.cu"
+    bgemm_cu_file    = "cuda/bgemm.cu"
+    softmax_cu_file  = "cuda/softmax.cu"
+    pool2d_cu_file   = "cuda/pool2d.cu"
 
     ###############################################
     # 1. Auto-tune & Analyze the layers
     ###############################################
 
     # conv2d layer
-    conv2d_task = conv2d_layer_tuning(batch_size, target=target, log_file=conv2d_log_file)
+    conv2d_task = conv2d_layer_tuning(target, conv2d_log_file)
     analyze_task(conv2d_task, conv2d_log_file)
 
     # bgemm layer
-    bgemm_task = bgemm_layer_tuning(batch_size, target=target, log_file=bgemm_log_file)
+    bgemm_task = bgemm_layer_tuning(target, bgemm_log_file)
     analyze_task(bgemm_task, bgemm_log_file)
 
     # softmax layer
-    softmax_task = softmax_layer_tuning(batch_size, target=target, log_file=softmax_log_file)
+    softmax_task = softmax_layer_tuning(target, softmax_log_file)
     analyze_task(softmax_task, softmax_log_file)
 
     # pool2d layer
-    pool2d_task = pool2d_layer_tuning(batch_size, target=target, log_file=pool2d_log_file)
+    pool2d_task = pool2d_layer_tuning(target, pool2d_log_file)
     analyze_task(pool2d_task, pool2d_log_file)
 
     ###############################################
     # 2. Adjust the TIR scheduling
     ###############################################
 
-    conv2d_sch, conv2d_args   = conv2d_layer_schedule(batch_size, target)
-    bgemm_sch, bgemm_args     = bgemm_layer_schedule(batch_size, target)
-    softmax_sch, softmax_args = softmax_layer_schedule(batch_size, target, cu_save=True)
-    pool2d_sch, pool2d_args   = pool2d_layer_schedule(batch_size, target)
+    conv2d_sch, conv2d_args   = conv2d_layer_schedule()
+    bgemm_sch, bgemm_args     = bgemm_layer_schedule()
+    softmax_sch, softmax_args = softmax_layer_schedule()
+    pool2d_sch, pool2d_args   = pool2d_layer_schedule()
 
     ###############################################
     # 3. Analyze the schedule
     ###############################################
 
-    analyze_sch(conv2d_sch, conv2d_args, target, cu_file=conv2d_modified_cu_file)
-    analyze_sch(bgemm_sch, bgemm_args, target, cu_file=bgemm_modified_cu_file)
-    analyze_sch(softmax_sch, softmax_args, target, cu_file=softmax_modified_cu_file)
-    analyze_sch(pool2d_sch, pool2d_args, target, cu_file=pool2d_modified_cu_file)
+    analyze_sch(conv2d_sch, conv2d_args, target, cu_file=conv2d_cu_file)
+    analyze_sch(bgemm_sch, bgemm_args, target, cu_file=bgemm_cu_file)
+    analyze_sch(softmax_sch, softmax_args, target, cu_file=softmax_cu_file, cuda_save=True)
+    analyze_sch(pool2d_sch, pool2d_args, target, cu_file=pool2d_cu_file)
 
     ###############################################
     # 4. Evaluate the modified layers
     ###############################################
 
-    conv2d_layer_eval(batch_size, conv2d_sch, conv2d_args, target=target)
-    bgemm_layer_eval(batch_size, bgemm_sch, bgemm_args, target=target)
-    softmax_layer_eval(batch_size, softmax_sch, softmax_args, target=target)
-    pool2d_layer_eval(batch_size, pool2d_sch, pool2d_args, target=target)
+    conv2d_layer_eval(conv2d_sch, conv2d_args, target=target)
+    bgemm_layer_eval(bgemm_sch, bgemm_args, target=target)
+    softmax_layer_eval(softmax_sch, softmax_args, target=target)
+    pool2d_layer_eval(pool2d_sch, pool2d_args, target=target)

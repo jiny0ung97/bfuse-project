@@ -1,0 +1,1 @@
+~/HFuse/build/tools/llvm-smart-fuser/llvm-smart-fuser ../configs/fusions.yaml ../configs/kernels.yaml ..

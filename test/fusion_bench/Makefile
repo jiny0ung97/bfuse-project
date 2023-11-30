@@ -1,14 +1,42 @@
 TARGET=fusion_bench
-OBJECTS=main.o utils.o operation.o kernel_fused.o 		                        \
-		cuda/conv2d_B4_matmul_B32_hfuse_.o cuda/conv2d_B4_matmul_B64_hfuse_.o   \
-		cuda/conv2d_B4_matmul_B128_hfuse_.o cuda/conv2d_B8_matmul_B32_hfuse_.o  \
-		cuda/conv2d_B8_matmul_B64_hfuse_.o  cuda/conv2d_B8_matmul_B128_hfuse_.o \
-		cuda/conv2d_B4_matmul_B32_bfuse_.o cuda/conv2d_B4_matmul_B64_bfuse_.o   \
-		cuda/conv2d_B4_matmul_B128_bfuse_.o cuda/conv2d_B8_matmul_B32_bfuse_.o  \
-		cuda/conv2d_B8_matmul_B64_bfuse_.o  cuda/conv2d_B8_matmul_B128_bfuse_.o \
-		cuda/conv2d_B4_matmul_B32_fused_.o cuda/conv2d_B4_matmul_B64_fused_.o   \
-		cuda/conv2d_B4_matmul_B128_fused_.o cuda/conv2d_B8_matmul_B32_fused_.o  \
-		cuda/conv2d_B8_matmul_B64_fused_.o cuda/conv2d_B8_matmul_B128_fused_.o
+OBJECTS=main.cpp.o utils.cpp.o operation.cu.o   			 \
+		BFuse/bgemm_shared_5120_bgemm_shared_5120_copy_.cu.o \
+		BFuse/bgemm_shared_6144_bgemm_shared_6144_copy_.cu.o \
+		BFuse/bgemm_shared_7168_bgemm_shared_7168_copy_.cu.o \
+		BFuse/bgemm_shared_8192_bgemm_shared_8192_copy_.cu.o \
+		BFuse/conv2d_shared_2048_conv2d_shared_2048_copy_.cu.o \
+		BFuse/conv2d_shared_4096_conv2d_shared_4096_copy_.cu.o \
+		BFuse/conv2d_shared_6144_conv2d_shared_6144_copy_.cu.o \
+		BFuse/conv2d_shared_8192_conv2d_shared_8192_copy_.cu.o \
+		BFuse/softmax_shared_12_softmax_shared_12_copy_.cu.o   \
+		BFuse/softmax_shared_1036_softmax_shared_1036_copy_.cu.o \
+		BFuse/softmax_shared_2060_softmax_shared_2060_copy_.cu.o \
+		BFuse/softmax_shared_3084_softmax_shared_3084_copy_.cu.o \
+		cuda/bgemm_shared_5120.cu.o \
+		cuda/bgemm_shared_6144.cu.o \
+		cuda/bgemm_shared_7168.cu.o \
+		cuda/bgemm_shared_8192.cu.o \
+		cuda/conv2d_shared_2048.cu.o \
+		cuda/conv2d_shared_4096.cu.o \
+		cuda/conv2d_shared_6144.cu.o \
+		cuda/conv2d_shared_8192.cu.o \
+		cuda/softmax_shared_12.cu.o   \
+		cuda/softmax_shared_1036.cu.o \
+		cuda/softmax_shared_2060.cu.o \
+		cuda/softmax_shared_3084.cu.o \
+		HFuse/bgemm_shared_5120_bgemm_shared_5120_copy_.cu.o \
+		HFuse/bgemm_shared_6144_bgemm_shared_6144_copy_.cu.o \
+		HFuse/conv2d_shared_2048_conv2d_shared_2048_copy_.cu.o \
+		HFuse/conv2d_shared_4096_conv2d_shared_4096_copy_.cu.o \
+		HFuse/conv2d_shared_6144_conv2d_shared_6144_copy_.cu.o \
+		HFuse/softmax_shared_12_softmax_shared_12_copy_.cu.o   \
+		HFuse/softmax_shared_1036_softmax_shared_1036_copy_.cu.o \
+		HFuse/softmax_shared_2060_softmax_shared_2060_copy_.cu.o \
+		HFuse/softmax_shared_3084_softmax_shared_3084_copy_.cu.o \
+		# HFuse/bgemm_shared_7168_bgemm_shared_7168_copy_.cu.o \
+		# HFuse/bgemm_shared_8192_bgemm_shared_8192_copy_.cu.o \
+		# HFuse/conv2d_shared_8192_conv2d_shared_8192_copy_.cu.o \
+		
 
 CPPFLAGS=-std=c++14 -O3 -Wall -march=native -mavx2 -mfma -fopenmp -mno-avx512f -I/usr/local/cuda/include
 CUDA_CFLAGS:=$(foreach option, $(CPPFLAGS),-Xcompiler=$(option)) -O3 -gencode arch=compute_70,code=sm_70
@@ -24,14 +52,15 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CC) $(CPPFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS) $(LDLIBS)
 
-%.o: %.cpp
+%.cpp.o: %.cpp
 	$(CXX) $(CPPFLAGS) -c -o $@ $^
 
-%.o: %.cu
+%.cu.o: %.cu
 	$(CUX) $(CUDA_CFLAGS) -c -o $@ $^
 
-%.cu: %.inc
-	cp $^ $@
+%.cu.o: %.inc
+	cp $^ $^.cu
+	$(CUX) $(CUDA_CFLAGS) -c -o $@ $^.cu
 
 clean:
 	rm -rf $(TARGET) $(OBJECTS)

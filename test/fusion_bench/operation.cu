@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <cuda_profiler_api.h>
 
 #include "operation.h"
@@ -15,859 +16,547 @@
       exit(EXIT_FAILURE);                                             \
     }                                                                 \
   } while (0)
+//----------------------------------------------------------------------------------------------------
+float *I0_gpu, *F0_gpu, *O0_gpu;
+float *I1_gpu, *F1_gpu, *O1_gpu;
 
-float *I0_gpu[2], *F0_gpu[2], *O0_gpu[2];
-float *I1_gpu[2], *F1_gpu[2], *O1_gpu[2];
+cudaStream_t S0, S1;
+//----------------------------------------------------------------------------------------------------
+/*
+ * The kernel functions...
+ */
 
-cudaStream_t streams[2];
-static size_t B[2] = {1, 1};
+// Original Kernels
+extern "C" __global__ void __launch_bounds__(128) bgemm_shared_5120(float* __restrict__ A, float* __restrict__ B, float* __restrict__ T_batch_matmul_NT);
+extern "C" __global__ void __launch_bounds__(128) bgemm_shared_6144(float* __restrict__ A, float* __restrict__ B, float* __restrict__ T_batch_matmul_NT);
+extern "C" __global__ void __launch_bounds__(128) bgemm_shared_7168(float* __restrict__ A, float* __restrict__ B, float* __restrict__ T_batch_matmul_NT);
+extern "C" __global__ void __launch_bounds__(128) bgemm_shared_8192(float* __restrict__ A, float* __restrict__ B, float* __restrict__ T_batch_matmul_NT);
 
-/**************************************************************************/
+extern "C" __global__ void __launch_bounds__(256) conv2d_shared_2048(float* __restrict__ A, float* __restrict__ B, float* __restrict__ W);
+extern "C" __global__ void __launch_bounds__(256) conv2d_shared_4096(float* __restrict__ A, float* __restrict__ B, float* __restrict__ W);
+extern "C" __global__ void __launch_bounds__(256) conv2d_shared_6144(float* __restrict__ A, float* __restrict__ B, float* __restrict__ W);
+extern "C" __global__ void __launch_bounds__(256) conv2d_shared_8192(float* __restrict__ A, float* __restrict__ B, float* __restrict__ W);
 
-extern "C" __global__ void __launch_bounds__(112) conv2d_B1(float* __restrict__ data, float* __restrict__ kernel, float* __restrict__ conv2d_nhwc);
-extern "C" __global__ void __launch_bounds__(112) conv2d_B2(float* __restrict__ data, float* __restrict__ kernel, float* __restrict__ conv2d_nhwc);
-extern "C" __global__ void __launch_bounds__(128) conv2d_B4(float* __restrict__ data, float* __restrict__ kernel, float* __restrict__ conv2d_nhwc);
-extern "C" __global__ void __launch_bounds__(128) conv2d_B8(float* __restrict__ data, float* __restrict__ kernel, float* __restrict__ conv2d_nhwc);
+extern "C" __global__ void __launch_bounds__(128) softmax_shared_12(float* __restrict__ T_softmax_norm, float* __restrict__ data);
+extern "C" __global__ void __launch_bounds__(128) softmax_shared_1036(float* __restrict__ T_softmax_norm, float* __restrict__ data);
+extern "C" __global__ void __launch_bounds__(128) softmax_shared_2060(float* __restrict__ T_softmax_norm, float* __restrict__ data);
+extern "C" __global__ void __launch_bounds__(128) softmax_shared_3084(float* __restrict__ T_softmax_norm, float* __restrict__ data);
+// HFuse
+__global__ __launch_bounds__(256, 8) void bgemm_shared_5120_bgemm_shared_5120_copy_fused_kernel_hfuse_lb_idx_0(float *__restrict A0, float *__restrict B1, float *__restrict T_batch_matmul_NT2, float *__restrict A6, float *__restrict B7, float *__restrict T_batch_matmul_NT8);
+__global__ __launch_bounds__(256, 8) void bgemm_shared_6144_bgemm_shared_6144_copy_fused_kernel_hfuse_lb_idx_0(float *__restrict A0, float *__restrict B1, float *__restrict T_batch_matmul_NT2, float *__restrict A6, float *__restrict B7, float *__restrict T_batch_matmul_NT8);
+// __global__ __launch_bounds__(256, 8) void bgemm_shared_7168_bgemm_shared_7168_copy_fused_kernel_hfuse_lb_idx_0(float *__restrict A0, float *__restrict B1, float *__restrict T_batch_matmul_NT2, float *__restrict A6, float *__restrict B7, float *__restrict T_batch_matmul_NT8);
+// __global__ __launch_bounds__(256, 8) void bgemm_shared_8192_bgemm_shared_8192_copy_fused_kernel_hfuse_lb_idx_0(float *__restrict A0, float *__restrict B1, float *__restrict T_batch_matmul_NT2, float *__restrict A6, float *__restrict B7, float *__restrict T_batch_matmul_NT8);
 
-extern "C" __global__ void __launch_bounds__(50) matmul_B16(float* __restrict__ data, float* __restrict__ weight, float* __restrict__ T_matmul_NT);
-extern "C" __global__ void __launch_bounds__(32) matmul_B32(float* __restrict__ data, float* __restrict__ weight, float* __restrict__ T_matmul_NT);
-extern "C" __global__ void __launch_bounds__(32) matmul_B64(float* __restrict__ data, float* __restrict__ weight, float* __restrict__ T_matmul_NT);
-extern "C" __global__ void __launch_bounds__(32) matmul_B128(float* __restrict__ data, float* __restrict__ weight, float* __restrict__ T_matmul_NT);
+__global__ __launch_bounds__(512, 4) void conv2d_shared_2048_conv2d_shared_2048_copy_fused_kernel_hfuse_lb_idx_1(float *__restrict A0, float *__restrict B1, float *__restrict W2, float *__restrict A8, float *__restrict B9, float *__restrict W10);
+__global__ __launch_bounds__(512, 4) void conv2d_shared_4096_conv2d_shared_4096_copy_fused_kernel_hfuse_lb_idx_1(float *__restrict A0, float *__restrict B1, float *__restrict W2, float *__restrict A8, float *__restrict B9, float *__restrict W10);
+__global__ __launch_bounds__(512, 4) void conv2d_shared_6144_conv2d_shared_6144_copy_fused_kernel_hfuse_lb_idx_1(float *__restrict A0, float *__restrict B1, float *__restrict W2, float *__restrict A8, float *__restrict B9, float *__restrict W10);
+// __global__ __launch_bounds__(512, 4) void conv2d_shared_8192_conv2d_shared_8192_copy_fused_kernel_hfuse_lb_idx_1(float *__restrict A0, float *__restrict B1, float *__restrict W2, float *__restrict A8, float *__restrict B9, float *__restrict W10);
 
-/**************************************************************************/
+__global__ __launch_bounds__(256, 8) void softmax_shared_12_softmax_shared_12_copy_fused_kernel_hfuse_lb_idx_0(float *__restrict T_softmax_norm0, float *__restrict data1, float *__restrict T_softmax_norm22, float *__restrict data23);
+__global__ __launch_bounds__(256, 8) void softmax_shared_1036_softmax_shared_1036_copy_fused_kernel_hfuse_lb_idx_0(float *__restrict T_softmax_norm0, float *__restrict data1, float *__restrict T_softmax_norm22, float *__restrict data23);
+__global__ __launch_bounds__(256, 8) void softmax_shared_2060_softmax_shared_2060_copy_fused_kernel_hfuse_lb_idx_0(float *__restrict T_softmax_norm0, float *__restrict data1, float *__restrict T_softmax_norm22, float *__restrict data23);
+__global__ __launch_bounds__(256, 8) void softmax_shared_3084_softmax_shared_3084_copy_fused_kernel_hfuse_lb_idx_0(float *__restrict T_softmax_norm0, float *__restrict data1, float *__restrict T_softmax_norm22, float *__restrict data23);
 
-// extern "C" __global__ __launch_bounds__(112, 0) void conv2d_B1_matmul_B16_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-// extern "C" __global__ __launch_bounds__(112, 0) void conv2d_B1_matmul_B32_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-// extern "C" __global__ __launch_bounds__(112, 0) void conv2d_B1_matmul_B64_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-// extern "C" __global__ __launch_bounds__(112, 0) void conv2d_B1_matmul_B128_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
+// BFuse
+extern "C" __global__ __launch_bounds__(128) void bgemm_shared_5120_bgemm_shared_5120_copy_fused_kernel_bfuse_idx_0(float *__restrict bgemm_shared_5120_A_, float *__restrict bgemm_shared_5120_B_, float *__restrict bgemm_shared_5120_T_batch_matmul_NT_, float *__restrict bgemm_shared_5120_copy_A_, float *__restrict bgemm_shared_5120_copy_B_, float *__restrict bgemm_shared_5120_copy_T_batch_matmul_NT_);
+extern "C" __global__ __launch_bounds__(128) void bgemm_shared_6144_bgemm_shared_6144_copy_fused_kernel_bfuse_idx_0(float *__restrict bgemm_shared_6144_A_, float *__restrict bgemm_shared_6144_B_, float *__restrict bgemm_shared_6144_T_batch_matmul_NT_, float *__restrict bgemm_shared_6144_copy_A_, float *__restrict bgemm_shared_6144_copy_B_, float *__restrict bgemm_shared_6144_copy_T_batch_matmul_NT_);
+extern "C" __global__ __launch_bounds__(128) void bgemm_shared_7168_bgemm_shared_7168_copy_fused_kernel_bfuse_idx_0(float *__restrict bgemm_shared_7168_A_, float *__restrict bgemm_shared_7168_B_, float *__restrict bgemm_shared_7168_T_batch_matmul_NT_, float *__restrict bgemm_shared_7168_copy_A_, float *__restrict bgemm_shared_7168_copy_B_, float *__restrict bgemm_shared_7168_copy_T_batch_matmul_NT_);
+extern "C" __global__ __launch_bounds__(128) void bgemm_shared_8192_bgemm_shared_8192_copy_fused_kernel_bfuse_idx_0(float *__restrict bgemm_shared_8192_A_, float *__restrict bgemm_shared_8192_B_, float *__restrict bgemm_shared_8192_T_batch_matmul_NT_, float *__restrict bgemm_shared_8192_copy_A_, float *__restrict bgemm_shared_8192_copy_B_, float *__restrict bgemm_shared_8192_copy_T_batch_matmul_NT_);
 
-// extern "C" __global__ __launch_bounds__(112, 0) void conv2d_B2_matmul_B16_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-// extern "C" __global__ __launch_bounds__(112, 0) void conv2d_B2_matmul_B32_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-// extern "C" __global__ __launch_bounds__(112, 0) void conv2d_B2_matmul_B64_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-// extern "C" __global__ __launch_bounds__(112, 0) void conv2d_B2_matmul_B128_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
+extern "C" __global__ __launch_bounds__(256) void conv2d_shared_2048_conv2d_shared_2048_copy_fused_kernel_bfuse_idx_0(float *__restrict conv2d_shared_2048_A_, float *__restrict conv2d_shared_2048_B_, float *__restrict conv2d_shared_2048_W_, float *__restrict conv2d_shared_2048_copy_A_, float *__restrict conv2d_shared_2048_copy_B_, float *__restrict conv2d_shared_2048_copy_W_);
+extern "C" __global__ __launch_bounds__(256) void conv2d_shared_4096_conv2d_shared_4096_copy_fused_kernel_bfuse_idx_0(float *__restrict conv2d_shared_4096_A_, float *__restrict conv2d_shared_4096_B_, float *__restrict conv2d_shared_4096_W_, float *__restrict conv2d_shared_4096_copy_A_, float *__restrict conv2d_shared_4096_copy_B_, float *__restrict conv2d_shared_4096_copy_W_);
+extern "C" __global__ __launch_bounds__(256) void conv2d_shared_6144_conv2d_shared_6144_copy_fused_kernel_bfuse_idx_0(float *__restrict conv2d_shared_6144_A_, float *__restrict conv2d_shared_6144_B_, float *__restrict conv2d_shared_6144_W_, float *__restrict conv2d_shared_6144_copy_A_, float *__restrict conv2d_shared_6144_copy_B_, float *__restrict conv2d_shared_6144_copy_W_);
+extern "C" __global__ __launch_bounds__(256) void conv2d_shared_8192_conv2d_shared_8192_copy_fused_kernel_bfuse_idx_0(float *__restrict conv2d_shared_8192_A_, float *__restrict conv2d_shared_8192_B_, float *__restrict conv2d_shared_8192_W_, float *__restrict conv2d_shared_8192_copy_A_, float *__restrict conv2d_shared_8192_copy_B_, float *__restrict conv2d_shared_8192_copy_W_);
 
-// extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B4_matmul_B16_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B4_matmul_B32_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B4_matmul_B64_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B4_matmul_B128_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
+extern "C" __global__ __launch_bounds__(128) void softmax_shared_12_softmax_shared_12_copy_fused_kernel_bfuse_idx_0(float *__restrict softmax_shared_12_T_softmax_norm_, float *__restrict softmax_shared_12_data_, float *__restrict softmax_shared_12_copy_T_softmax_norm_, float *__restrict softmax_shared_12_copy_data_);
+extern "C" __global__ __launch_bounds__(128) void softmax_shared_1036_softmax_shared_1036_copy_fused_kernel_bfuse_idx_0(float *__restrict softmax_shared_1036_T_softmax_norm_, float *__restrict softmax_shared_1036_data_, float *__restrict softmax_shared_1036_copy_T_softmax_norm_, float *__restrict softmax_shared_1036_copy_data_);
+extern "C" __global__ __launch_bounds__(128) void softmax_shared_2060_softmax_shared_2060_copy_fused_kernel_bfuse_idx_0(float *__restrict softmax_shared_2060_T_softmax_norm_, float *__restrict softmax_shared_2060_data_, float *__restrict softmax_shared_2060_copy_T_softmax_norm_, float *__restrict softmax_shared_2060_copy_data_);
+extern "C" __global__ __launch_bounds__(128) void softmax_shared_3084_softmax_shared_3084_copy_fused_kernel_bfuse_idx_0(float *__restrict softmax_shared_3084_T_softmax_norm_, float *__restrict softmax_shared_3084_data_, float *__restrict softmax_shared_3084_copy_T_softmax_norm_, float *__restrict softmax_shared_3084_copy_data_);
 
-// extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B8_matmul_B16_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B8_matmul_B32_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B8_matmul_B64_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B8_matmul_B128_fused_kernel_hfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-
-/**************************************************************************/
-
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B4_matmul_B32_fused_kernel_bfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B4_matmul_B64_fused_kernel_bfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B4_matmul_B128_fused_kernel_bfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B8_matmul_B32_fused_kernel_bfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B8_matmul_B64_fused_kernel_bfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-extern "C" __global__ __launch_bounds__(128, 0) void conv2d_B8_matmul_B128_fused_kernel_bfuse_idx_0(float *__restrict data0, float *__restrict kernel1, float *__restrict conv2d_nhwc2, float *__restrict data6, float *__restrict weight7, float *__restrict T_matmul_NT8);
-
-/**************************************************************************/
-
-extern "C" __global__ __launch_bounds__(128) void conv2d_B4_matmul_B32_fused_(float *__restrict conv2d_B4_data_, float *__restrict conv2d_B4_kernel_, float *__restrict conv2d_B4_conv2d_nhwc_, float *__restrict matmul_B32_data_, float *__restrict matmul_B32_weight_, float *__restrict matmul_B32_T_matmul_NT_);
-extern "C" __global__ __launch_bounds__(128) void conv2d_B4_matmul_B64_fused_(float *__restrict conv2d_B4_data_, float *__restrict conv2d_B4_kernel_, float *__restrict conv2d_B4_conv2d_nhwc_, float *__restrict matmul_B64_data_, float *__restrict matmul_B64_weight_, float *__restrict matmul_B64_T_matmul_NT_);
-extern "C" __global__ __launch_bounds__(128) void conv2d_B4_matmul_B128_fused_(float *__restrict conv2d_B4_data_, float *__restrict conv2d_B4_kernel_, float *__restrict conv2d_B4_conv2d_nhwc_, float *__restrict matmul_B128_data_, float *__restrict matmul_B128_weight_, float *__restrict matmul_B128_T_matmul_NT_);
-
-extern "C" __global__ __launch_bounds__(128) void conv2d_B8_matmul_B32_fused_(float *__restrict conv2d_B8_data_, float *__restrict conv2d_B8_kernel_, float *__restrict conv2d_B8_conv2d_nhwc_, float *__restrict matmul_B32_data_, float *__restrict matmul_B32_weight_, float *__restrict matmul_B32_T_matmul_NT_);
-extern "C" __global__ __launch_bounds__(128) void conv2d_B8_matmul_B64_fused_(float *__restrict conv2d_B8_data_, float *__restrict conv2d_B8_kernel_, float *__restrict conv2d_B8_conv2d_nhwc_, float *__restrict matmul_B64_data_, float *__restrict matmul_B64_weight_, float *__restrict matmul_B64_T_matmul_NT_);
-extern "C" __global__ __launch_bounds__(128) void conv2d_B8_matmul_B128_fused_(float *__restrict conv2d_B8_data_, float *__restrict conv2d_B8_kernel_, float *__restrict conv2d_B8_conv2d_nhwc_, float *__restrict matmul_B128_data_, float *__restrict matmul_B128_weight_, float *__restrict matmul_B128_T_matmul_NT_);
-
-/**************************************************************************/
-
-void initialize(size_t b[2])
+//----------------------------------------------------------------------------------------------------
+void conv2d_initialize()
 {
-  for (int i = 0; i < 2; ++i) {
-    CHECK_CUDA(cudaMalloc(&I0_gpu[i], b[i] * 56 * 56 * 64 * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&F0_gpu[i], 3 * 3 * 64 * 128 * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&O0_gpu[i], b[i] * 28 * 28 * 128 * sizeof(float)));
-  }
+  CHECK_CUDA(cudaMalloc(&I0_gpu, 14 * 14 * 256 * 256 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&F0_gpu, 3 * 3 * 256 * 512 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&O0_gpu, 14 * 14 * 512 * 256 * sizeof(float)));
 
-  for (int i = 0; i < 2; ++i) {
-    CHECK_CUDA(cudaMalloc(&I1_gpu[i], b[1 - i] * 512 * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&F1_gpu[i], 1000 * 512 * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(&O1_gpu[i], b[1 - i] * 1000 * sizeof(float)));
-  }
+  CHECK_CUDA(cudaMalloc(&I1_gpu, 14 * 14 * 256 * 256 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&F1_gpu, 3 * 3 * 256 * 512 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&O1_gpu, 14 * 14 * 512 * 256 * sizeof(float)));
 
-  CHECK_CUDA(cudaStreamCreate(&streams[0]));
-  CHECK_CUDA(cudaStreamCreate(&streams[1]));
-
-  B[0] = b[0]; B[1] = b[1];
+  CHECK_CUDA(cudaStreamCreate(&S0));
+  CHECK_CUDA(cudaStreamCreate(&S1));
   return;
 }
-
-void finalize()
+//----------------------------------------------------------------------------------------------------
+void bgemm_initialize()
 {
-  for (int i = 0; i < 2; ++i) {
-    CHECK_CUDA(cudaFree(I0_gpu[i]));
-    CHECK_CUDA(cudaFree(F0_gpu[i]));
-    CHECK_CUDA(cudaFree(O0_gpu[i]));
-  }
+  CHECK_CUDA(cudaMalloc(&I0_gpu, 128 * 1 * 1024 * 1024 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&F0_gpu, 128 * 1 * 1024 * 1024 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&O0_gpu, 128 * 1 * 1024 * 1024 * sizeof(float)));
 
-  for (int i = 0; i < 2; ++i) {
-    CHECK_CUDA(cudaFree(I1_gpu[i]));
-    CHECK_CUDA(cudaFree(F1_gpu[i]));
-    CHECK_CUDA(cudaFree(O1_gpu[i]));
-  }
+  CHECK_CUDA(cudaMalloc(&I1_gpu, 128 * 1 * 1024 * 1024 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&F1_gpu, 128 * 1 * 1024 * 1024 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&O1_gpu, 128 * 1 * 1024 * 1024 * sizeof(float)));
 
-  CHECK_CUDA(cudaStreamDestroy(streams[0]));
-  CHECK_CUDA(cudaStreamDestroy(streams[1]));
+  CHECK_CUDA(cudaStreamCreate(&S0));
+  CHECK_CUDA(cudaStreamCreate(&S1));
   return;
 }
+//----------------------------------------------------------------------------------------------------
+void softmax_initialize()
+{
+  CHECK_CUDA(cudaMalloc(&I0_gpu, 128 * 1 * 1 * 1000 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&O0_gpu, 128 * 1 * 1 * 1000 * sizeof(float)));
 
+  CHECK_CUDA(cudaMalloc(&I1_gpu, 128 * 1 * 1 * 1000 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&O1_gpu, 128 * 1 * 1 * 1000 * sizeof(float)));
+
+  CHECK_CUDA(cudaStreamCreate(&S0));
+  CHECK_CUDA(cudaStreamCreate(&S1));
+  return;
+}
+//----------------------------------------------------------------------------------------------------
+void conv2d_finalize()
+{
+  CHECK_CUDA(cudaStreamDestroy(S1));
+  CHECK_CUDA(cudaStreamDestroy(S0));
+  
+  CHECK_CUDA(cudaFree(O1_gpu));
+  CHECK_CUDA(cudaFree(F1_gpu));
+  CHECK_CUDA(cudaFree(I1_gpu));
+
+  CHECK_CUDA(cudaFree(O0_gpu));
+  CHECK_CUDA(cudaFree(F0_gpu));
+  CHECK_CUDA(cudaFree(I0_gpu));
+}
+//----------------------------------------------------------------------------------------------------
+void bgemm_finalize()
+{
+  CHECK_CUDA(cudaStreamDestroy(S1));
+  CHECK_CUDA(cudaStreamDestroy(S0));
+  
+  CHECK_CUDA(cudaFree(O1_gpu));
+  CHECK_CUDA(cudaFree(F1_gpu));
+  CHECK_CUDA(cudaFree(I1_gpu));
+
+  CHECK_CUDA(cudaFree(O0_gpu));
+  CHECK_CUDA(cudaFree(F0_gpu));
+  CHECK_CUDA(cudaFree(I0_gpu));
+}
+//----------------------------------------------------------------------------------------------------
+void softmax_finalize()
+{
+  CHECK_CUDA(cudaStreamDestroy(S1));
+  CHECK_CUDA(cudaStreamDestroy(S0));
+  
+  CHECK_CUDA(cudaFree(O1_gpu));
+  CHECK_CUDA(cudaFree(I1_gpu));
+
+  CHECK_CUDA(cudaFree(O0_gpu));
+  CHECK_CUDA(cudaFree(I0_gpu));
+}
+//----------------------------------------------------------------------------------------------------
 void conv2d(float *I, float *F, float *O)
 {
-  CHECK_CUDA(cudaMemcpy(I0_gpu[0], I, B[0] * 56 * 56 * 64 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I, 14 * 14 * 256 * 256 * sizeof(float),
                         cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F0_gpu[0], F, 3 * 3 * 64 * 128 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F, 3 * 3 * 256 * 512 * sizeof(float),
                         cudaMemcpyHostToDevice));
 
-  dim3 gridDim;
-  dim3 blockDim;
-  switch(B[0])
+  dim3 gridDim{1568, 1, 1};
+  dim3 blockDim{256, 1, 1};
+  conv2d_shared_2048<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu);
+
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
+
+  CHECK_CUDA(cudaMemcpy(O, O0_gpu, 14 * 14 * 512 * 256 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+}
+//----------------------------------------------------------------------------------------------------
+void bgemm(float *I, float *F, float *O)
+{
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{32768, 1, 1};
+  dim3 blockDim{128, 1, 1};
+  bgemm_shared_5120<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu);
+
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
+
+  CHECK_CUDA(cudaMemcpy(O, O0_gpu, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+}
+//----------------------------------------------------------------------------------------------------
+void softmax(float *I, float *O)
+{
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{128, 1, 1};
+  dim3 blockDim{128, 1, 1};
+  softmax_shared_12<<<gridDim, blockDim>>>(O0_gpu, I0_gpu);
+
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
+
+  CHECK_CUDA(cudaMemcpy(O, O0_gpu, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+}
+//----------------------------------------------------------------------------------------------------
+void conv2d_parallel(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
+{
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 14 * 14 * 256 * 256 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F0, 3 * 3 * 256 * 512 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 14 * 14 * 256 * 256 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F1_gpu, F1, 3 * 3 * 256 * 512 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{1568, 1, 1};
+  dim3 blockDim{256, 1, 1};
+  switch (shared_level)
   {
-    case 1:
-      gridDim  = {224, 1, 1};
-      blockDim = {112, 1, 1};
-      conv2d_B1<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-      break;
-    case 2:
-      gridDim  = {224, 1, 1};
-      blockDim = {112, 1, 1};
-      conv2d_B2<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-      break;
-    case 4:
-      gridDim  = {224, 1, 1};
-      blockDim = {128, 1, 1};
-      conv2d_B4<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-      break;
-    case 8:
-      gridDim  = {392, 1, 1};
-      blockDim = {128, 1, 1};
-      conv2d_B8<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-      break;
+  case 0:
+    conv2d_shared_2048<<<gridDim, blockDim, 0, S0>>>(I0_gpu, O0_gpu, F0_gpu);
+    conv2d_shared_2048<<<gridDim, blockDim, 0, S1>>>(I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 1:
+    conv2d_shared_4096<<<gridDim, blockDim, 0, S0>>>(I0_gpu, O0_gpu, F0_gpu);
+    conv2d_shared_4096<<<gridDim, blockDim, 0, S1>>>(I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 2:
+    conv2d_shared_6144<<<gridDim, blockDim, 0, S0>>>(I0_gpu, O0_gpu, F0_gpu);
+    conv2d_shared_6144<<<gridDim, blockDim, 0, S1>>>(I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 3:
+    conv2d_shared_8192<<<gridDim, blockDim, 0, S0>>>(I0_gpu, O0_gpu, F0_gpu);
+    conv2d_shared_8192<<<gridDim, blockDim, 0, S1>>>(I1_gpu, O1_gpu, F1_gpu);
+    break;
   }
   CHECK_CUDA(cudaDeviceSynchronize());
   CHECK_CUDA(cudaGetLastError());
 
-  CHECK_CUDA(cudaMemcpy(O, O0_gpu[0], B[0] * 28 * 28 * 128 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 14 * 14 * 512 * 256 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 14 * 14 * 512 * 256 * sizeof(float),
                         cudaMemcpyDeviceToHost));
   return;
 }
-
-void matmul(float *I, float *F, float *O)
+//----------------------------------------------------------------------------------------------------
+void conv2d_hfuse(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
 {
-  CHECK_CUDA(cudaMemcpy(I1_gpu[0], I, B[1] * 512 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 14 * 14 * 256 * 256 * sizeof(float),
                         cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F1_gpu[0], F, 1000 * 512 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F0, 3 * 3 * 256 * 512 * sizeof(float),
                         cudaMemcpyHostToDevice));
 
-  dim3 gridDim;
-  dim3 blockDim;
-  switch(B[1])
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 14 * 14 * 256 * 256 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F1_gpu, F1, 3 * 3 * 256 * 512 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{1568, 1, 1};
+  dim3 blockDim{256 + 256, 1, 1};
+  switch (shared_level)
   {
-    case 16:
-      gridDim  = {80, 1, 1};
-      blockDim = {50, 1, 1};
-      matmul_B16<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-      break;
-    case 32:
-      gridDim  = {125, 1, 1};
-      blockDim = {32, 1, 1};
-      matmul_B32<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-      break;
-    case 64:
-      gridDim  = {400, 1, 1};
-      blockDim = {32, 1, 1};
-      matmul_B64<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-      break;
-    case 128:
-      gridDim  = {500, 1, 1};
-      blockDim = {32, 1, 1};
-      matmul_B128<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-      break;
+  case 0:
+    conv2d_shared_2048_conv2d_shared_2048_copy_fused_kernel_hfuse_lb_idx_1<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 1:
+    conv2d_shared_4096_conv2d_shared_4096_copy_fused_kernel_hfuse_lb_idx_1<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 2:
+    conv2d_shared_6144_conv2d_shared_6144_copy_fused_kernel_hfuse_lb_idx_1<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 3:
+    std::cout << "uses too much shared data\n";
+    // conv2d_shared_8192_conv2d_shared_8192_copy_fused_kernel_hfuse_lb_idx_1<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+    break;
   }
   CHECK_CUDA(cudaDeviceSynchronize());
   CHECK_CUDA(cudaGetLastError());
 
-  CHECK_CUDA(cudaMemcpy(O, O1_gpu[0], B[1] * 1000 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 14 * 14 * 512 * 256 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 14 * 14 * 512 * 256 * sizeof(float),
                         cudaMemcpyDeviceToHost));
   return;
 }
-
-void conv2d_matmul_parallel(float *I0, float *F0, float *O0,
-                            float *I1, float *F1, float *O1)
+//----------------------------------------------------------------------------------------------------
+void conv2d_bfuse(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
 {
-  CHECK_CUDA(cudaMemcpy(I0_gpu[0], I0, B[0] * 56 * 56 * 64 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 14 * 14 * 256 * 256 * sizeof(float),
                         cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F0_gpu[0], F0, 3 * 3 * 64 * 128 * sizeof(float),
-                        cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(I1_gpu[0], I1, B[1] * 512 * sizeof(float),
-                        cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F1_gpu[0], F1, 1000 * 512 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F0, 3 * 3 * 256 * 512 * sizeof(float),
                         cudaMemcpyHostToDevice));
 
-  dim3 gridDim0, gridDim1;
-  dim3 blockDim0, blockDim1;
-  switch(B[0])
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 14 * 14 * 256 * 256 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F1_gpu, F1, 3 * 3 * 256 * 512 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{1568 + 1568, 1, 1};
+  dim3 blockDim{256, 1, 1};
+  switch (shared_level)
   {
-    case 1:
-      gridDim0  = {224, 1, 1};
-      blockDim0 = {112, 1, 1};
-      switch(B[1])
-      {
-        case 16:
-          gridDim1  = {80, 1, 1};
-          blockDim1 = {50, 1, 1};
-          matmul_B16<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B1<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 32:
-          gridDim1  = {125, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B32<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B1<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 64:
-          gridDim1  = {400, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B64<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B1<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 128:
-          gridDim1  = {500, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B128<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B1<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-      }
-      break;
-    case 2:
-      gridDim0  = {224, 1, 1};
-      blockDim0 = {112, 1, 1};
-      switch(B[1])
-      {
-        case 16:
-          gridDim1  = {80, 1, 1};
-          blockDim1 = {50, 1, 1};
-          matmul_B16<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B2<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 32:
-          gridDim1  = {125, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B32<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B2<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 64:
-          gridDim1  = {400, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B64<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B2<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 128:
-          gridDim1  = {500, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B128<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B2<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-      }
-      break;
-    case 4:
-      gridDim0  = {224, 1, 1};
-      blockDim0 = {128, 1, 1};
-      switch(B[1])
-      {
-        case 16:
-          gridDim1  = {80, 1, 1};
-          blockDim1 = {50, 1, 1};
-          matmul_B16<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B4<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 32:
-          gridDim1  = {125, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B32<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B4<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 64:
-          gridDim1  = {400, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B64<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B4<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 128:
-          gridDim1  = {500, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B128<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B4<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-      }
-      break;
-    case 8:
-      gridDim0  = {392, 1, 1};
-      blockDim0 = {128, 1, 1};
-      switch(B[1])
-      {
-        case 16:
-          gridDim1  = {80, 1, 1};
-          blockDim1 = {50, 1, 1};
-          matmul_B16<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B8<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 32:
-          gridDim1  = {125, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B32<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B8<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 64:
-          gridDim1  = {400, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B64<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B8<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-        case 128:
-          gridDim1  = {500, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B128<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          conv2d_B8<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          break;
-      }
-      break;
+  case 0:
+    conv2d_shared_2048_conv2d_shared_2048_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 1:
+    conv2d_shared_4096_conv2d_shared_4096_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 2:
+    conv2d_shared_6144_conv2d_shared_6144_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+    break;
+  case 3:
+    conv2d_shared_8192_conv2d_shared_8192_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+    break;
   }
   CHECK_CUDA(cudaDeviceSynchronize());
   CHECK_CUDA(cudaGetLastError());
 
-  CHECK_CUDA(cudaMemcpy(O0, O0_gpu[0], B[0] * 28 * 28 * 128 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 14 * 14 * 512 * 256 * sizeof(float),
                         cudaMemcpyDeviceToHost));
-  CHECK_CUDA(cudaMemcpy(O1, O1_gpu[0], B[1] * 1000 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 14 * 14 * 512 * 256 * sizeof(float),
                         cudaMemcpyDeviceToHost));
-
   return;
 }
-
-void conv2d_matmul_fuse(size_t type, float *I0, float *F0, float *O0,
-                        float *I1, float *F1, float *O1)
+//----------------------------------------------------------------------------------------------------
+void bgemm_parallel(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
 {
-  CHECK_CUDA(cudaMemcpy(I0_gpu[0], I0, B[0] * 56 * 56 * 64 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F0_gpu[0], F0, 3 * 3 * 64 * 128 * sizeof(float),
-                        cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(I1_gpu[0], I1, B[1] * 512 * sizeof(float),
-                        cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F1_gpu[0], F1, 1000 * 512 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F0, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyHostToDevice));
 
-  dim3 gridDim;
-  dim3 blockDim;
-  switch(B[0])
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F1_gpu, F1, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{32768, 1, 1};
+  dim3 blockDim{128, 1, 1};
+  switch (shared_level)
   {
-    // case 1:
-    //   switch(B[1])
-    //   {
-    //     case 16:
-    //       // gridDim  = {224 + 80, 1, 1};
-    //       // blockDim = {112}; // 112 vs 50
-    //       gridDim  = {224, 1, 1}; // 224 vs 80
-    //       blockDim = {112 + 50};
-    //       conv2d_B1_matmul_B16_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-    //       break;
-    //     case 32:
-    //       // gridDim  = {224 + 125, 1, 1};
-    //       // blockDim = {112}; // 112 vs 32
-    //       gridDim  = {224, 1, 1}; // 224 vs 125
-    //       blockDim = {112 + 32};
-    //       conv2d_B1_matmul_B32_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-    //       break;
-    //     case 64:
-    //       // gridDim  = {224 + 400, 1, 1};
-    //       // blockDim = {112}; // 112 vs 32
-    //       gridDim  = {400, 1, 1}; // 224 vs 400
-    //       blockDim = {112 + 32};
-    //       conv2d_B1_matmul_B64_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-    //       break;
-    //     case 128:
-    //       // gridDim  = {224 + 500, 1, 1};
-    //       // blockDim = {112}; // 112 vs 32
-    //       gridDim  = {500, 1, 1}; // 224 vs 500
-    //       blockDim = {112 + 32};
-    //       conv2d_B1_matmul_B128_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-    //       break;
-    //   }
-    //   break;
-    // case 2:
-    //   switch(B[1])
-    //   {
-    //     case 16:
-    //       // gridDim  = {224 + 80, 1, 1};
-    //       // blockDim = {112}; // 112 vs 50
-    //       gridDim  = {224, 1, 1}; // 224 vs 80
-    //       blockDim = {112 + 50};
-    //       conv2d_B2_matmul_B16_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-    //       break;
-    //     case 32:
-    //       // gridDim  = {224 + 125, 1, 1};
-    //       // blockDim = {112}; // 112 vs 32
-    //       gridDim  = {224, 1, 1}; // 224 vs 125
-    //       blockDim = {112 + 32};
-    //       conv2d_B2_matmul_B32_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-    //       break;
-    //     case 64:
-    //       // gridDim  = {224 + 400, 1, 1};
-    //       // blockDim = {112}; // 112 vs 32
-    //       gridDim  = {400, 1, 1}; // 224 vs 400
-    //       blockDim = {112 + 32};
-    //       conv2d_B2_matmul_B64_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-    //       break;
-    //     case 128:
-    //       // gridDim  = {224 + 500, 1, 1};
-    //       // blockDim = {112}; // 112 vs 32
-    //       gridDim  = {500, 1, 1}; // 224 vs 500
-    //       blockDim = {112 + 32};
-    //       conv2d_B2_matmul_B128_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-    //       break;
-    //   }
-    //   break;
-    case 4:
-      switch(B[1])
-      {
-        // case 16:
-        //   // gridDim  = {224 + 80, 1, 1};
-        //   // blockDim = {128}; // 128 vs 50
-        //   gridDim  = {224, 1, 1}; // 224 vs 80
-        //   blockDim = {128 + 50};
-        //   conv2d_B4_matmul_B16_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-        //   break;
-        case 32:
-          if (type == 1) {
-            gridDim  = {224, 1, 1}; // 224 vs 125
-            blockDim = {128 + 32};
-            conv2d_B4_matmul_B32_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          }
-          else if (type == 2) {
-            gridDim  = {224 + 125, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B4_matmul_B32_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          }
-          else if (type == 3) {
-            gridDim  = {224 + 125, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B4_matmul_B32_fused_<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);  
-          }
-          break;
-        case 64:
-          if (type == 1) {
-            gridDim  = {400, 1, 1}; // 224 vs 400
-            blockDim = {128 + 32};
-            conv2d_B4_matmul_B64_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 2) {
-            gridDim  = {224 + 400, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B4_matmul_B64_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 3) {
-            gridDim  = {224 + 400, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B4_matmul_B64_fused_<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          }
-          break;
-        case 128:
-          if (type == 1) {
-            gridDim  = {500, 1, 1}; // 224 vs 500
-            blockDim = {128 + 32};
-            conv2d_B4_matmul_B128_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 2) {
-            gridDim  = {224 + 500, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B4_matmul_B128_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 3) {
-            gridDim  = {224 + 500, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B4_matmul_B128_fused_<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          }
-          break;
-      }
-      break;
-    case 8:
-      switch(B[1])
-      {
-        // case 16:
-        //   // gridDim  = {392 + 80, 1, 1};
-        //   // blockDim = {128}; // 128 vs 50
-        //   gridDim  = {392, 1, 1}; // 392 vs 80
-        //   blockDim = {128 + 50};
-        //   conv2d_B8_matmul_B16_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-        //   break;
-        case 32:
-          if (type == 1) {
-            gridDim  = {392, 1, 1}; // 392 vs 125
-            blockDim = {128 + 32};
-            conv2d_B8_matmul_B32_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 2) {
-            gridDim  = {392 + 125, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B8_matmul_B32_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 3) {
-            gridDim  = {392 + 125, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B8_matmul_B32_fused_<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          }
-          break;
-        case 64:
-          if (type == 1) {
-          gridDim  = {400, 1, 1}; // 392 vs 400
-          blockDim = {128 + 32};
-            conv2d_B8_matmul_B64_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 2) {
-          gridDim  = {392 + 400, 1, 1};
-          blockDim = {128}; // 128 vs 32
-          conv2d_B8_matmul_B32_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 3) {
-          gridDim  = {392 + 400, 1, 1};
-          blockDim = {128}; // 128 vs 32
-            conv2d_B8_matmul_B64_fused_<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          }
-          break;
-        case 128:
-          if (type == 1) {
-            gridDim  = {500, 1, 1}; // 392 vs 500
-            blockDim = {128 + 32};
-            conv2d_B8_matmul_B128_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 2) {
-            gridDim  = {392 + 500, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B8_matmul_B32_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          } else if (type == 3) {
-            gridDim  = {392 + 500, 1, 1};
-            blockDim = {128}; // 128 vs 32
-            conv2d_B8_matmul_B128_fused_<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          }
-          break;
-      }
-      break;
+  case 0:
+    bgemm_shared_5120<<<gridDim, blockDim, 0, S0>>>(I0_gpu, F0_gpu, O0_gpu);
+    bgemm_shared_5120<<<gridDim, blockDim, 0, S1>>>(I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 1:
+    bgemm_shared_6144<<<gridDim, blockDim, 0, S0>>>(I0_gpu, F0_gpu, O0_gpu);
+    bgemm_shared_6144<<<gridDim, blockDim, 0, S1>>>(I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 2:
+    bgemm_shared_7168<<<gridDim, blockDim, 0, S0>>>(I0_gpu, F0_gpu, O0_gpu);
+    bgemm_shared_7168<<<gridDim, blockDim, 0, S1>>>(I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 3:
+    bgemm_shared_8192<<<gridDim, blockDim, 0, S0>>>(I0_gpu, F0_gpu, O0_gpu);
+    bgemm_shared_8192<<<gridDim, blockDim, 0, S1>>>(I1_gpu, F1_gpu, O1_gpu);
+    break;
   }
   CHECK_CUDA(cudaDeviceSynchronize());
   CHECK_CUDA(cudaGetLastError());
 
-  CHECK_CUDA(cudaMemcpy(O0, O0_gpu[0], B[0] * 28 * 28 * 128 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyDeviceToHost));
-  CHECK_CUDA(cudaMemcpy(O1, O1_gpu[0], B[1] * 1000 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyDeviceToHost));
-
   return;
 }
-
-void conv2d_conv2d_parallel(float *I0, float *F0, float *O0,
-                            float *I1, float *F1, float *O1)
+//----------------------------------------------------------------------------------------------------
+void bgemm_hfuse(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
 {
-  CHECK_CUDA(cudaMemcpy(I0_gpu[0], I0, B[0] * 56 * 56 * 64 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F0_gpu[0], F0, 3 * 3 * 64 * 128 * sizeof(float),
-                        cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(I0_gpu[1], I1, B[0] * 56 * 56 * 64 * sizeof(float),
-                        cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F0_gpu[1], F1, 3 * 3 * 64 * 128 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F0, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyHostToDevice));
 
-  dim3 gridDim0, gridDim1;
-  dim3 blockDim0, blockDim1;
-  switch(B[0])
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F1_gpu, F1, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{32768, 1, 1};
+  dim3 blockDim{128 + 128, 1, 1};
+  switch (shared_level)
   {
-    case 1:
-      gridDim0  = {224, 1, 1};
-      blockDim0 = {112, 1, 1};
-      switch(B[1])
-      {
-        case 2:
-          gridDim1  = {224, 1, 1};
-          blockDim1 = {112, 1, 1};
-          conv2d_B1<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          conv2d_B2<<<gridDim1, blockDim1, 0, streams[1]>>>(I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-          break;
-        case 4:
-          gridDim1  = {224, 1, 1};
-          blockDim1 = {128, 1, 1};
-          conv2d_B1<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          conv2d_B4<<<gridDim1, blockDim1, 0, streams[1]>>>(I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-          break;
-        case 8:
-          gridDim1  = {392, 1, 1};
-          blockDim1 = {128, 1, 1};
-          conv2d_B1<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          conv2d_B8<<<gridDim1, blockDim1, 0, streams[1]>>>(I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-          break;
-      }
-      break;
-    case 2:
-      gridDim0  = {224, 1, 1};
-      blockDim0 = {112, 1, 1};
-      switch(B[1])
-      {
-        case 4:
-          gridDim1  = {224, 1, 1};
-          blockDim1 = {128, 1, 1};
-          conv2d_B2<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          conv2d_B4<<<gridDim1, blockDim1, 0, streams[1]>>>(I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-          break;
-        case 8:
-          gridDim1  = {392, 1, 1};
-          blockDim1 = {128, 1, 1};
-          conv2d_B2<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          conv2d_B8<<<gridDim1, blockDim1, 0, streams[1]>>>(I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-          break;
-      }
-      break;
-    case 4:
-      gridDim0  = {224, 1, 1};
-      blockDim0 = {128, 1, 1};
-      switch(B[1])
-      {
-        case 8:
-          gridDim1  = {392, 1, 1};
-          blockDim1 = {128, 1, 1};
-          conv2d_B4<<<gridDim0, blockDim0, 0, streams[0]>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0]);
-          conv2d_B8<<<gridDim1, blockDim1, 0, streams[1]>>>(I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-          break;
-      }
-      break;
+  case 0:
+    bgemm_shared_5120_bgemm_shared_5120_copy_fused_kernel_hfuse_lb_idx_0<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu, I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 1:
+    bgemm_shared_6144_bgemm_shared_6144_copy_fused_kernel_hfuse_lb_idx_0<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu, I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 2:
+    std::cout << "uses too much shared data\n";
+    // bgemm_shared_7168_bgemm_shared_7168_copy_fused_kernel_hfuse_lb_idx_0<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu, I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 3:
+    std::cout << "uses too much shared data\n";
+    // bgemm_shared_8192_bgemm_shared_8192_copy_fused_kernel_hfuse_lb_idx_0<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu, I1_gpu, F1_gpu, O1_gpu);
+    break;
   }
   CHECK_CUDA(cudaDeviceSynchronize());
   CHECK_CUDA(cudaGetLastError());
 
-  CHECK_CUDA(cudaMemcpy(O0, O0_gpu[0], B[0] * 28 * 28 * 128 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyDeviceToHost));
-  CHECK_CUDA(cudaMemcpy(O1, O0_gpu[1], B[0] * 28 * 28 * 128 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyDeviceToHost));
   return;
 }
-
-void conv2d_conv2d_BFuse(float *I0, float *F0, float *O0,
-                         float *I1, float *F1, float *O1)
+//----------------------------------------------------------------------------------------------------
+void bgemm_bfuse(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
 {
-  // CHECK_CUDA(cudaMemcpy(I0_gpu[0], I0, B[0] * 56 * 56 * 64 * sizeof(float),
-  //                       cudaMemcpyHostToDevice));
-  // CHECK_CUDA(cudaMemcpy(F0_gpu[0], F0, 3 * 3 * 64 * 128 * sizeof(float),
-  //                       cudaMemcpyHostToDevice));
-  // CHECK_CUDA(cudaMemcpy(I0_gpu[1], I1, B[0] * 56 * 56 * 64 * sizeof(float),
-  //                       cudaMemcpyHostToDevice));
-  // CHECK_CUDA(cudaMemcpy(F0_gpu[1], F1, 3 * 3 * 64 * 128 * sizeof(float),
-  //                       cudaMemcpyHostToDevice));
-
-  // dim3 gridDim;
-  // dim3 blockDim;
-  // switch(B[0])
-  // {
-  //   case 1:
-  //     switch(B[1])
-  //     {
-  //       case 2:
-  //         gridDim  = {224 + 224, 1, 1};
-  //         blockDim = {112, 1, 1}; // 112 vs 112
-  //         conv2d_B1_conv2d_B2_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-  //         break;
-  //       case 4:
-  //         gridDim  = {224 + 224, 1, 1};
-  //         blockDim = {128, 1, 1}; // 112 vs 128
-  //         conv2d_B1_conv2d_B4_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-  //         break;
-  //       case 8:
-  //         gridDim  = {224 + 392, 1, 1};
-  //         blockDim = {128, 1, 1}; // 112 vs 128
-  //         conv2d_B1_conv2d_B8_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-  //         break;
-  //     }
-  //     break;
-  //   case 2:
-  //     switch(B[1])
-  //     {
-  //       case 4:
-  //         gridDim  = {224 + 224, 1, 1};
-  //         blockDim = {128, 1, 1}; // 112 vs 128
-  //         conv2d_B2_conv2d_B4_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-  //         break;
-  //       case 8:
-  //         gridDim  = {224 + 392, 1, 1};
-  //         blockDim = {128, 1, 1}; // 112 vs 128
-  //         conv2d_B2_conv2d_B8_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-  //         break;
-  //     }
-  //     break;
-  //   case 4:
-  //     switch(B[1])
-  //     {
-  //       case 8:
-  //         gridDim  = {224 + 392, 1, 1};
-  //         blockDim = {128, 1, 1}; // 128 vs 128
-  //         conv2d_B4_conv2d_B8_fused_kernel_hfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu[0], F0_gpu[0], O0_gpu[0], I0_gpu[1], F0_gpu[1], O0_gpu[1]);
-  //         break;
-  //     }
-  //     break;
-  // }
-  // CHECK_CUDA(cudaDeviceSynchronize());
-  // CHECK_CUDA(cudaGetLastError());
-
-  // CHECK_CUDA(cudaMemcpy(O0, O0_gpu[0], B[0] * 28 * 28 * 128 * sizeof(float),
-  //                       cudaMemcpyDeviceToHost));
-  // CHECK_CUDA(cudaMemcpy(O1, O0_gpu[1], B[0] * 28 * 28 * 128 * sizeof(float),
-  //                       cudaMemcpyDeviceToHost));
-  return;
-}
-
-void matmul_matmul_parallel(float *I0, float *F0, float *O0,
-                            float *I1, float *F1, float *O1)
-{
-  CHECK_CUDA(cudaMemcpy(I1_gpu[0], I0, B[1] * 512 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F1_gpu[0], F0, 1000 * 512 * sizeof(float),
-                        cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(I1_gpu[1], I1, B[1] * 512 * sizeof(float),
-                        cudaMemcpyHostToDevice));
-  CHECK_CUDA(cudaMemcpy(F1_gpu[1], F1, 1000 * 512 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F0, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyHostToDevice));
 
-  dim3 gridDim0, gridDim1;
-  dim3 blockDim0, blockDim1;
-  switch(B[1])
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F1_gpu, F1, 128 * 1 * 1024 * 1024 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{32768 + 32768, 1, 1};
+  dim3 blockDim{128, 1, 1};
+  switch (shared_level)
   {
-    case 16:
-      gridDim0  = {80, 1, 1};
-      blockDim0 = {50, 1, 1};
-      switch(B[0])
-      {
-        case 32:
-          gridDim1  = {125, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B16<<<gridDim0, blockDim0, 0, streams[0]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          matmul_B32<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-          break;
-        case 64:
-          gridDim1  = {400, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B16<<<gridDim0, blockDim0, 0, streams[0]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          matmul_B64<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-          break;
-        case 128:
-          gridDim1  = {500, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B16<<<gridDim0, blockDim0, 0, streams[0]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          matmul_B128<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-          break;
-      }
-      break;
-    case 32:
-      gridDim0  = {125, 1, 1};
-      blockDim0 = {32, 1, 1};
-      switch(B[0])
-      {
-        case 64:
-          gridDim1  = {400, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B32<<<gridDim0, blockDim0, 0, streams[0]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          matmul_B64<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-          break;
-        case 128:
-          gridDim1  = {500, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B32<<<gridDim0, blockDim0, 0, streams[0]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          matmul_B128<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-          break;
-      }
-      break;
-    case 64:
-      gridDim0  = {400, 1, 1};
-      blockDim0 = {32, 1, 1};
-      switch(B[0])
-      {
-        case 128:
-          gridDim1  = {500, 1, 1};
-          blockDim1 = {32, 1, 1};
-          matmul_B16<<<gridDim0, blockDim0, 0, streams[0]>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0]);
-          matmul_B128<<<gridDim1, blockDim1, 0, streams[1]>>>(I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-          break;
-      }
-      break;
+  case 0:
+    bgemm_shared_5120_bgemm_shared_5120_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu, I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 1:
+    bgemm_shared_6144_bgemm_shared_6144_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu, I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 2:
+    bgemm_shared_7168_bgemm_shared_7168_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu, I1_gpu, F1_gpu, O1_gpu);
+    break;
+  case 3:
+    bgemm_shared_8192_bgemm_shared_8192_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I0_gpu, F0_gpu, O0_gpu, I1_gpu, F1_gpu, O1_gpu);
+    break;
   }
   CHECK_CUDA(cudaDeviceSynchronize());
   CHECK_CUDA(cudaGetLastError());
 
-  CHECK_CUDA(cudaMemcpy(O0, O1_gpu[0], B[1] * 1000 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyDeviceToHost));
-  CHECK_CUDA(cudaMemcpy(O1, O1_gpu[1], B[1] * 1000 * sizeof(float),
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 128 * 1 * 1024 * 1024 * sizeof(float),
                         cudaMemcpyDeviceToHost));
   return;
 }
-
-void matmul_matmul_BFuse(float *I0, float *F0, float *O0,
-                         float *I1, float *F1, float *O1)
+//----------------------------------------------------------------------------------------------------
+void softmax_parallel(size_t shared_level, float *I0, float *O0, float *I1, float *O1)
 {
-  // CHECK_CUDA(cudaMemcpy(I1_gpu[0], I0, B[1] * 512 * sizeof(float),
-  //                       cudaMemcpyHostToDevice));
-  // CHECK_CUDA(cudaMemcpy(F1_gpu[0], F0, 1000 * 512 * sizeof(float),
-  //                       cudaMemcpyHostToDevice));
-  // CHECK_CUDA(cudaMemcpy(I1_gpu[1], I1, B[1] * 512 * sizeof(float),
-  //                       cudaMemcpyHostToDevice));
-  // CHECK_CUDA(cudaMemcpy(F1_gpu[1], F1, 1000 * 512 * sizeof(float),
-  //                       cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyHostToDevice));
 
-  // dim3 gridDim;
-  // dim3 blockDim;
-  // switch(B[1])
-  // {
-  //   case 16:
-  //     switch(B[0])
-  //     {
-  //       case 32:
-  //         gridDim  = {80 + 125, 1, 1};
-  //         blockDim = {50, 1, 1}; // 50 vs 32
-  //         matmul_B16_matmul_B32_fused_kernel_vfuse_idx_0<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0], I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-  //         break;
-  //       case 64:
-  //         gridDim  = {80 + 400, 1, 1};
-  //         blockDim = {50, 1, 1}; // 50 vs 32
-  //         matmul_B16_matmul_B64_fused_kernel_vfuse_idx_0<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0], I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-  //         break;
-  //       case 128:
-  //         gridDim  = {80 + 500, 1, 1};
-  //         blockDim = {50, 1, 1}; // 50 vs 32
-  //         matmul_B16_matmul_B128_fused_kernel_vfuse_idx_0<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0], I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-  //         break;
-  //     }
-  //     break;
-  //   case 32:
-  //     switch(B[0])
-  //     {
-  //       case 64:
-  //         gridDim  = {125 + 400, 1, 1};
-  //         blockDim = {32, 1, 1}; // 32 vs 32
-  //         matmul_B32_matmul_B64_fused_kernel_vfuse_idx_0<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0], I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-  //         break;
-  //       case 128:
-  //         gridDim  = {125 + 500, 1, 1};
-  //         blockDim = {32, 1, 1}; // 32 vs 32
-  //         matmul_B32_matmul_B128_fused_kernel_vfuse_idx_0<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0], I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-  //         break;
-  //     }
-  //     break;
-  //   case 64:
-  //     switch(B[0])
-  //     {
-  //       case 128:
-  //         gridDim  = {400 + 500, 1, 1};
-  //         blockDim = {32, 1, 1}; // 32 vs 32
-  //         matmul_B64_matmul_B128_fused_kernel_vfuse_idx_0<<<gridDim, blockDim>>>(I1_gpu[0], F1_gpu[0], O1_gpu[0], I1_gpu[1], F1_gpu[1], O1_gpu[1]);
-  //         break;
-  //     }
-  //     break;
-  // }
-  // CHECK_CUDA(cudaDeviceSynchronize());
-  // CHECK_CUDA(cudaGetLastError());
+  dim3 gridDim{128, 1, 1};
+  dim3 blockDim{128, 1, 1};
+  switch (shared_level)
+  {
+  case 0:
+    softmax_shared_12<<<gridDim, blockDim, 0, S0>>>(O0_gpu, I0_gpu);
+    softmax_shared_12<<<gridDim, blockDim, 0, S1>>>(O1_gpu, I1_gpu);
+    break;
+  case 1:
+    softmax_shared_1036<<<gridDim, blockDim, 0, S0>>>(O0_gpu, I0_gpu);
+    softmax_shared_1036<<<gridDim, blockDim, 0, S1>>>(O1_gpu, I1_gpu);
+    break;
+  case 2:
+    softmax_shared_2060<<<gridDim, blockDim, 0, S0>>>(O0_gpu, I0_gpu);
+    softmax_shared_2060<<<gridDim, blockDim, 0, S1>>>(O1_gpu, I1_gpu);
+    break;
+  case 3:
+    softmax_shared_3084<<<gridDim, blockDim, 0, S0>>>(O0_gpu, I0_gpu);
+    softmax_shared_3084<<<gridDim, blockDim, 0, S1>>>(O1_gpu, I1_gpu);
+    break;
+  }
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
 
-  // CHECK_CUDA(cudaMemcpy(O0, O1_gpu[0], B[1] * 1000 * sizeof(float),
-  //                       cudaMemcpyDeviceToHost));
-  // CHECK_CUDA(cudaMemcpy(O1, O1_gpu[1], B[1] * 1000 * sizeof(float),
-  //                       cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
   return;
 }
+//----------------------------------------------------------------------------------------------------
+void softmax_hfuse(size_t shared_level, float *I0, float *O0, float *I1, float *O1)
+{
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{128, 1, 1};
+  dim3 blockDim{128 + 128, 1, 1};
+  switch (shared_level)
+  {
+  case 0:
+    softmax_shared_12_softmax_shared_12_copy_fused_kernel_hfuse_lb_idx_0<<<gridDim, blockDim>>>(O0_gpu, I0_gpu, O1_gpu, I1_gpu);
+    break;
+  case 1:
+    softmax_shared_1036_softmax_shared_1036_copy_fused_kernel_hfuse_lb_idx_0<<<gridDim, blockDim>>>(O0_gpu, I0_gpu, O1_gpu, I1_gpu);
+    break;
+  case 2:
+    softmax_shared_2060_softmax_shared_2060_copy_fused_kernel_hfuse_lb_idx_0<<<gridDim, blockDim>>>(O0_gpu, I0_gpu, O1_gpu, I1_gpu);
+    break;
+  case 3:
+    softmax_shared_3084_softmax_shared_3084_copy_fused_kernel_hfuse_lb_idx_0<<<gridDim, blockDim>>>(O0_gpu, I0_gpu, O1_gpu, I1_gpu);
+    break;
+  }
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
+
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+  return;
+}
+//----------------------------------------------------------------------------------------------------
+void softmax_bfuse(size_t shared_level, float *I0, float *O0, float *I1, float *O1)
+{
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  dim3 gridDim{128 + 128, 1, 1};
+  dim3 blockDim{128, 1, 1};
+  switch (shared_level)
+  {
+  case 0:
+    softmax_shared_12_softmax_shared_12_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(O0_gpu, I0_gpu, O1_gpu, I1_gpu);
+    break;
+  case 1:
+    softmax_shared_1036_softmax_shared_1036_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(O0_gpu, I0_gpu, O1_gpu, I1_gpu);
+    break;
+  case 2:
+    softmax_shared_2060_softmax_shared_2060_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(O0_gpu, I0_gpu, O1_gpu, I1_gpu);
+    break;
+  case 3:
+    softmax_shared_3084_softmax_shared_3084_copy_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(O0_gpu, I0_gpu, O1_gpu, I1_gpu);
+    break;
+  }
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
+
+  CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+  CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 128 * 1 * 1 * 1000 * sizeof(float),
+                        cudaMemcpyDeviceToHost));
+  return;
+}
+//----------------------------------------------------------------------------------------------------

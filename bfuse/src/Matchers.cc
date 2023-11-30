@@ -452,7 +452,7 @@ void CUDAFuncBuilder::onEndOfTranslationUnit()
   string TVMMacros =
 R"(
 #if (((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)) || \
-      (__CUDACC_VER_MAJOR__ > 11))
+     (__CUDACC_VER_MAJOR__ > 11))
 #define TVM_ENABLE_L2_PREFETCH 1
 #else
 #define TVM_ENABLE_L2_PREFETCH 0
@@ -542,7 +542,8 @@ R"(
   }
 
   // Create fused function
-  FuncStream << TVMMacros
+  FuncStream << "\n"
+             << TVMMacros
              << CUDAFuncTempl << "\n"
              << ExternAttr << " " << CUDAGlobalAttr << " "
              << CUDALaunchAttr << " " << CUDAFuncRtrTy << " " << CUDAFuncName << "("

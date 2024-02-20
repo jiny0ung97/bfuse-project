@@ -1,6 +1,7 @@
 
+
 #if (((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 4)) || \
-      (__CUDACC_VER_MAJOR__ > 11))
+     (__CUDACC_VER_MAJOR__ > 11))
 #define TVM_ENABLE_L2_PREFETCH 1
 #else
 #define TVM_ENABLE_L2_PREFETCH 0
@@ -27,37 +28,43 @@ extern "C" __global__ __launch_bounds__(128) void bgemm_shared_6144_bgemm_shared
    * 0: bgemm_shared_6144
    * 1: bgemm_shared_6144_copy
    */
-  int gridDim_x_, gridDim_y_, gridDim_z_;
-  int blockIdx_x_, blockIdx_y_, blockIdx_z_;
-  int TotalBlockIdx_;
+  int gridDim_x_;
+  int blockIdx_x_;
+  int NewBlockIdx_;
   int KernelID_;
   
-  if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 0 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 32768)
+  if (((int)blockIdx.x >= 0 && (int)blockIdx.x < 65520) && ((((int)blockIdx.x - 0) / 84) % 2 == 0))
   {
-    TotalBlockIdx_ = blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y - 0;
+    NewBlockIdx_ = 0 + ((int)blockIdx.x - (int)blockIdx.x % 168) / 2 + (int)blockIdx.x % 84;
     KernelID_  = 0;
     gridDim_x_ = 32768;
-    gridDim_y_ = 1;
-    gridDim_z_ = 1;
   }
-  else if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 32768 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 65536)
+  else if (((int)blockIdx.x >= 0 && (int)blockIdx.x < 65520) && ((((int)blockIdx.x - 0) / 84) % 2 == 1))
   {
-    TotalBlockIdx_ = blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y - 32768;
+    NewBlockIdx_ = 0 + ((int)blockIdx.x - (int)blockIdx.x % 168) / 2 + (int)blockIdx.x % 84;
     KernelID_  = 1;
     gridDim_x_ = 32768;
-    gridDim_y_ = 1;
-    gridDim_z_ = 1;
   }
-  blockIdx_x_ = TotalBlockIdx_ % gridDim_x_;
-  blockIdx_y_ = TotalBlockIdx_ / gridDim_x_ % gridDim_y_;
-  blockIdx_z_ = TotalBlockIdx_ / (gridDim_x_ * gridDim_y_);
+  else if ((int)blockIdx.x >= 65520 && (int)blockIdx.x < 65528)
+  {
+    NewBlockIdx_ = (int)blockIdx.x - 32760;
+    KernelID_  = 0;
+    gridDim_x_ = 32768;
+  }
+  else if ((int)blockIdx.x >= 65528 && (int)blockIdx.x < 65536)
+  {
+    NewBlockIdx_ = (int)blockIdx.x - 32768;
+    KernelID_  = 1;
+    gridDim_x_ = 32768;
+  }
+  blockIdx_x_ = NewBlockIdx_;
 
   static float union_shared_0_[4096] __attribute__((shared));
   static float union_shared_1_[2048] __attribute__((shared));
 
 
   // bgemm_shared_6144
-  if ((KernelID_ == 0) && ((threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y >= 0 && threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y < 128)))
+  if ((KernelID_ == 0) && (((int)threadIdx.x >= 0 && (int)threadIdx.x < 128)))
   {
       float T_batch_matmul_NT_local[32];
       for (int i_c_outer_inner_init = 0; i_c_outer_inner_init < 2; ++i_c_outer_inner_init) {
@@ -134,7 +141,7 @@ extern "C" __global__ __launch_bounds__(128) void bgemm_shared_6144_bgemm_shared
       }
   }
   // bgemm_shared_6144_copy
-  else if ((KernelID_ == 1) && ((threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y >= 0 && threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y < 128)))
+  else if ((KernelID_ == 1) && (((int)threadIdx.x >= 0 && (int)threadIdx.x < 128)))
   {
       float T_batch_matmul_NT_local[32];
       for (int i_c_outer_inner_init = 0; i_c_outer_inner_init < 2; ++i_c_outer_inner_init) {

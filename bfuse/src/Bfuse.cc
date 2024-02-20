@@ -155,7 +155,7 @@ void bfuse(const string ProgName, const string CompileCommandsPath,
 
     cout << "Rewriting pre-built variables...\n";
     if (Tool.rewriteCUDAVariables(AContext)) {
-      ERROR_MESSAGE("error occur while rewriting CUDA pre-built variables");
+      ERROR_MESSAGE("error occur while rewritin g CUDA pre-built variables");
       exit(0);
     }
 

@@ -28,30 +28,36 @@ extern "C" __global__ __launch_bounds__(128) void softmax_shared_12_softmax_shar
    * 0: softmax_shared_12
    * 1: softmax_shared_12_copy
    */
-  int gridDim_x_, gridDim_y_, gridDim_z_;
-  int blockIdx_x_, blockIdx_y_, blockIdx_z_;
-  int TotalBlockIdx_;
+  int gridDim_x_;
+  int blockIdx_x_;
+  int NewBlockIdx_;
   int KernelID_;
   
-  if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 0 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 128)
+  if (((int)blockIdx.x >= 0 && (int)blockIdx.x < 168) && ((((int)blockIdx.x - 0) / 84) % 2 == 0))
   {
-    TotalBlockIdx_ = blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y - 0;
+    NewBlockIdx_ = 0 + ((int)blockIdx.x - (int)blockIdx.x % 168) / 2 + (int)blockIdx.x % 84;
     KernelID_  = 0;
     gridDim_x_ = 128;
-    gridDim_y_ = 1;
-    gridDim_z_ = 1;
   }
-  else if (blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y >= 128 && blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y < 256)
+  else if (((int)blockIdx.x >= 0 && (int)blockIdx.x < 168) && ((((int)blockIdx.x - 0) / 84) % 2 == 1))
   {
-    TotalBlockIdx_ = blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y - 128;
+    NewBlockIdx_ = 0 + ((int)blockIdx.x - (int)blockIdx.x % 168) / 2 + (int)blockIdx.x % 84;
     KernelID_  = 1;
     gridDim_x_ = 128;
-    gridDim_y_ = 1;
-    gridDim_z_ = 1;
   }
-  blockIdx_x_ = TotalBlockIdx_ % gridDim_x_;
-  blockIdx_y_ = TotalBlockIdx_ / gridDim_x_ % gridDim_y_;
-  blockIdx_z_ = TotalBlockIdx_ / (gridDim_x_ * gridDim_y_);
+  else if ((int)blockIdx.x >= 168 && (int)blockIdx.x < 212)
+  {
+    NewBlockIdx_ = (int)blockIdx.x - 84;
+    KernelID_  = 0;
+    gridDim_x_ = 128;
+  }
+  else if ((int)blockIdx.x >= 212 && (int)blockIdx.x < 256)
+  {
+    NewBlockIdx_ = (int)blockIdx.x - 128;
+    KernelID_  = 1;
+    gridDim_x_ = 128;
+  }
+  blockIdx_x_ = NewBlockIdx_;
 
   static float union_shared_0_[4] __attribute__((shared));
   static float union_shared_1_[4] __attribute__((shared));
@@ -62,7 +68,7 @@ extern "C" __global__ __launch_bounds__(128) void softmax_shared_12_softmax_shar
 
 
   // softmax_shared_12
-  if ((KernelID_ == 0) && ((threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y >= 0 && threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y < 128)))
+  if ((KernelID_ == 0) && (((int)threadIdx.x >= 0 && (int)threadIdx.x < 128)))
   {
       float normal_reduce_temp0[1];
       float normal_reduce_temp0_1[1];
@@ -166,7 +172,7 @@ extern "C" __global__ __launch_bounds__(128) void softmax_shared_12_softmax_shar
       }
   }
   // softmax_shared_12_copy
-  else if ((KernelID_ == 1) && ((threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y >= 0 && threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y < 128)))
+  else if ((KernelID_ == 1) && (((int)threadIdx.x >= 0 && (int)threadIdx.x < 128)))
   {
       float normal_reduce_temp0[1];
       float normal_reduce_temp0_1[1];

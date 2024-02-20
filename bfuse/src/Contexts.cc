@@ -170,7 +170,8 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
     CondStream << "(KernelID_ == " << I << ") && ";
 
     // threadIdx condition check
-    string CurrentThreadIdx = "threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y";
+    // string CurrentThreadIdx = "threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y";
+    string CurrentThreadIdx = "(int)threadIdx.x";
     CondStream << "(" << PrintInfoToCondFunc(CurrentThreadIdx, TInfo) << ")";
     CondStream.flush();
 
@@ -196,62 +197,8 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
   // -----------------------------------------------------------------
   // TODO: Add comments
 
-  llvm::raw_string_ostream VarStream{NewBlockInfoString};
-
-  // Comments
-  VarStream << "  /*\n"
-            << "   * KernelID_ means...\n";
-
-  for (long unsigned I = 0; I < FContext.kernels.size(); ++I) {
-    string &KName = FContext.kernels[I];
-    VarStream << "   * " << I << ": " << KName << "\n";
-  }
-  VarStream << "   */\n";
-
-  // Declarations
-  VarStream << "  int gridDim_x_, gridDim_y_, gridDim_z_;\n"
-            << "  int blockIdx_x_, blockIdx_y_, blockIdx_z_;\n"
-            << "  int TotalBlockIdx_;\n"
-            << "  int KernelID_;\n"
-            << "  \n";
-
-  bool IsAllVisited = false;
-  for (long unsigned VI = 0; !IsAllVisited; ++VI) {
-    IsAllVisited = true;
-
-    for (long unsigned KI = 0; KI < FContext.kernels.size(); ++KI) {
-      auto &KName    = FContext.kernels[KI];
-      auto &KInfo    = FContext.kernelInfoMap.at(KName);
-      auto &KContext = FContext.kernelContextMap.at(KName);
-
-      auto &BInfo = KContext.blockIdxInfo;
-      auto &OBs   = KContext.otherBlocks;
-
-      if (VI >= BInfo.size())
-        continue;
-
-      IsAllVisited = false;
-      if (VI == 0 && KI == 0) { // first if case
-        VarStream << "  ";
-      } else {
-        VarStream << "  else ";
-      }
-
-      string CurrentBlockIdx = "blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y";
-      VarStream << "if " << PrintInfoToCondFunc(CurrentBlockIdx, BInfo[VI]) << "\n"
-                << "  {\n"
-                << "    TotalBlockIdx_ = " << CurrentBlockIdx << " - " << OBs[VI] << ";\n"
-                << "    KernelID_  = " << KI << ";\n"
-                << "    gridDim_x_ = " << KInfo.gridDim.x << ";\n"
-                << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
-                << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
-                << "  }\n";
-    }
-  }
-  VarStream << "  blockIdx_x_ = TotalBlockIdx_ % gridDim_x_;\n"
-            << "  blockIdx_y_ = TotalBlockIdx_ / gridDim_x_ % gridDim_y_;\n"
-            << "  blockIdx_z_ = TotalBlockIdx_ / (gridDim_x_ * gridDim_y_);\n";
-  VarStream.flush();
+  // NewBlockInfoString = algorithms::oldInterleaveBlockPattern(FContext);
+  NewBlockInfoString = algorithms::newInterleaveBlockPattern(FContext);
 
   return AnalysisContext{move(Kernels), move(ThreadNumMap), move(BranchConditionMap),
                          move(TmpBlockInfoString), move(NewBlockInfoString), move(NewFuncName), MaxThreadBound};

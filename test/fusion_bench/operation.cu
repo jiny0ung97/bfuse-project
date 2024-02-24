@@ -73,6 +73,17 @@ extern "C" __global__ __launch_bounds__(128) void softmax_shared_1036_softmax_sh
 extern "C" __global__ __launch_bounds__(128) void softmax_shared_2060_softmax_shared_2060_copy_fused_kernel_bfuse_idx_0(float *__restrict softmax_shared_2060_T_softmax_norm_, float *__restrict softmax_shared_2060_data_, float *__restrict softmax_shared_2060_copy_T_softmax_norm_, float *__restrict softmax_shared_2060_copy_data_);
 extern "C" __global__ __launch_bounds__(128) void softmax_shared_3084_softmax_shared_3084_copy_fused_kernel_bfuse_idx_0(float *__restrict softmax_shared_3084_T_softmax_norm_, float *__restrict softmax_shared_3084_data_, float *__restrict softmax_shared_3084_copy_T_softmax_norm_, float *__restrict softmax_shared_3084_copy_data_);
 
+// test
+extern "C" __global__ __launch_bounds__(256) void bgemm_shared_5120_conv2d_shared_2048_fused_kernel_bfuse_idx_0(float *__restrict bgemm_shared_5120_A_, float *__restrict bgemm_shared_5120_B_, float *__restrict bgemm_shared_5120_T_batch_matmul_NT_, float *__restrict conv2d_shared_2048_A_, float *__restrict conv2d_shared_2048_B_, float *__restrict conv2d_shared_2048_W_);
+
+extern "C" __global__ __launch_bounds__(58) void bgemm_conv2d_fused_kernel_bfuse_idx_0(float *__restrict bgemm_A_, float *__restrict bgemm_B_, float *__restrict bgemm_T_batch_matmul_NT_, float *__restrict conv2d_conv2d_nchw_, float *__restrict conv2d_data_, float *__restrict conv2d_kernel_);
+extern "C" __global__ void __launch_bounds__(8) bgemm_test(float* __restrict__ A, float* __restrict__ B, float* __restrict__ T_batch_matmul_NT);
+extern "C" __global__ void __launch_bounds__(58) conv2d_test(float* __restrict__ conv2d_nchw, float* __restrict__ data, float* __restrict__ kernel);
+
+extern "C" __global__ void __launch_bounds__(256) conv2d_small(float* __restrict__ A, float* __restrict__ B, float* __restrict__ W);
+extern "C" __global__ void __launch_bounds__(64) conv2d_large(float* __restrict__ A, float* __restrict__ B, float* __restrict__ W);
+__global__ __launch_bounds__(320, 0) void conv2d_small_conv2d_large_fused_kernel_hfuse_idx_1(float *__restrict A0, float *__restrict B1, float *__restrict W2, float *__restrict A8, float *__restrict B9, float *__restrict W10);
+extern "C" __global__ __launch_bounds__(256) void conv2d_small_conv2d_large_fused_kernel_bfuse_idx_0(float *__restrict conv2d_small_A_, float *__restrict conv2d_small_B_, float *__restrict conv2d_small_W_, float *__restrict conv2d_large_A_, float *__restrict conv2d_large_B_, float *__restrict conv2d_large_W_);
 //----------------------------------------------------------------------------------------------------
 void conv2d_initialize()
 {
@@ -117,6 +128,23 @@ void softmax_initialize()
   return;
 }
 //----------------------------------------------------------------------------------------------------
+void test_initialize()
+{
+  CHECK_CUDA(cudaMalloc(&I0_gpu, 128 * 64 * 56 * 56 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&F0_gpu, 128 * 64 * 1 * 1 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&O0_gpu, 128 * 64 * 58 * 58 * sizeof(float)));
+
+  // CHECK_CUDA(cudaMalloc(&I1_gpu, 32 * 1 * 1 * 512 * sizeof(float)));
+  // CHECK_CUDA(cudaMalloc(&F1_gpu, 32 * 1 * 1000 * 512 * sizeof(float)));
+  // CHECK_CUDA(cudaMalloc(&O1_gpu, 32 * 1 * 1 * 1000 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&I1_gpu, 64 * 64 * 56 * 56 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&F1_gpu, 64 * 64 * 3 * 3 * sizeof(float)));
+  CHECK_CUDA(cudaMalloc(&O1_gpu, 64 * 64 * 56 * 56 * sizeof(float)));
+
+  CHECK_CUDA(cudaStreamCreate(&S0));
+  CHECK_CUDA(cudaStreamCreate(&S1));
+}
+//----------------------------------------------------------------------------------------------------
 void conv2d_finalize()
 {
   CHECK_CUDA(cudaStreamDestroy(S1));
@@ -154,6 +182,20 @@ void softmax_finalize()
   CHECK_CUDA(cudaFree(I1_gpu));
 
   CHECK_CUDA(cudaFree(O0_gpu));
+  CHECK_CUDA(cudaFree(I0_gpu));
+}
+//----------------------------------------------------------------------------------------------------
+void test_finalize()
+{
+  CHECK_CUDA(cudaStreamDestroy(S1));
+  CHECK_CUDA(cudaStreamDestroy(S0));
+
+  CHECK_CUDA(cudaFree(O1_gpu));
+  CHECK_CUDA(cudaFree(F1_gpu));
+  CHECK_CUDA(cudaFree(I1_gpu));
+
+  CHECK_CUDA(cudaFree(O0_gpu));
+  CHECK_CUDA(cudaFree(F0_gpu));
   CHECK_CUDA(cudaFree(I0_gpu));
 }
 //----------------------------------------------------------------------------------------------------
@@ -558,5 +600,84 @@ void softmax_bfuse(size_t shared_level, float *I0, float *O0, float *I1, float *
   CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 128 * 1 * 1 * 1000 * sizeof(float),
                         cudaMemcpyDeviceToHost));
   return;
+}
+//----------------------------------------------------------------------------------------------------
+void test(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
+{
+  CHECK_CUDA(cudaMemcpy(I0_gpu, I0, 128 * 64 * 56 * 56 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F0_gpu, F0, 128 * 64 * 1 * 1 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  // CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 32 * 1 * 1 * 512 * sizeof(float),
+  //                       cudaMemcpyHostToDevice));
+  // CHECK_CUDA(cudaMemcpy(F1_gpu, F1, 32 * 1 * 1000 * 512 * sizeof(float),
+  //                       cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(I1_gpu, I1, 64 * 64 * 56 * 56 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+  CHECK_CUDA(cudaMemcpy(F1_gpu, F1, 64 * 64 * 3 * 3 * sizeof(float),
+                        cudaMemcpyHostToDevice));
+
+  // parallel1
+  // dim3 gridDim0{125, 1, 32}; // bgemm
+  // dim3 blockDim0{8, 1, 1};
+  // dim3 gridDim1{2, 29, 32}; // conv2d
+  // dim3 blockDim1{29, 1, 2};
+
+  // bgemm_test<<<gridDim0, blockDim0, 0, S0>>>(I1_gpu, F1_gpu, O1_gpu);
+  // conv2d_test<<<gridDim1, blockDim1, 0, S1>>>(O0_gpu, I0_gpu, F0_gpu);
+
+  dim3 gridDim0{1, 1, 3364}; // conv2d_small
+  dim3 blockDim0{16, 16, 1};
+  dim3 gridDim1{1, 1, 3136}; // conv2d_large
+  dim3 blockDim1{8, 8, 1};
+
+  conv2d_small<<<gridDim0, blockDim0, 0, S0>>>(I0_gpu, O0_gpu, F0_gpu);
+  conv2d_large<<<gridDim1, blockDim1, 0, S1>>>(I1_gpu, O1_gpu, F1_gpu);
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
+
+  // dim3 gridDim{4000 + 1856, 1, 1};
+  // dim3 blockDim{58, 1, 1};
+
+  // bgemm_conv2d_fused_kernel_bfuse_idx_0<<<gridDim, blockDim>>>(I1_gpu, F1_gpu, O1_gpu, O0_gpu, I0_gpu, F0_gpu);
+  // CHECK_CUDA(cudaDeviceSynchronize());
+  // CHECK_CUDA(cudaGetLastError());
+
+  // HFuse
+  dim3 gridDim2{1, 1, 3364};
+  dim3 blockDim2{256 + 64, 1, 1};
+  
+  conv2d_small_conv2d_large_fused_kernel_hfuse_idx_1<<<gridDim2, blockDim2>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
+
+  // BFuse
+  dim3 gridDim3{3364 + 3136, 1, 1};
+  dim3 blockDim3{256, 1, 1};
+
+  conv2d_small_conv2d_large_fused_kernel_bfuse_idx_0<<<gridDim3, blockDim3>>>(I0_gpu, O0_gpu, F0_gpu, I1_gpu, O1_gpu, F1_gpu);
+  CHECK_CUDA(cudaDeviceSynchronize());
+  CHECK_CUDA(cudaGetLastError());
+
+  // CHECK_CUDA(cudaMemcpy(O0, O0_gpu, 64 * 128 * 14 * 14 * sizeof(float),
+  //                       cudaMemcpyDeviceToHost));
+  // CHECK_CUDA(cudaMemcpy(O1, O1_gpu, 8 * 1 * 512 * 512 * sizeof(float),
+  //                       cudaMemcpyDeviceToHost));
+  return;
+}
+//----------------------------------------------------------------------------------------------------
+void conv2d_bgemm_parallel(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
+{
+  
+}
+//----------------------------------------------------------------------------------------------------
+void conv2d_bgemm_hfuse(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
+{
+
+}
+//----------------------------------------------------------------------------------------------------
+void conv2d_bgemm_bfuse(size_t shared_level, float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
+{
+
 }
 //----------------------------------------------------------------------------------------------------

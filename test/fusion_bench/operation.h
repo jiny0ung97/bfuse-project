@@ -33,11 +33,16 @@ void softmax_hfuse(size_t shared_level,
 void softmax_bfuse(size_t shared_level,
                    float *I0, float *O0,
                    float *I1, float *O1);
+void test(size_t shared_level,
+          float *I0, float *F0, float *O0,
+          float *I1, float *F1, float *O1);
 
 void conv2d_initialize();
 void bgemm_initialize();
 void softmax_initialize();
+void test_initialize();
 
 void conv2d_finalize();
 void bgemm_finalize();
 void softmax_finalize();
+void test_finalize();

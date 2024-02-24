@@ -33,6 +33,12 @@ OBJECTS=main.cpp.o utils.cpp.o operation.cu.o   			 \
 		HFuse/softmax_shared_1036_softmax_shared_1036_copy_.cu.o \
 		HFuse/softmax_shared_2060_softmax_shared_2060_copy_.cu.o \
 		HFuse/softmax_shared_3084_softmax_shared_3084_copy_.cu.o \
+		BFuse/bgemm_shared_5120_conv2d_shared_2048_.cu.o \
+		BFuse/bgemm_conv2d_.cu.o \
+		cuda/bgemm_conv2d_.cu.o \
+		BFuse/conv2d_small_conv2d_large_.cu.o \
+		cuda/conv2d_small_conv2d_large_.cu.o \
+		HFuse/conv2d_small_conv2d_large_.cu.o \
 		# HFuse/bgemm_shared_7168_bgemm_shared_7168_copy_.cu.o \
 		# HFuse/bgemm_shared_8192_bgemm_shared_8192_copy_.cu.o \
 		# HFuse/conv2d_shared_8192_conv2d_shared_8192_copy_.cu.o \

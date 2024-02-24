@@ -313,3 +313,69 @@ softmax_shared_3084_copy:
   Reg: 32
   ExecTime: -1
 #############################################################################
+bgemm:
+  KernelName: bgemm
+  HasBarriers: true
+  GridDim:
+    X: 125
+    Y: 1
+    Z: 32
+  BlockDim:
+    X: 8
+    Y: 1
+    Z: 1
+  Reg: 32
+  ExecTime: -1
+# conv2d_small:
+#   KernelName: conv2d_small
+#   HasBarriers: true
+#   GridDim:
+#     X: 1856
+#     Y: 1
+#     Z: 1
+#   BlockDim:
+#     X: 116
+#     Y: 1
+#     Z: 1
+#   Reg: 32
+#   ExecTime: -1
+# conv2d_large:
+#   KernelName: conv2d_large
+#   HasBarriers: true
+#   GridDim:
+#     X: 224
+#     Y: 1
+#     Z: 1
+#   BlockDim:
+#     X: 256
+#     Y: 1
+#     Z: 1
+#   Reg: 32
+#   ExecTime: -1
+conv2d_small:
+  KernelName: conv2d_small
+  HasBarriers: true
+  GridDim:
+    X: 1
+    Y: 1
+    Z: 3364
+  BlockDim:
+    X: 16
+    Y: 16
+    Z: 1
+  Reg: 32
+  ExecTime: -1
+conv2d_large:
+  KernelName: conv2d_large
+  HasBarriers: true
+  GridDim:
+    X: 1
+    Y: 1
+    Z: 3136
+  BlockDim:
+    X: 8
+    Y: 8
+    Z: 1
+  Reg: 32
+  ExecTime: -1
+#############################################################################

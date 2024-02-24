@@ -64,7 +64,9 @@ StatementMatcher ASTPatternMatcher::getBlockIdxMatcher(const string &KName)
                    to(varDecl(
                      anyOf(
                        hasName("gridDim"),
-                       hasName("blockIdx")
+                       hasName("blockIdx"),
+                       hasName("blockDim"),
+                       hasName("threadIdx")
                      )).bind(CUDABlockIdxVar)
            ))))),
            hasAncestor(

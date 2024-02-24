@@ -120,11 +120,18 @@ FusionContext FusionContext::create(FusionInfo &FInfo, map<string, KernelInfo> &
 AnalysisContext AnalysisContext::create(FusionContext &FContext)
 {
   // Lambda function
-  auto PrintInfoToCondFunc = [](string V, auto &Info) {
+  // auto PrintInfoToCondFunc = [](string V, auto &Info) {
+  //   string Str;
+  //   llvm::raw_string_ostream RawStream{Str};
+  //   RawStream << "(" << V << " >= " << Info.first << " && "
+  //             << V << " < " << Info.second << ")";
+  //   RawStream.flush();
+  //   return Str;
+  // };
+  auto PrintInfoToCondFunc = [](string V, int bound) {
     string Str;
     llvm::raw_string_ostream RawStream{Str};
-    RawStream << "(" << V << " >= " << Info.first << " && "
-              << V << " < " << Info.second << ")";
+    RawStream << "(" << V << " < " << bound << ")";
     RawStream.flush();
     return Str;
   };
@@ -160,6 +167,7 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
 
   for (long unsigned I = 0; I < FContext.kernels.size(); ++I) {
     auto &KName    = FContext.kernels[I];
+    auto &KInfo    = FContext.kernelInfoMap.at(KName);
     auto &KContext = FContext.kernelContextMap.at(KName);
     auto &TInfo    = KContext.threadIdxInfo;
 
@@ -170,9 +178,13 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
     CondStream << "(KernelID_ == " << I << ") && ";
 
     // threadIdx condition check
-    // string CurrentThreadIdx = "threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y";
+    // string CurrentThreadIdx = "(int)(threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y)";
     string CurrentThreadIdx = "(int)threadIdx.x";
-    CondStream << "(" << PrintInfoToCondFunc(CurrentThreadIdx, TInfo) << ")";
+    // CondStream << "(" << PrintInfoToCondFunc(CurrentThreadIdx, TInfo) << ")";
+    CondStream << PrintInfoToCondFunc(CurrentThreadIdx, KInfo.blockDim.size());
+    // CondStream << PrintInfoToCondFunc("threadIdx.x", KInfo.blockDim.x) << " && "
+    //            << PrintInfoToCondFunc("threadIdx.y", KInfo.blockDim.y) << " && "
+    //            << PrintInfoToCondFunc("threadIdx.z", KInfo.blockDim.z);
     CondStream.flush();
 
     BranchConditionMap[KName] = CondStr;
@@ -190,7 +202,13 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
                << "  int gridDim_z_  = 0;\n"
                << "  int blockIdx_x_ = 0;\n"
                << "  int blockIdx_y_ = 0;\n"
-               << "  int blockIdx_z_ = 0;\n";
+               << "  int blockIdx_z_ = 0;\n"
+               << "  int blockDim_x_  = 0;\n"
+               << "  int blockDim_y_  = 0;\n"
+               << "  int blockDim_z_  = 0;\n"
+               << "  int threadIdx_x_ = 0;\n"
+               << "  int threadIdx_y_ = 0;\n"
+               << "  int threadIdx_z_ = 0;\n";
   TmpVarStream.flush();
 
   // 4. Initialize NewBlockInfoString

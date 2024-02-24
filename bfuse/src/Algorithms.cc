@@ -231,7 +231,8 @@ string newInterleaveBlockPattern(FusionContext &FContext)
     return Str;
   };
   // string CurrentBlockIdx = "(int)(blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y)";
-  string CurrentBlockIdx = "(int)blockIdx.x";
+  string CurrentBlockIdx  = "(int)blockIdx.x";
+  string CurrentThreadIdx = "(int)threadIdx.x";
 
   string NewBlockInfoString;
   llvm::raw_string_ostream VarStream{NewBlockInfoString};
@@ -247,10 +248,10 @@ string newInterleaveBlockPattern(FusionContext &FContext)
   VarStream << "   */\n";
 
   // Declarations
-  // VarStream << "  int gridDim_x_, gridDim_y_, gridDim_z_;\n"
-  //           << "  int blockIdx_x_, blockIdx_y_, blockIdx_z_;\n"
-  VarStream << "  int gridDim_x_;\n"
-            << "  int blockIdx_x_;\n"
+  VarStream << "  int gridDim_x_, gridDim_y_, gridDim_z_;\n"
+            << "  int blockIdx_x_, blockIdx_y_, blockIdx_z_;\n"
+            << "  int blockDim_x_, blockDim_y_, blockDim_z_;\n"
+            << "  int threadIdx_x_, threadIdx_y_, threadIdx_z_;\n"
             << "  int NewBlockIdx_;\n"
             << "  int KernelID_;\n"
             << "  \n";
@@ -262,13 +263,13 @@ string newInterleaveBlockPattern(FusionContext &FContext)
     string &KName = SortedKernels[I];
     auto &KInfo   = FContext.kernelInfoMap.at(KName);
 
-    if (I == 0) { // first if case
-      VarStream << "  ";
-    } else {
-      VarStream << "  else ";
-    }
-
     for (long unsigned J = 0; J <= I; ++J) {
+      if (I == 0) { // first if case
+        VarStream << "  ";
+      } else {
+        VarStream << "  else ";
+      }
+      
       if (T[J] == T[J+1])
         continue;
 
@@ -282,18 +283,19 @@ string newInterleaveBlockPattern(FusionContext &FContext)
         BeforeBlocks    = KInfoJ2.gridDim.size() - KInfoJ2.gridDim.size() % TotalSM;
       }
 
-      // NewBlockIdx = BeforeBlocks + (blockIdx / (TotalSM * (TotalKernels - J))) * TotalSM + blockIdx % TotalSM
-      //             = BeforeBlocks + (blockIdx - blockIdx % (TotalSM * (TotalKernels - J))) / (TotalKernels - J) + blockIdx % TotalSM
+      // NewBlockIdx = BeforeBlocks + (blockIdx - T[J]) / (TotalSM * (TotalKernels - J)) * TotalSM + blockIdx % TotalSM
       VarStream << "if " << PrintCondFunc(CurrentBlockIdx, I, J) << "\n"
                 << "  {\n"
-                << "    NewBlockIdx_ = " << BeforeBlocks
-                                         << " + (" << CurrentBlockIdx << " - "
-                                         << CurrentBlockIdx << " % " << TotalSM * (FContext.kernels.size() - J) << ") / " << FContext.kernels.size() - J
-                                         << " + " << CurrentBlockIdx << " % " << TotalSM << ";\n"
+                << "    NewBlockIdx_ = " << BeforeBlocks << " + "
+                                         << "((" << CurrentBlockIdx << " - " << T[J] << ") / " << TotalSM * (SortedKernels.size() - J) << ") * " << TotalSM << " + "
+                                         << CurrentBlockIdx << " % " << TotalSM << ";\n"
                 << "    KernelID_  = " << KI << ";\n"
                 << "    gridDim_x_ = " << KInfo.gridDim.x << ";\n"
-                // << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
-                // << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
+                << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
+                << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
+                << "    blockDim_x_ = " << KInfo.blockDim.x << ";\n"
+                << "    blockDim_y_ = " << KInfo.blockDim.y << ";\n"
+                << "    blockDim_z_ = " << KInfo.blockDim.z << ";\n"
                 << "  }\n";
     }
   }
@@ -321,20 +323,26 @@ string newInterleaveBlockPattern(FusionContext &FContext)
 
     // NewBlockIdx = (TB(I) - TB(I) % TotalSM) + (blockIdx - BlockSum)
     //             = blockIdx - (BlockSum - (TB(I) - TB(I) % TotalSM))
+    //             = blockIdx 
     VarStream << "  else if " << PrintPairCondFunc(CurrentBlockIdx, BlockSum, BlockSum + KInfo.gridDim.size() % TotalSM) << "\n"
               << "  {\n"
               << "    NewBlockIdx_ = " << CurrentBlockIdx << " - " << BlockSum - (KInfo.gridDim.size() - KInfo.gridDim.size() % TotalSM) << ";\n"
               << "    KernelID_  = " << KI << ";\n"
               << "    gridDim_x_ = " << KInfo.gridDim.x << ";\n"
-              // << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
-              // << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
+              << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
+              << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
+              << "    blockDim_x_ = " << KInfo.blockDim.x << ";\n"
+              << "    blockDim_y_ = " << KInfo.blockDim.y << ";\n"
+              << "    blockDim_z_ = " << KInfo.blockDim.z << ";\n"
               << "  }\n";
   }
 
-  // VarStream << "  blockIdx_x_ = NewBlockIdx_ % gridDim_x_;\n"
-  //           << "  blockIdx_y_ = NewBlockIdx_ / gridDim_x_ % gridDim_y_;\n"
-  //           << "  blockIdx_z_ = NewBlockIdx_ / (gridDim_x_ * gridDim_y_);\n";
-  VarStream << "  blockIdx_x_ = NewBlockIdx_;\n";
+  VarStream << "  blockIdx_x_ = NewBlockIdx_ % gridDim_x_;\n"
+            << "  blockIdx_y_ = NewBlockIdx_ / gridDim_x_ % gridDim_y_;\n"
+            << "  blockIdx_z_ = NewBlockIdx_ / (gridDim_x_ * gridDim_y_);\n"
+            << "  threadIdx_x_ = " << CurrentThreadIdx << " % blockDim_x_;\n"
+            << "  threadIdx_y_ = " << CurrentThreadIdx << " / blockDim_x_ % blockDim_y_;\n"
+            << "  threadIdx_z_ = " << CurrentThreadIdx << " / (blockDim_x_ * blockDim_y_);\n";
   VarStream.flush();
 
   return NewBlockInfoString;
@@ -422,6 +430,9 @@ getShrdVarAnalysis(const AnalysisContext &AContext, VarListMapTy &VarListMap, US
     MaxSize    = 0;
 
     for (auto &KName : AContext.Kernels) {
+      if (ShrdVarListMap.find(KName) == ShrdVarListMap.end())
+        continue;
+        
       auto &ShrdVarSizeList = ShrdVarSizeListMap.at(KName);
 
       if (I >= ShrdVarSizeList.size())

@@ -1,0 +1,36 @@
+# from tvm.script import ir as I
+# from tvm.script import tir as T
+
+@I.ir_module
+class Module:
+    @T.prim_func
+    def main(A: T.Buffer((32, 1, 512), "float32"), B: T.Buffer((32, 1000, 512), "float32"), T_batch_matmul_NT: T.Buffer((32, 1, 1000), "float32")):
+        T.func_attr({"from_legacy_te_schedule": T.bool(True), "tir.noalias": T.bool(True)})
+        blockIdx_z = T.launch_thread("blockIdx.z", 32)
+        T_batch_matmul_NT_local = T.allocate([1], "float32", "local")
+        A_shared = T.allocate([8], "float32", "shared")
+        B_shared = T.allocate([64], "float32", "shared")
+        A_shared_local = T.allocate([1], "float32", "local")
+        B_shared_local = T.allocate([1], "float32", "local")
+        blockIdx_y = T.launch_thread("blockIdx.y", 1)
+        blockIdx_x = T.launch_thread("blockIdx.x", 125)
+        threadIdx_y = T.launch_thread("threadIdx.y", 1)
+        threadIdx_x = T.launch_thread("threadIdx.x", 8)
+        T_batch_matmul_NT_local_1 = T.Buffer((1,), data=T_batch_matmul_NT_local, scope="local", align=4)
+        T_batch_matmul_NT_local_1[0] = T.float32(0)
+        for k_outer in range(64):
+            A_shared_1 = T.Buffer((8,), data=A_shared, scope="shared", align=32)
+            A_1 = T.Buffer((16384,), data=A.data)
+            A_shared_1[threadIdx_x] = A_1[blockIdx_z * 512 + k_outer * 8 + threadIdx_x]
+            B_shared_1 = T.Buffer((64,), data=B_shared, scope="shared")
+            for ax1_inner in T.unroll(8):
+                B_1 = T.Buffer((16384000,), data=B.data)
+                B_shared_1[ax1_inner * 8 + threadIdx_x] = B_1[blockIdx_z * 512000 + blockIdx_x * 4096 + ax1_inner * 512 + k_outer * 8 + threadIdx_x]
+            for k_inner in range(8):
+                A_shared_local_1 = T.Buffer((1,), data=A_shared_local, scope="local", align=4)
+                A_shared_local_1[0] = A_shared_1[k_inner]
+                B_shared_local_1 = T.Buffer((1,), data=B_shared_local, scope="local", align=4)
+                B_shared_local_1[0] = B_shared_1[threadIdx_x * 8 + k_inner]
+                T_batch_matmul_NT_local_1[0] = T_batch_matmul_NT_local_1[0] + A_shared_local_1[0] * B_shared_local_1[0]
+        T_batch_matmul_NT_1 = T.Buffer((32000,), data=T_batch_matmul_NT.data)
+        T_batch_matmul_NT_1[blockIdx_z * 1000 + blockIdx_x * 8 + threadIdx_x] = T_batch_matmul_NT_local_1[0]

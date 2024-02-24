@@ -116,8 +116,8 @@ int FusionTool::rewriteCUDAVariables(const AnalysisContext &AContext)
   for (auto &KName : AContext.Kernels) {
     Finder.addMatcher(ASTPatternMatcher::getBlockIdxMatcher(KName),
                       &BInfoRewriter);
-    Finder.addMatcher(ASTPatternMatcher::getSyncMatcher(KName),
-                      &SyncRewriter);
+    // Finder.addMatcher(ASTPatternMatcher::getSyncMatcher(KName),
+    //                   &SyncRewriter);
   }
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }

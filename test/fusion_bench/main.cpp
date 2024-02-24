@@ -14,7 +14,7 @@ static size_t shared_level   = 0;
 
 static size_t T = 0;
 
-static const char *operation_type_string[] = {"conv2d", "bgemm", "softmax"};
+static const char *operation_type_string[] = {"conv2d", "bgemm", "softmax", "test"};
 static const char *operation_fusion_type_string[] = {"parallel", "HFuse", "BFuse"};
 //----------------------------------------------------------------------------------------------------
 static void print_help(const char *prog_name)
@@ -32,6 +32,7 @@ static void print_help(const char *prog_name)
   printf("            0 : conv2d\n");
   printf("            1 : bgemm\n");
   printf("            2 : softmax\n");
+  printf("            3 : test\n");
 }
 //----------------------------------------------------------------------------------------------------
 static void parse_opt(int argc, char **argv)
@@ -153,6 +154,25 @@ int main(int argc, char **argv)
 
     rand_tensor(I0, 128, 1, 1, 1000);
     rand_tensor(I1, 128, 1, 1, 1000);
+    break;
+  case 3:
+    alloc_tensor(&I0, 128, 64, 56, 56);
+    alloc_tensor(&F0, 128, 64, 1, 1);
+    alloc_tensor(&O0, 128, 64, 58, 58);
+    // alloc_tensor(&I1, 32, 1, 1, 512);
+    // alloc_tensor(&F1, 32, 1, 1000, 512);
+    // alloc_tensor(&O1, 32, 1, 1, 1000);
+    alloc_tensor(&I1, 64, 64, 56, 56);
+    alloc_tensor(&F1, 64, 64, 3, 3);
+    alloc_tensor(&O1, 64, 64, 56, 56);
+
+    rand_tensor(I0, 128, 64, 56, 56);
+    rand_tensor(F0, 128, 64, 1, 1);
+    // rand_tensor(I1, 32, 1, 1, 512);
+    // rand_tensor(F1, 32, 1, 1000, 512);
+    rand_tensor(I1, 64, 64, 56, 56);
+    rand_tensor(F1, 64, 64, 3, 3);
+    break;
   default:
     break;
   }
@@ -169,6 +189,9 @@ int main(int argc, char **argv)
   case 2:
     softmax_initialize();
     break;
+  case 3:
+    test_initialize();
+    break;
   }
 
   /* Run few warmup iterations... */
@@ -183,10 +206,15 @@ int main(int argc, char **argv)
     case 1:
       zero_tensor(O0, 128, 1, 1024, 1024);
       zero_tensor(O1, 128, 1, 1024, 1024);
+      break;
     case 2:
       zero_tensor(O0, 128, 1, 1, 1000);
       zero_tensor(O1, 128, 1, 1, 1000);
-    default:
+      break;
+    case 3:
+      zero_tensor(O0, 128, 64, 58, 58);
+      // zero_tensor(O1, 32, 1, 1, 1000);
+      zero_tensor(O1, 64, 64, 56, 56);
       break;
     }
 
@@ -216,6 +244,9 @@ int main(int argc, char **argv)
       else if (fusion_type == 2)
         softmax_bfuse(shared_level, I0, O0, I1, O1);
       break;
+    case 3:
+      test(shared_level, I0, F0, O0, I1, F1, O1);
+      break;
     }
   }
 
@@ -237,10 +268,15 @@ int main(int argc, char **argv)
     case 1:
       zero_tensor(O0, 128, 1, 1024, 1024);
       zero_tensor(O1, 128, 1, 1024, 1024);
+      break;
     case 2:
       zero_tensor(O0, 128, 1, 1, 1000);
       zero_tensor(O1, 128, 1, 1, 1000);
-    default:
+      break;
+    case 3:
+      zero_tensor(O0, 128, 64, 58, 58);
+      // zero_tensor(O1, 32, 1, 1, 1000);
+      zero_tensor(O1, 64, 64, 56, 56);
       break;
     }
 
@@ -271,6 +307,9 @@ int main(int argc, char **argv)
       else if (fusion_type == 2)
         softmax_bfuse(shared_level, I0, O0, I1, O1);
       break;
+    case 3:
+      test(shared_level, I0, F0, O0, I1, F1, O1);
+      break;
     }
     elapsed_time_iter += get_current_time();
 
@@ -295,6 +334,8 @@ int main(int argc, char **argv)
       check_softmax(I0, O0);
       check_softmax(I1, O1);
       break;
+    case 3:
+      break;
     }
   }
 
@@ -317,12 +358,15 @@ int main(int argc, char **argv)
   case 2:
     softmax_finalize();
     break;
+  case 3:
+    test_finalize();
   }
 
   switch (T)
   {
   case 0:
   case 1:
+  case 3:
     free(O1);
     free(F1);
     free(I1);

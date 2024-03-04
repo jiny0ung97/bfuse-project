@@ -19,7 +19,7 @@
   #define int64_t long long
   #define uint64_t unsigned long long
 #endif
-extern "C" __global__ void __launch_bounds__(112) conv2d(float* __restrict__ conv2d_nchw, float* __restrict__ data, float* __restrict__ kernel) {
+extern "C" __global__ void __launch_bounds__(112) default_function_kernel(float* __restrict__ conv2d_nchw, float* __restrict__ data, float* __restrict__ kernel) {
   float conv2d_nchw_local[64];
   __shared__ float pad_temp_shared[448];
   __shared__ float kernel_shared[256];

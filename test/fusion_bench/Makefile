@@ -39,6 +39,10 @@ OBJECTS=main.cpp.o utils.cpp.o operation.cu.o   			 \
 		BFuse/conv2d_small_conv2d_large_.cu.o \
 		cuda/conv2d_small_conv2d_large_.cu.o \
 		HFuse/conv2d_small_conv2d_large_.cu.o \
+		cuda/conv2d_softmax_.cu.o \
+		BFuse/conv2d_softmax_.cu.o \
+		cuda/conv2d_depConv2d_.cu.o \
+		BFuse/conv2d_depConv2d_.cu.o \
 		# HFuse/bgemm_shared_7168_bgemm_shared_7168_copy_.cu.o \
 		# HFuse/bgemm_shared_8192_bgemm_shared_8192_copy_.cu.o \
 		# HFuse/conv2d_shared_8192_conv2d_shared_8192_copy_.cu.o \

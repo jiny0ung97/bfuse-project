@@ -52,16 +52,34 @@ def get_network(name, batch_size, layout="NHWC", dtype="float32"):
     elif name == "inception_v3":
         input_shape = (batch_size, 3, 299, 299) if layout == "NCHW" else (batch_size, 299, 299, 3)
         mod, params = relay.testing.inception_v3.get_workload(batch_size=batch_size, dtype=dtype)
+    elif name.startswith("densenet-"):
+        assert layout == "NCHW", "densenet only supports NCHW layout"
+        densnet_size = int(name.split("-")[1])
+        mod, params = relay.testing.densenet.get_workload(
+            densenet_size=densnet_size,
+            classes=1000,
+            batch_size=batch_size,
+            dtype=dtype,
+            image_shape=image_shape,
+        )
+    elif name.startswith("unet-"):
+        n_layer = int(name.split("-")[1])
+        shape   = (1,1,256,256)
+        input0  = torch.randn(shape).half().cuda()
+        path  = 'unet2d_fp16.trace'
+        trace = torch.jit.load(path).half().cuda()
+        mod, params = relay.frontend.from_pytorch(trace, [('input0',input0.shape)], default_dtype='float16')
     return mod, params, input_shape, output_shape
 #-------------------------------------------------------------------------------#
 # Main Function
 def main():
     # Define the neural network and compilation target
-    network = "resnet-18"
+    network    = "mobilenet"
     batch_size = 1
-    layout = "NCHW"
-    target = tvm.target.Target("cuda")
-    dtype = "float32"
+    layout     = "NCHW"
+    target     = tvm.target.Target("cuda")
+    dtype      = "float32"
+    file       = "network/%s.txt" % (network)
 
     #################################################################
     # Extract Search Tasks
@@ -77,11 +95,16 @@ def main():
     # Extract tasks from the network
     print("Extract tasks...")
     mod, params, input_shape, output_shape = get_network(network, batch_size, layout, dtype=dtype)
-    tasks, task_weights = auto_scheduler.extract_tasks(mod["main"], params, target)
 
-    for idx, task in enumerate(tasks):
-        print("========== Task %d  (workload key: %s) ==========" % (idx, task.workload_key))
-        print(task.compute_dag)
+    with open(file, "w+") as f:
+        f.write(str(mod))
+
+    # tasks, task_weights = auto_scheduler.extract_tasks(mod["main"], params, target)
+
+    # with open(file, "w+") as f:
+    #     for idx, task in enumerate(tasks):
+    #         f.write("\n========== Task %d  (workload key: %s) ==========\n" % (idx, task.workload_key))
+    #         f.write(str(task.compute_dag))
 #-------------------------------------------------------------------------------#
 if __name__ == "__main__":
     main()

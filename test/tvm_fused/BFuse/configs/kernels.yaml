@@ -378,4 +378,30 @@ conv2d_large:
     Z: 1
   Reg: 32
   ExecTime: -1
+conv2d:
+  KernelName: conv2d
+  HasBarriers: true
+  GridDim:
+    X: 1
+    Y: 28
+    Z: 32
+  BlockDim:
+    X: 56
+    Y: 1
+    Z: 2
+  Reg: 32
+  ExecTime: -1
+depConv2d:
+  KernelName: depConv2d
+  HasBarriers: true
+  GridDim:
+    X: 1
+    Y: 1
+    Z: 16384
+  BlockDim:
+    X: 28
+    Y: 4
+    Z: 1
+  Reg: 32
+  ExecTime: -1
 #############################################################################

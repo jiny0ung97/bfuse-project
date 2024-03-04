@@ -1,0 +1,55 @@
+# from tvm.script import ir as I
+# from tvm.script import tir as T
+
+@I.ir_module
+class Module:
+    @T.prim_func
+    def main(data: T.Buffer((128, 128, 56, 56), "float32"), kernel: T.Buffer((128, 1, 3, 3), "float32"), DepthwiseConv2d: T.Buffer((128, 128, 28, 28), "float32")):
+        T.func_attr({"from_legacy_te_schedule": T.bool(True), "tir.noalias": T.bool(True)})
+        blockIdx_z = T.launch_thread("blockIdx.z", 16384)
+        PaddedInput_shared = T.allocate([3249], "float32", "shared")
+        kernel_shared = T.allocate([9], "float32", "shared")
+        PaddedInput_shared_local = T.allocate([45], "float32", "local")
+        kernel_shared_local = T.allocate([9], "float32", "local")
+        DepthwiseConv2d_local = T.allocate([7], "float32", "local")
+        blockIdx_y = T.launch_thread("blockIdx.y", 1)
+        blockIdx_x = T.launch_thread("blockIdx.x", 1)
+        PaddedInput_shared_1 = T.Buffer((3249,), data=PaddedInput_shared, scope="shared")
+        for ax0_ax1_fused_ax2_fused_ax3_fused_outer_outer_outer in T.unroll(30):
+            threadIdx_z = T.launch_thread("threadIdx.z", 1)
+            threadIdx_y = T.launch_thread("threadIdx.y", 4)
+            threadIdx_x = T.launch_thread("threadIdx.x", 28)
+            if T.likely(ax0_ax1_fused_ax2_fused_ax3_fused_outer_outer_outer * 112 + threadIdx_y * 28 + threadIdx_x < 3249):
+                if T.likely(ax0_ax1_fused_ax2_fused_ax3_fused_outer_outer_outer * 4 + threadIdx_y < 117):
+                    data_1 = T.Buffer((51380224,), data=data.data)
+                    PaddedInput_shared_1[ax0_ax1_fused_ax2_fused_ax3_fused_outer_outer_outer * 112 + threadIdx_y * 28 + threadIdx_x] = T.if_then_else(57 <= ax0_ax1_fused_ax2_fused_ax3_fused_outer_outer_outer * 112 + threadIdx_y * 28 + threadIdx_x and 1 <= (ax0_ax1_fused_ax2_fused_ax3_fused_outer_outer_outer * 112 + threadIdx_y * 28 + threadIdx_x) % 57, data_1[blockIdx_z * 3136 + (ax0_ax1_fused_ax2_fused_ax3_fused_outer_outer_outer * 112 + threadIdx_y * 28 + threadIdx_x) // 57 * 56 + (ax0_ax1_fused_ax2_fused_ax3_fused_outer_outer_outer * 112 + threadIdx_y * 28 + threadIdx_x) % 57 - 57], T.float32(0))
+        kernel_shared_1 = T.Buffer((9,), data=kernel_shared, scope="shared", align=32)
+        with T.launch_thread("threadIdx.z", 1) as threadIdx_z:
+            threadIdx_y = T.launch_thread("threadIdx.y", 4)
+            threadIdx_x = T.launch_thread("threadIdx.x", 28)
+            if T.likely(threadIdx_y * 28 + threadIdx_x < 9):
+                if T.likely(threadIdx_y < 1):
+                    kernel_1 = T.Buffer((1152,), data=kernel.data)
+                    kernel_shared_1[threadIdx_y * 28 + threadIdx_x] = kernel_1[threadIdx_y * 28 + blockIdx_z % 128 * 9 + threadIdx_x]
+        threadIdx_z = T.launch_thread("threadIdx.z", 1)
+        threadIdx_y = T.launch_thread("threadIdx.y", 4)
+        threadIdx_x = T.launch_thread("threadIdx.x", 28)
+        PaddedInput_shared_local_1 = T.Buffer((45,), data=PaddedInput_shared_local, scope="local")
+        for ax2 in T.unroll(15):
+            for ax3 in T.unroll(3):
+                PaddedInput_shared_local_1[ax2 * 3 + ax3] = PaddedInput_shared_1[threadIdx_y * 798 + ax2 * 57 + threadIdx_x * 2 + ax3]
+        kernel_shared_local_1 = T.Buffer((9,), data=kernel_shared_local, scope="local", align=32)
+        for ax2 in T.unroll(3):
+            for ax3 in T.unroll(3):
+                cse_var_1: T.int32 = ax2 * 3 + ax3
+                kernel_shared_local_1[cse_var_1] = kernel_shared_1[cse_var_1]
+        DepthwiseConv2d_local_1 = T.Buffer((7,), data=DepthwiseConv2d_local, scope="local", align=16)
+        for i_c in T.unroll(7):
+            DepthwiseConv2d_local_1[i_c] = T.float32(0)
+            for di in T.unroll(3):
+                for dj in T.unroll(3):
+                    cse_var_2: T.int32 = di * 3
+                    DepthwiseConv2d_local_1[i_c] = DepthwiseConv2d_local_1[i_c] + PaddedInput_shared_local_1[i_c * 6 + cse_var_2 + dj] * kernel_shared_local_1[cse_var_2 + dj]
+        for i_inner_inner_inner in T.unroll(7):
+            DepthwiseConv2d_1 = T.Buffer((12845056,), data=DepthwiseConv2d.data)
+            DepthwiseConv2d_1[blockIdx_z * 784 + threadIdx_y * 196 + i_inner_inner_inner * 28 + threadIdx_x] = DepthwiseConv2d_local_1[i_inner_inner_inner]

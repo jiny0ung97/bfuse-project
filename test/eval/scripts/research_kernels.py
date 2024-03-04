@@ -17,13 +17,18 @@ conv2d_cu_file  = "cuda/conv2d.cu"
 bgemm_cu_file   = "cuda/bgemm.cu"
 softmax_cu_file = "cuda/softmax.cu"
 pool2d_cu_file  = "cuda/pool2d.cu"
+depConv2d_cu_file  = "cuda/depConv2d.cu"
 
 conv2d_tir_file  = "tir/conv2d.tir"
 bgemm_tir_file   = "tir/bgemm.tir"
-softmax_tir_file = "tir/softmax.cu"
-pool2d_tir_file  = "tir/pool2d.cu"
+softmax_tir_file = "tir/softmax.tir"
+pool2d_tir_file  = "tir/pool2d.tir"
+depConv2d_tir_file  = "tir/depConv2d.tir"
 
 conv2d_log_file  = "log/conv2d.json"
+softmax_log_file  = "log/softmax.json"
+pool2d_log_file  = "log/pool2d.json"
+depConv2d_log_file  = "log/depConv2d.json"
 
 conv2d_python_file = "python/conv2d.py"
 
@@ -31,17 +36,37 @@ conv2d_python_file = "python/conv2d.py"
 # Kernel Arguments
 #####################################
 
-##### Resnet-18, Task 1 #####
+#### ResNet ####
 # conv2d_kernel_args  = (128, 56, 56, 64, 64, 1, 1, 1, 1)      # (N, H, W, CO, CI, KH, KW, stride, padding) small
-conv2d_kernel_args  = (64, 56, 56, 64, 64, 3, 3, 1, 1)      # (N, H, W, CO, CI, KH, KW, stride, padding) large
-bgemm_kernel_args   = (32, 1, 512, 1000)                  # (batch_size, M, K, N)
+# conv2d_kernel_args  = (64, 56, 56, 64, 64, 3, 3, 1, 1)      # (N, H, W, CO, CI, KH, KW, stride, padding) large
+################
 
-softmax_kernel_args = (128, 1, 1000)                       # (batch_size, M, N)
-pool2d_kernel_args  = (128, 56, 56, 64, 3, 3, 2, 0)        # (N, H, W, C, KH, KW, stride, padding)
+depConv2d_kernel_args = (128, 56, 56, 128, 3, 3, 2, 1)      # (N, H, W, C, KH, KW, stride, padding)
+
+# conv2d_kernel_args  = (1, 56, 56, 64, 64, 1, 1, 1, 1)   # (N, H, W, CO, CI, KH, KW, stride, padding) small
+conv2d_kernel_args  = (32, 56, 56, 64, 64, 3, 3, 1, 1)     # (N, H, W, CO, CI, KH, KW, stride, padding) small
+bgemm_kernel_args   = (32, 1, 512, 1000)                  # (batch_size, M, K, N)
+softmax_kernel_args = (512, 1000)                         # (batch_size, M, N) # resnet
+pool2d_kernel_args  = (2, 35, 35, 288, 3, 3, 1, 1)        # (N, H, W, C, KH, KW, stride, padding) # inception_v3
 
 #####################################
 # Data Shape (NCHW)
 #####################################
+
+depConv2d_data_shape = (depConv2d_kernel_args[0],
+                        depConv2d_kernel_args[3],
+                        depConv2d_kernel_args[1],
+                        depConv2d_kernel_args[2])
+
+depConv2d_kernel_shape = (depConv2d_kernel_args[3],
+                          1,
+                          depConv2d_kernel_args[4],
+                          depConv2d_kernel_args[5])
+
+depConv2d_output_shape = (depConv2d_kernel_args[0],
+                          depConv2d_kernel_args[3],
+                          (depConv2d_kernel_args[1] - depConv2d_kernel_args[4] + 2 * depConv2d_kernel_args[7]) / depConv2d_kernel_args[6] + 1,
+                          (depConv2d_kernel_args[2] - depConv2d_kernel_args[5] + 2 * depConv2d_kernel_args[7]) / depConv2d_kernel_args[6] + 1)
 
 conv2d_data_shape   = (conv2d_kernel_args[0],
                        conv2d_kernel_args[4], # channel
@@ -70,13 +95,11 @@ bgemm_output_shape = (bgemm_kernel_args[0],
                       bgemm_kernel_args[1], # M
                       bgemm_kernel_args[3]) # N
 
-softmax_data_shape = (softmax_kernel_args[0],
-                      softmax_kernel_args[1], # M
-                      softmax_kernel_args[2]) # N
+softmax_data_shape = (softmax_kernel_args[0], # M
+                      softmax_kernel_args[1]) # N
 
-softmax_output_shape = (softmax_kernel_args[0],
-                        softmax_kernel_args[1], # M
-                        softmax_kernel_args[2]) # N
+softmax_output_shape = (softmax_kernel_args[0], # M
+                        softmax_kernel_args[1]) # N
 
 pool2d_data_shape = (pool2d_kernel_args[0],
                      pool2d_kernel_args[3], # C
@@ -87,19 +110,86 @@ pool2d_output_shape = (pool2d_kernel_args[0],
                        pool2d_kernel_args[3],
                        (pool2d_kernel_args[1] - pool2d_kernel_args[4] + 2 * pool2d_kernel_args[7]) /  pool2d_kernel_args[6] + 1,
                        (pool2d_kernel_args[2] - pool2d_kernel_args[5] + 2 * pool2d_kernel_args[7]) /  pool2d_kernel_args[6] + 1)
+#--------------------------------------------------------------------------
+@auto_scheduler.register_workload
+def depConv2d_layer(N, H, W, C, KH, KW, stride, padding):
+    data   = te.placeholder((N, C, H, W), name="data")
+    kernel = te.placeholder((C, 1, KH, KW), name="kernel")
 
+    # out    = topi.nn.depthwise_conv2d_nchw(data, kernel, stride, padding, dilation=1, out_dtype="float32")
+    # return [data, kernel, out]
+
+    with tvm.target.Target("cuda"):
+        out = topi.cuda.depthwise_conv2d_nchw(data, kernel, stride, padding, 1, "float32")
+        sst = topi.cuda.schedule_depthwise_conv2d_nchw([out])
+
+    return sst, [data, kernel, out]
+#--------------------------------------------------------------------------
+def depConv2d_layer_tuning(log_file):
+    # Target
+    target = tvm.target.Target("cuda")
+
+    # Extract search tasks
+    print("Search tasks...")
+    task = tvm.auto_scheduler.SearchTask(func=depConv2d_layer,
+                                         args=depConv2d_kernel_args,
+                                         target=target,
+                                         )
+
+    # Begin tuning
+    print("Begin tuning...")
+    tune_option = auto_scheduler.TuningOptions(
+        num_measure_trials=1000,
+        measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
+        verbose=2,
+    )
+    # task.tune(tune_option)
+
+    return task
+#--------------------------------------------------------------------------
+def depConv2d_layer_eval(sch, args):
+    # Target
+    target = tvm.target.Target("cuda")
+
+    # Parameters
+    data_shape   = depConv2d_data_shape
+    kernel_shape = depConv2d_kernel_shape
+    output_shape = depConv2d_output_shape
+
+    # Build func & tensors
+    # with auto_scheduler.ApplyHistoryBest(depConv2d_log_file):
+    #     with tvm.transform.PassContext(opt_level=3, config={"relay.backend.use_auto_scheduler": True}):
+    #         func = tvm.build(sch, args, target)
+    func = tvm.build(sch, args, target)
+
+    a_np = np.random.uniform(size=data_shape).astype(np.float32)
+    b_np = np.random.uniform(size=kernel_shape).astype(np.float32)
+
+    dev   = tvm.device(str(target), device_num)
+    a_tvm = tvm.nd.array(a_np, device=dev)
+    b_tvm = tvm.nd.array(b_np, device=dev)
+    c_tvm = tvm.nd.empty(output_shape, device=dev)
+
+    # Evaluate execution time.
+    evaluator = func.time_evaluator(func.entry_name, dev, min_repeat_ms=10)
+    print(
+        "Execution time of DepthwiseConv2d operator: %.3f ms"
+        % (np.median(evaluator(a_tvm, b_tvm, c_tvm).results) * 1000)
+    )
 #--------------------------------------------------------------------------
 @auto_scheduler.register_workload
 def conv2d_layer(N, H, W, CO, CI, KH, KW, stride, padding):
     data   = te.placeholder((N, CI, H, W), name="data")
     kernel = te.placeholder((CO, CI, KH, KW), name="kernel")
-    out    = topi.nn.conv2d_nchw(data, kernel, stride, padding, dilation=1, out_dtype="float32")
-    # with tvm.target.Target("cuda"):
-    #     out = topi.cuda.conv2d_nchw(data, kernel, stride, padding, 1 ,"float32")
-    #     sst = topi.cuda.schedule_conv2d_nchw([out])
 
-    # return sst, [data, kernel, out]
-    return [data, kernel, out]
+    # out    = topi.nn.conv2d_nchw(data, kernel, stride, padding, dilation=1, out_dtype="float32")
+    # return [data, kernel, out]
+
+    with tvm.target.Target("cuda"):
+        out = topi.cuda.conv2d_nchw(data, kernel, stride, padding, 1 ,"float32")
+        sst = topi.cuda.schedule_conv2d_nchw([out])
+
+    return sst, [data, kernel, out]
 #--------------------------------------------------------------------------
 def conv2d_layer_tuning(log_file):
     # Target
@@ -128,17 +218,18 @@ def conv2d_layer_eval(sch, args):
     target = tvm.target.Target("cuda")
 
     # Parameters
-    # data_shape   = conv2d_data_shape
-    # kernel_shape = conv2d_kernel_shape
-    # output_shape = conv2d_output_shape
-    data_shape   = conv2d_data_shape[::-1]
-    kernel_shape = conv2d_kernel_shape[::-1]
-    output_shape = conv2d_output_shape[::-1]
+    data_shape   = conv2d_data_shape
+    kernel_shape = conv2d_kernel_shape
+    output_shape = conv2d_output_shape
+    # data_shape   = conv2d_data_shape[::-1]
+    # kernel_shape = conv2d_kernel_shape[::-1]
+    # output_shape = conv2d_output_shape[::-1]
 
     # Build func & tensors
-    with auto_scheduler.ApplyHistoryBest(conv2d_log_file):
-        with tvm.transform.PassContext(opt_level=3, config={"relay.backend.use_auto_scheduler": True}):
-            func = tvm.build(sch, args, target)
+    # with auto_scheduler.ApplyHistoryBest(conv2d_log_file):
+    #     with tvm.transform.PassContext(opt_level=3, config={"relay.backend.use_auto_scheduler": True}):
+    #         func = tvm.build(sch, args, target)
+    func = tvm.build(sch, args, target)
 
     a_np = np.random.uniform(size=data_shape).astype(np.float32)
     b_np = np.random.uniform(size=kernel_shape).astype(np.float32)
@@ -191,13 +282,37 @@ def bgemm_layer_eval(sch, args):
         % (np.median(evaluator(a_tvm, b_tvm, c_tvm).results) * 1000)
     )
 #--------------------------------------------------------------------------
-def softmax_layer(batch_size, M, N):
-    data = te.placeholder((batch_size, M, N), name="data")
+@auto_scheduler.register_workload
+def softmax_layer(M, N):
+    data = te.placeholder((M, N), name="data")
     out  = topi.nn.softmax(data, axis=-1)
-    with tvm.target.Target("cuda"):
-        sst = topi.cuda.schedule_softmax(out)
+    # with tvm.target.Target("cuda"):
+    #     sst = topi.cuda.schedule_softmax(out)
 
-    return sst, [data, out]
+    # return sst, [data, out]
+    return [data, out]
+#--------------------------------------------------------------------------
+def softmax_layer_tuning(log_file):
+    # Target
+    target = tvm.target.Target("cuda")
+
+    # Extract search tasks
+    print("Search tasks...")
+    task = tvm.auto_scheduler.SearchTask(func=softmax_layer,
+                                         args=softmax_kernel_args,
+                                         target=target,
+                                         )
+
+    # Begin tuning
+    print("Begin tuning...")
+    tune_option = auto_scheduler.TuningOptions(
+        num_measure_trials=1000,
+        measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
+        verbose=2,
+    )
+    # task.tune(tune_option)
+
+    return task
 #--------------------------------------------------------------------------
 def softmax_layer_eval(sch, args):
     # Target
@@ -208,7 +323,10 @@ def softmax_layer_eval(sch, args):
     output_shape = softmax_output_shape
 
     # Build func & tensors
-    func = tvm.build(sch, args, target)
+    with auto_scheduler.ApplyHistoryBest(softmax_log_file):
+        with tvm.transform.PassContext(opt_level=3, config={"relay.backend.use_auto_scheduler": True}):
+            func = tvm.build(sch, args, target)
+    # func = tvm.build(sch, args, target)
     a_np = np.random.uniform(size=data_shape).astype(np.float32)
 
     dev   = tvm.device(str(target), 0)
@@ -222,6 +340,7 @@ def softmax_layer_eval(sch, args):
         % (np.median(evaluator(a_tvm, b_tvm).results) * 1000)
     )
 #--------------------------------------------------------------------------
+@auto_scheduler.register_workload
 def pool2d_layer(N, H, W, C, KH, KW, stride, padding):
     data = te.placeholder((N, C, H, W), name="data")
     out  = topi.nn.pool2d(data,
@@ -229,12 +348,35 @@ def pool2d_layer(N, H, W, C, KH, KW, stride, padding):
                           stride=(stride, stride),
                           dilation=(1, 1),
                           padding=(padding, padding, padding, padding),
-                          pool_type="max",
+                          pool_type="avg",
                           layout="NCHW")
-    with tvm.target.Target("cuda"):
-        sst = topi.cuda.schedule_pool(out, "NCHW")
+    # with tvm.target.Target("cuda"):
+    #     sst = topi.cuda.schedule_pool(out, "NCHW")
 
-    return sst, [data, out]
+    # return sst, [data, out]
+    return [data, out]
+#--------------------------------------------------------------------------
+def pool2d_layer_tuning(log_file):
+    # Target
+    target = tvm.target.Target("cuda")
+
+    # Extract search tasks
+    print("Search tasks...")
+    task = tvm.auto_scheduler.SearchTask(func=pool2d_layer,
+                                         args=pool2d_kernel_args,
+                                         target=target,
+                                         )
+
+    # Begin tuning
+    print("Begin tuning...")
+    tune_option = auto_scheduler.TuningOptions(
+        num_measure_trials=1000,
+        measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
+        verbose=2,
+    )
+    # task.tune(tune_option)
+
+    return task
 #--------------------------------------------------------------------------
 def pool2d_layer_eval(sch, args):
     # Target
@@ -245,7 +387,10 @@ def pool2d_layer_eval(sch, args):
     output_shape = pool2d_output_shape
 
     # Build func & tensors
-    func = tvm.build(sch, args, target)
+    with auto_scheduler.ApplyHistoryBest(softmax_log_file):
+        with tvm.transform.PassContext(opt_level=3, config={"relay.backend.use_auto_scheduler": True}):
+            func = tvm.build(sch, args, target)
+    # func = tvm.build(sch, args, target)
     a_np = np.random.uniform(size=data_shape).astype(np.float32)
 
     dev   = tvm.device(str(target), 0)
@@ -287,19 +432,27 @@ def get_python_code(task, log_file, python_file):
 # Evaluate layers (conv2d, bgemm)
 # ----------------------------------
 
-# test
-sch, args = schedule_conv2d(*conv2d_kernel_args)
-conv2d_layer_eval(sch, args)
-get_tir_code(sch, args, conv2d_tir_file)
-get_cuda_code(sch, args, conv2d_cu_file)
-
-# # conv2d
-# task = conv2d_layer_tuning(conv2d_log_file)
-# sch, args = task.apply_best(conv2d_log_file)
-# sch, args = conv2d_layer(*conv2d_kernel_args)
+# # test
+# sch, args = schedule_conv2d(*conv2d_kernel_args)
 # conv2d_layer_eval(sch, args)
 # get_tir_code(sch, args, conv2d_tir_file)
 # get_cuda_code(sch, args, conv2d_cu_file)
+        
+# DepthwiseConv2d
+sch, args = depConv2d_layer(*depConv2d_kernel_args)
+# task = depConv2d_layer_tuning(depConv2d_log_file)
+# sch, args = task.apply_best(depConv2d_log_file)
+depConv2d_layer_eval(sch, args)
+get_tir_code(sch, args, depConv2d_tir_file)
+get_cuda_code(sch, args, depConv2d_cu_file)        
+
+# conv2d
+sch, args = conv2d_layer(*conv2d_kernel_args)
+# task = conv2d_layer_tuning(conv2d_log_file)
+# sch, args = task.apply_best(conv2d_log_file)
+conv2d_layer_eval(sch, args)
+get_tir_code(sch, args, conv2d_tir_file)
+get_cuda_code(sch, args, conv2d_cu_file)
 # get_python_code(task, conv2d_log_file, conv2d_python_file)
 
 # # bgemm
@@ -310,12 +463,16 @@ get_cuda_code(sch, args, conv2d_cu_file)
 
 # # softmax
 # sch, args = softmax_layer(*softmax_kernel_args)
+# task = softmax_layer_tuning(softmax_log_file)
+# sch, args = task.apply_best(softmax_log_file)
 # softmax_layer_eval(sch, args)
 # get_tir_code(sch, args, softmax_tir_file)
 # get_cuda_code(sch, args, softmax_cu_file)
 
 # # pool2d
 # sch, args = pool2d_layer(*pool2d_kernel_args)
+# task = pool2d_layer_tuning(pool2d_log_file)
+# sch, args = task.apply_best(pool2d_log_file)
 # pool2d_layer_eval(sch, args)
 # get_tir_code(sch, args, pool2d_tir_file)
 # get_cuda_code(sch, args, pool2d_cu_file)

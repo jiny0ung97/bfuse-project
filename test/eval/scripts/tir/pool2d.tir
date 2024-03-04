@@ -1,0 +1,20 @@
+# from tvm.script import ir as I
+# from tvm.script import tir as T
+
+@I.ir_module
+class Module:
+    @T.prim_func
+    def main(data: T.Buffer((2, 288, 35, 35), "float32"), pool_avg: T.Buffer((2, 288, 35, 35), "float32")):
+        T.func_attr({"from_legacy_te_schedule": T.bool(True), "tir.noalias": T.bool(True)})
+        pool_sum = T.allocate([705600], "float32", "global")
+        pool_sum_1 = T.Buffer((705600,), data=pool_sum)
+        with T.launch_thread("blockIdx.x", 11025) as blockIdx_x:
+            threadIdx_x = T.launch_thread("threadIdx.x", 64)
+            pool_sum_1[blockIdx_x * 64 + threadIdx_x] = T.float32(0)
+            for rv0, rv1 in T.grid(3, 3):
+                data_1 = T.Buffer((705600,), data=data.data)
+                pool_sum_1[blockIdx_x * 64 + threadIdx_x] = pool_sum_1[blockIdx_x * 64 + threadIdx_x] + T.if_then_else(1 <= (blockIdx_x * 64 + threadIdx_x) % 1225 // 35 + rv0 and (blockIdx_x * 64 + threadIdx_x) % 1225 // 35 + rv0 < 36 and 1 <= rv1 + (blockIdx_x * 29 + threadIdx_x) % 35 and rv1 + (blockIdx_x * 29 + threadIdx_x) % 35 < 36, data_1[blockIdx_x * 64 + rv0 * 35 + threadIdx_x + rv1 - 36], T.float32(0))
+        blockIdx_x = T.launch_thread("blockIdx.x", 11025)
+        threadIdx_x = T.launch_thread("threadIdx.x", 64)
+        pool_avg_1 = T.Buffer((705600,), data=pool_avg.data)
+        pool_avg_1[blockIdx_x * 64 + threadIdx_x] = pool_sum_1[blockIdx_x * 64 + threadIdx_x] * T.float32(0.1111111111111111)

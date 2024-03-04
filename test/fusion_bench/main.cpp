@@ -80,6 +80,19 @@ static void parse_opt(int argc, char **argv)
 }
 //----------------------------------------------------------------------------------------------------
 static void
+check_test(float *I0, float *F0, float *O0, float *I1, float *F1, float *O1)
+{
+  float *O0_ans, *O1_ans;
+  alloc_tensor(&O0_ans, 32, 64, 56, 56);
+  alloc_tensor(&O1_ans, 128, 128, 28, 28);
+  test_check(I0, F0, O0_ans, I1, F1, O1_ans);
+  printf("Validation Result: %s\n", check_matrix(O0, O0_ans, 32, 64, 56, 56) ? "VALID" : "INVALID");
+  printf("Validation Result: %s\n", check_matrix(O1, O1_ans, 128, 128, 28, 28) ? "VALID" : "INVALID");
+  free(O1_ans);
+  free(O0_ans);
+}
+//----------------------------------------------------------------------------------------------------
+static void
 check_conv2d(float *I, float *F, float *O)
 {
   float *O_ans;
@@ -156,22 +169,17 @@ int main(int argc, char **argv)
     rand_tensor(I1, 128, 1, 1, 1000);
     break;
   case 3:
-    alloc_tensor(&I0, 128, 64, 56, 56);
-    alloc_tensor(&F0, 128, 64, 1, 1);
-    alloc_tensor(&O0, 128, 64, 58, 58);
-    // alloc_tensor(&I1, 32, 1, 1, 512);
-    // alloc_tensor(&F1, 32, 1, 1000, 512);
-    // alloc_tensor(&O1, 32, 1, 1, 1000);
-    alloc_tensor(&I1, 64, 64, 56, 56);
-    alloc_tensor(&F1, 64, 64, 3, 3);
-    alloc_tensor(&O1, 64, 64, 56, 56);
+    alloc_tensor(&I0, 32, 64, 56, 56);
+    alloc_tensor(&F0, 32, 64, 3, 3);
+    alloc_tensor(&O0, 32, 64, 56, 56);
+    alloc_tensor(&I1, 128, 128, 56, 56);
+    alloc_tensor(&F1, 128, 1, 3, 3);
+    alloc_tensor(&O1, 128, 128, 28, 28);
 
-    rand_tensor(I0, 128, 64, 56, 56);
-    rand_tensor(F0, 128, 64, 1, 1);
-    // rand_tensor(I1, 32, 1, 1, 512);
-    // rand_tensor(F1, 32, 1, 1000, 512);
-    rand_tensor(I1, 64, 64, 56, 56);
-    rand_tensor(F1, 64, 64, 3, 3);
+    rand_tensor(I0, 1, 64, 56, 56);
+    rand_tensor(F0, 1, 64, 1, 1);
+    rand_tensor(I1, 128, 128, 56, 56);
+    rand_tensor(F1, 128, 1, 3, 3);
     break;
   default:
     break;
@@ -212,9 +220,8 @@ int main(int argc, char **argv)
       zero_tensor(O1, 128, 1, 1, 1000);
       break;
     case 3:
-      zero_tensor(O0, 128, 64, 58, 58);
-      // zero_tensor(O1, 32, 1, 1, 1000);
-      zero_tensor(O1, 64, 64, 56, 56);
+      zero_tensor(O0, 32, 64, 56, 56);
+      zero_tensor(O1, 128, 128, 28, 28);
       break;
     }
 
@@ -274,9 +281,8 @@ int main(int argc, char **argv)
       zero_tensor(O1, 128, 1, 1, 1000);
       break;
     case 3:
-      zero_tensor(O0, 128, 64, 58, 58);
-      // zero_tensor(O1, 32, 1, 1, 1000);
-      zero_tensor(O1, 64, 64, 56, 56);
+      zero_tensor(O0, 32, 64, 56, 56);
+      zero_tensor(O1, 128, 128, 28, 28);
       break;
     }
 
@@ -335,6 +341,7 @@ int main(int argc, char **argv)
       check_softmax(I1, O1);
       break;
     case 3:
+      check_test(I0, F0, O0, I1, F1, O1);
       break;
     }
   }

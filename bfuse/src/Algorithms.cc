@@ -348,6 +348,301 @@ string newInterleaveBlockPattern(FusionContext &FContext)
   return NewBlockInfoString;
 }
 //---------------------------------------------------------------------------
+string advancedInterleaveBlockPattern(FusionContext &FContext)
+{
+  int TotalSMs = 84; // V100
+
+  // gcd
+  map<string, int> ThreadBlocks;
+  int MaxBlockBound = 0;
+  int GCD = 0;
+  for (string &KName : FContext.kernels) {
+    auto &KInfo         = FContext.kernelInfoMap.at(KName);
+    ThreadBlocks[KName] = KInfo.gridDim.size() / TotalSMs;
+    MaxBlockBound       += KInfo.gridDim.size() - KInfo.gridDim.size() % TotalSMs;
+
+    if (KInfo.gridDim.size() / TotalSMs == 0)
+      continue;
+    
+    if (GCD == 0) {
+      GCD = KInfo.gridDim.size() / TotalSMs;
+    } else {
+      GCD = __gcd(GCD, KInfo.gridDim.size() / TotalSMs);
+    }
+  }
+
+  map<string, int> AccTickets;
+  int Acc = 0;
+  for (string &KName : FContext.kernels) {
+    ThreadBlocks[KName] = ThreadBlocks.at(KName) / GCD;
+    AccTickets[KName]   = Acc;
+    Acc += ThreadBlocks.at(KName);
+  }
+
+  // Thread Block boundary
+  string NewBlockInfoString;
+  llvm::raw_string_ostream VarStream{NewBlockInfoString};
+  
+  // Comments
+  VarStream << "  /*\n"
+            << "   * KernelID_ means...\n";
+  for (long unsigned I = 0; I < FContext.kernels.size(); ++I) {
+    string &KName = FContext.kernels[I];
+    VarStream << "   * " << I << ": " << KName << "\n";
+  }
+  VarStream << "   */\n";
+
+  // Declarations
+  VarStream << "  int gridDim_x_, gridDim_y_, gridDim_z_;\n"
+            << "  int blockIdx_x_, blockIdx_y_, blockIdx_z_;\n"
+            << "  int blockDim_x_, blockDim_y_, blockDim_z_;\n"
+            << "  int threadIdx_x_, threadIdx_y_, threadIdx_z_;\n"
+            << "  int NewBlockIdx_;\n"
+            << "  int KernelID_;\n"
+            << "  \n";
+
+  string CurrentBlockIdx  = "(int)blockIdx.x";
+  string CurrentThreadIdx = "(int)threadIdx.x";
+  bool IsFirst = true;
+
+  for (long unsigned KI = 0; KI < FContext.kernels.size(); ++KI) {
+    string &KName = FContext.kernels[KI];
+    auto &KInfo   = FContext.kernelInfoMap.at(KName);
+
+    int Ticket = ThreadBlocks.at(KName);
+    if (Ticket == 0)
+      continue;
+    
+    VarStream << "  ";
+    if (IsFirst) { // first if case
+      IsFirst = false;
+    } else {
+      VarStream << "else ";
+    }
+    
+    // RotateSize = Acc * TotalSMs
+    // time = blockIdx / RotateSize
+    // (blockIdx < MaxBlockBound) && (blockIdx % RotateSize / TotalSMs >= AccTickets.at(KName)) && (... < AccTickets.at(KName) + Ticket)
+    VarStream << "if ("
+              << "(" << CurrentBlockIdx << " < " << MaxBlockBound << ")"
+              << " && (" << CurrentBlockIdx << " % " << Acc * TotalSMs << " / " << TotalSMs << " >= " << AccTickets.at(KName) << ")"
+              << " && (" << CurrentBlockIdx << " % " << Acc * TotalSMs << " / " << TotalSMs << " < " << AccTickets.at(KName) + Ticket << ")"
+              << ")\n";
+
+    // NewBlockIdx = time * Tickets * TotalSMs + blockIdx % RotateSize - AccTickets.at(KName) * TotalSMS
+    VarStream << "  {\n"
+              << "    NewBlockIdx_ = " << CurrentBlockIdx << " / " << Acc * TotalSMs << " * " << Ticket * TotalSMs
+              << " + " << CurrentBlockIdx << " % " << Acc * TotalSMs << " - " <<  AccTickets.at(KName) * TotalSMs << ";\n"
+              << "    KernelID_  = " << KI << ";\n"
+              << "    gridDim_x_ = " << KInfo.gridDim.x << ";\n"
+              << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
+              << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
+              << "    blockDim_x_ = " << KInfo.blockDim.x << ";\n"
+              << "    blockDim_y_ = " << KInfo.blockDim.y << ";\n"
+              << "    blockDim_z_ = " << KInfo.blockDim.z << ";\n"
+              << "  }\n";
+  }
+
+  int AccBound = MaxBlockBound;
+  for (long unsigned KI = 0; KI < FContext.kernels.size(); ++KI) {
+    string &KName = FContext.kernels[KI];
+    auto &KInfo   = FContext.kernelInfoMap.at(KName);
+
+    VarStream << "  ";
+    if (IsFirst) { // first if case
+      IsFirst = false;
+    } else {
+      VarStream << "else ";
+    }
+
+    // (blockIdx >= AccBound) && (blockIdx < AccBound + KInfo.gridDim.size() % TotalSMs)
+    VarStream << "if ("
+              << "(" << CurrentBlockIdx << " >= " << AccBound << ")"
+              << " && (" << CurrentBlockIdx << " < " << AccBound + KInfo.gridDim.size() % TotalSMs << ")"
+              << ")\n";
+
+    // NewBlockIdx_ = blockIdx - AccBound + KInfo.gridDim.size() - KInfo.gridDim.size() % TotalSMs
+    VarStream << "  {\n"
+              << "    NewBlockIdx_ = " << CurrentBlockIdx << " - " << AccBound - KInfo.gridDim.size() + KInfo.gridDim.size() % TotalSMs << ";\n"
+              << "    KernelID_  = " << KI << ";\n"
+              << "    gridDim_x_ = " << KInfo.gridDim.x << ";\n"
+              << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
+              << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
+              << "    blockDim_x_ = " << KInfo.blockDim.x << ";\n"
+              << "    blockDim_y_ = " << KInfo.blockDim.y << ";\n"
+              << "    blockDim_z_ = " << KInfo.blockDim.z << ";\n"
+              << "  }\n";
+
+    AccBound += KInfo.gridDim.size() % TotalSMs;
+  }
+
+  VarStream << "  blockIdx_x_ = NewBlockIdx_ % gridDim_x_;\n"
+            << "  blockIdx_y_ = NewBlockIdx_ / gridDim_x_ % gridDim_y_;\n"
+            << "  blockIdx_z_ = NewBlockIdx_ / (gridDim_x_ * gridDim_y_);\n"
+            << "  threadIdx_x_ = " << CurrentThreadIdx << " % blockDim_x_;\n"
+            << "  threadIdx_y_ = " << CurrentThreadIdx << " / blockDim_x_ % blockDim_y_;\n"
+            << "  threadIdx_z_ = " << CurrentThreadIdx << " / (blockDim_x_ * blockDim_y_);\n";
+  VarStream.flush();
+
+  return NewBlockInfoString;
+}
+//---------------------------------------------------------------------------
+string advancedInterleaveBlockPattern2(FusionContext &FContext)
+{
+  // Normalize
+  map<string, int> BlockRatio;
+  float Min    = -1;
+  int TotalSMs = 84; // V100
+
+  for (string &KName : FContext.kernels) {
+    auto &KInfo    = FContext.kernelInfoMap.at(KName);
+    float ExecTime = KInfo.execTime == -1 ? 1 : KInfo.execTime;
+    float Ratio    = KInfo.gridDim.size() * ExecTime;
+
+    if (Min == -1) {
+      Min = Ratio;
+    } else {
+      Min = Min < Ratio ? Min : Ratio;
+    }
+  }
+
+  map<string, int> AccTickets;
+  int CurTickets = 0;
+  for (string &KName : FContext.kernels) {
+    auto &KInfo    = FContext.kernelInfoMap.at(KName);
+    float ExecTime = KInfo.execTime == -1 ? 1 : KInfo.execTime;
+    float Ratio    = KInfo.gridDim.size() * ExecTime;
+
+    BlockRatio[KName] = (int)(Ratio / Min);
+    AccTickets[KName] = CurTickets;
+    CurTickets += (int)(Ratio / Min);
+  }
+
+  // Calculate real max thread block bound
+  map<string, int> RealMaxBlockBound;
+  map<string, int> RemainThreadBlocks;
+  map<string, bool> IsReached;
+  int RotateSize = 0;
+  int RotateNum  = 0;
+  bool IsRemain = true;
+
+  for (string &KName : FContext.kernels) {
+    auto &KInfo = FContext.kernelInfoMap.at(KName);
+    auto &Ratio = BlockRatio.at(KName);
+
+    RealMaxBlockBound[KName]  = 0;
+    RemainThreadBlocks[KName] = KInfo.gridDim.size();
+    IsReached[KName] = false;
+    RotateSize += TotalSMs * Ratio;
+  }
+
+  while (IsRemain) {
+    IsRemain = false;
+
+    for (string &KName : FContext.kernels) {
+      auto &KInfo   = FContext.kernelInfoMap.at(KName);
+      auto &Ratio   = BlockRatio.at(KName);
+      auto &Acc     = AccTickets.at(KName);
+      auto &Bound   = RealMaxBlockBound.at(KName);
+      auto &Remain  = RemainThreadBlocks.at(KName);
+      auto &Reached = IsReached.at(KName);
+
+      int RotateTBs;
+      int TBs;
+
+      if (Reached)
+        continue;
+
+      if (Remain > TotalSMs * Ratio) {
+        RotateTBs = RotateSize;
+        TBs       = TotalSMs * Ratio;
+      } else {
+        RotateTBs = Acc * TotalSMs + Remain;
+        TBs       = Remain;
+        Reached   = true;
+      }
+
+      Bound   += RotateTBs;
+      Remain  -= TBs;
+      IsRemain = true;
+    }
+    RotateNum += 1;
+  }
+
+  // Thread Block if branch
+  string NewBlockInfoString;
+  llvm::raw_string_ostream VarStream{NewBlockInfoString};
+  
+  // Comments
+  VarStream << "  /*\n"
+            << "   * KernelID_ means...\n";
+  for (long unsigned I = 0; I < FContext.kernels.size(); ++I) {
+    string &KName = FContext.kernels[I];
+    VarStream << "   * " << I << ": " << KName << "\n";
+  }
+  VarStream << "   * Kernel's Thread Blocks are " << RotateNum * RotateSize << "\n";
+  VarStream << "   */\n";
+
+  // Declarations
+  VarStream << "  int gridDim_x_, gridDim_y_, gridDim_z_;\n"
+            << "  int blockIdx_x_, blockIdx_y_, blockIdx_z_;\n"
+            << "  int blockDim_x_, blockDim_y_, blockDim_z_;\n"
+            << "  int threadIdx_x_, threadIdx_y_, threadIdx_z_;\n"
+            << "  int NewBlockIdx_;\n"
+            << "  int KernelID_ = -1;\n"
+            << "  \n";
+
+  string CurrentBlockIdx  = "(int)blockIdx.x";
+  string CurrentThreadIdx = "(int)threadIdx.x";
+  bool IsFirst = true;
+
+  for (long unsigned KI = 0; KI < FContext.kernels.size(); ++KI) {
+    string &KName  = FContext.kernels[KI];
+    auto &KInfo    = FContext.kernelInfoMap.at(KName);
+    auto &MaxBound = RealMaxBlockBound.at(KName);
+    auto &Ticket   = BlockRatio.at(KName);
+    auto &Acc      = AccTickets.at(KName);
+    
+    VarStream << "  ";
+    if (IsFirst) { // first if case
+      IsFirst = false;
+    } else {
+      VarStream << "else ";
+    }
+
+    // Ticket = BlockRatio
+    // (blockIDx < RealMaxBlockBound) && (blockIdx % RotateSize / TotalSMs >= AccTickets) && (... < AccTickets + Ticket)
+    VarStream << "if ("
+              << "(" << CurrentBlockIdx << " < " << MaxBound << ")"
+              << " && (" << CurrentBlockIdx << " % " << RotateSize << " / " << TotalSMs << " >= " << Acc << ")"
+              << " && (" << CurrentBlockIdx << " % " << RotateSize << " / " << TotalSMs << " < " << Acc + Ticket << ")"
+              << ")\n";
+              
+    // NewBlockIdx_ = (blockIdx / RotateSize) * Ticket * TotalSMs + (blockIdx % RotateSize - AccTickets * TotalSMs)
+    VarStream << "  {\n"
+              << "    NewBlockIdx_ = " << "(" << CurrentBlockIdx << " / " << RotateSize << ") * " << Ticket * TotalSMs
+              << " + " << CurrentBlockIdx << " % " << RotateSize << " - " << Acc * TotalSMs << ";\n"
+              << "    KernelID_  = " << KI << ";\n"
+              << "    gridDim_x_ = " << KInfo.gridDim.x << ";\n"
+              << "    gridDim_y_ = " << KInfo.gridDim.y << ";\n"
+              << "    gridDim_z_ = " << KInfo.gridDim.z << ";\n"
+              << "    blockDim_x_ = " << KInfo.blockDim.x << ";\n"
+              << "    blockDim_y_ = " << KInfo.blockDim.y << ";\n"
+              << "    blockDim_z_ = " << KInfo.blockDim.z << ";\n"
+              << "  }\n";
+  }
+
+  VarStream << "  blockIdx_x_ = NewBlockIdx_ % gridDim_x_;\n"
+            << "  blockIdx_y_ = NewBlockIdx_ / gridDim_x_ % gridDim_y_;\n"
+            << "  blockIdx_z_ = NewBlockIdx_ / (gridDim_x_ * gridDim_y_);\n"
+            << "  threadIdx_x_ = " << CurrentThreadIdx << " % blockDim_x_;\n"
+            << "  threadIdx_y_ = " << CurrentThreadIdx << " / blockDim_x_ % blockDim_y_;\n"
+            << "  threadIdx_z_ = " << CurrentThreadIdx << " / (blockDim_x_ * blockDim_y_);\n";
+  VarStream.flush();
+
+  return NewBlockInfoString;
+}
+//---------------------------------------------------------------------------
 tuple<VarListTy, VarListTy, USRsListTy> getNewParmLists(const AnalysisContext &AContext)
 {
   VarListTy NewParams;

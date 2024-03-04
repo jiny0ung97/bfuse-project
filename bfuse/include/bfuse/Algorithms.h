@@ -28,6 +28,10 @@ std::string oldInterleaveBlockPattern(contexts::FusionContext &FContext);
 //---------------------------------------------------------------------------
 std::string newInterleaveBlockPattern(contexts::FusionContext &FContext);
 //---------------------------------------------------------------------------
+std::string advancedInterleaveBlockPattern(contexts::FusionContext &FContext);
+//---------------------------------------------------------------------------
+std::string advancedInterleaveBlockPattern2(contexts::FusionContext &FContext);
+//---------------------------------------------------------------------------
 std::tuple<VarListTy, VarListTy, USRsListTy> getNewParmLists(const contexts::AnalysisContext &AContext);
 //---------------------------------------------------------------------------
 std::tuple<VarListMapTy, USRsListMapTy, SizeListMapTy, std::string>

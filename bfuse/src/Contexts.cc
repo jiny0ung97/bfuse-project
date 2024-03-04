@@ -216,7 +216,9 @@ AnalysisContext AnalysisContext::create(FusionContext &FContext)
   // TODO: Add comments
 
   // NewBlockInfoString = algorithms::oldInterleaveBlockPattern(FContext);
-  NewBlockInfoString = algorithms::newInterleaveBlockPattern(FContext);
+  // NewBlockInfoString = algorithms::newInterleaveBlockPattern(FContext);
+  // NewBlockInfoString = algorithms::advancedInterleaveBlockPattern(FContext);
+  NewBlockInfoString = algorithms::advancedInterleaveBlockPattern2(FContext);
 
   return AnalysisContext{move(Kernels), move(ThreadNumMap), move(BranchConditionMap),
                          move(TmpBlockInfoString), move(NewBlockInfoString), move(NewFuncName), MaxThreadBound};

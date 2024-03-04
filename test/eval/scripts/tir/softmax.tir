@@ -1,0 +1,60 @@
+# from tvm.script import ir as I
+# from tvm.script import tir as T
+
+@I.ir_module
+class Module:
+    @T.prim_func
+    def main(data: T.Buffer((512, 1000), "float32"), T_softmax_norm: T.Buffer((512, 1000), "float32")):
+        T.func_attr({"from_legacy_te_schedule": T.bool(True), "tir.noalias": T.bool(True)})
+        blockIdx_x = T.launch_thread("blockIdx.x", 512)
+        normal_reduce_temp0 = T.allocate([1], "float32", "local")
+        reduce_temp0 = T.allocate([1], "float32", "local")
+        T_softmax_maxelem = T.allocate([1], "float32", "shared")
+        normal_reduce_temp0_1 = T.allocate([1], "float32", "local")
+        reduce_temp0_1 = T.allocate([1], "float32", "local")
+        T_softmax_expsum = T.allocate([1], "float32", "shared")
+        data_1 = T.Buffer((512000,), data=data.data)
+        T_softmax_maxelem_1 = T.Buffer((1,), data=T_softmax_maxelem, scope="shared", align=4)
+        with T.launch_thread("threadIdx.x", 50) as threadIdx_x:
+            normal_reduce_temp0_2 = T.Buffer((1,), data=normal_reduce_temp0, scope="local")
+            normal_reduce_temp0_2[0] = T.float32(-3.4028234663852886e+38)
+            for k_outer in range(20):
+                normal_reduce_temp0_2[0] = T.max(normal_reduce_temp0_2[0], data_1[blockIdx_x * 1000 + k_outer * 50 + threadIdx_x])
+            reduce_temp0_2 = T.Buffer((1,), data=reduce_temp0, scope="local")
+            with T.attr(T.comm_reducer(lambda x, y: T.max(x, y), [T.float32(-3.4028234663852886e+38)]), "reduce_scope", T.reinterpret("handle", T.uint64(0))):
+                T.tvm_thread_allreduce(T.uint32(1), normal_reduce_temp0_2[0], T.bool(True), reduce_temp0_2[0], threadIdx_x)
+            if threadIdx_x == 0:
+                T_softmax_maxelem_1[0] = reduce_temp0_2[0]
+        T_softmax_expsum_1 = T.Buffer((1,), data=T_softmax_expsum, scope="shared", align=4)
+        with T.launch_thread("threadIdx.x", 50) as threadIdx_x:
+            normal_reduce_temp0_2 = T.Buffer((1,), data=normal_reduce_temp0_1, scope="local")
+            normal_reduce_temp0_2[0] = T.float32(0)
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 50] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 100] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 150] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 200] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 250] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 300] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 350] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 400] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 450] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 500] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 550] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 600] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 650] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 700] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 750] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 800] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 850] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 900] - T_softmax_maxelem_1[0])
+            normal_reduce_temp0_2[0] = normal_reduce_temp0_2[0] + T.exp(data_1[blockIdx_x * 1000 + threadIdx_x + 950] - T_softmax_maxelem_1[0])
+            reduce_temp0_2 = T.Buffer((1,), data=reduce_temp0_1, scope="local")
+            with T.attr(T.comm_reducer(lambda x, y: x + y, [T.float32(0)]), "reduce_scope", T.reinterpret("handle", T.uint64(0))):
+                T.tvm_thread_allreduce(T.uint32(1), normal_reduce_temp0_2[0], T.bool(True), reduce_temp0_2[0], threadIdx_x)
+            if threadIdx_x == 0:
+                T_softmax_expsum_1[0] = reduce_temp0_2[0]
+        for i1_outer in range(20):
+            threadIdx_x = T.launch_thread("threadIdx.x", 50)
+            T_softmax_norm_1 = T.Buffer((512000,), data=T_softmax_norm.data)
+            T_softmax_norm_1[blockIdx_x * 1000 + i1_outer * 50 + threadIdx_x] = T.exp(data_1[blockIdx_x * 1000 + i1_outer * 50 + threadIdx_x] - T_softmax_maxelem_1[0]) / T_softmax_expsum_1[0]

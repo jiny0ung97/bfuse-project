@@ -45,7 +45,7 @@ public:
   /// The count of kernel's used register
   int reg;
   /// The kernel's execution time
-  int execTime;
+  float execTime;
 
   /// Print KernelInfo
   void print(const std::string& KName) const;

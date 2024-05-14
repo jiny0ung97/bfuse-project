@@ -42,7 +42,7 @@ def auto_tuning(func, args, log_file):
 
     return task
 #-----------------------------------------------------------------------------------------------
-def eval(func, data_shapes):
+def evaluation(func, data_shapes):
     # Target
     target = tvm.target.Target("cuda")
 
@@ -92,30 +92,39 @@ def extract_threads_info_callback(f, mod, ctx):
     tvm.tir.stmt_functor.post_order_visit(f.body, extract_threads_info)
     return f
 #-----------------------------------------------------------------------------------------------
-def get_test_suite(path, output, eval=True, tuning=False):
+def get_cuda_code(sch, args):
+    # Target
+    target = tvm.target.Target("cuda")
+
+    # Get auto-tuned kernel code
+    mod = tvm.build(sch, args, target=target)
+
+    return str(mod.imported_modules[0].get_source())
+#-----------------------------------------------------------------------------------------------
+def get_fusion_info(fusion_sets):
+    kernel_list = fusion_sets[0]["Set"] + fusion_sets[1]["Set"]
+    fusion_info = []
+
+    # Check the given sets are valid
+    if len(fusion_sets) != 2:
+        loggging.error("Number of fusion sets are only 2.")
+        exit(1)
+    
+    for s0 in fusion_sets[0]["Set"]:
+        for s1 in fusion_sets[1]["Set"]:
+            fusion_info.append([s0, s1])
+
+    return kernel_list, fusion_info
+#-----------------------------------------------------------------------------------------------
+def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
     global threads_info
 
-    # Parse YAML files
-    with open(path) as f:
-        kernels = yaml.safe_load(f)
-
-    # Settings
-    # test_suite_name        = ".".join(path.split("/")[-1].split(".")[:-1])
-    test_suite_name        = output
-    test_suite_path        = os.path.join(os.getcwd(), test_suite_name)
-    test_suite_thread_info = {}
-
-    # Generate test suite directory
-    if os.path.exists(test_suite_path):
-        logging.warning("\"%s\" alreay exists." % test_suite_path)
-        logging.warning("Remove \"%s\"." % test_suite_path)
-        shutil.rmtree(test_suite_path)
-    os.mkdir(test_suite_path)
+    kernel_info = {}
+    cuda_code   = ""
 
     # Schedule & tuning kernel if needed
-    for kernel in kernels:
-        kname = kernel["KernelName"]
-        kargs = kernel["Arguments"]
+    for kname in kernel_list:
+        kargs = infos[kname]
         log   = "%s/%s.json" % (test_suite_path, kname)
 
         if kname.startswith("bgemm"):
@@ -148,27 +157,78 @@ def get_test_suite(path, output, eval=True, tuning=False):
                 func = tvm.build(sch, args, target)
 
         # Store kernel's thread infomation
-        test_suite_thread_info[kname] = threads_info
+        kernel_info[kname] = threads_info
+
+        # Get CUDA code
+        code      = get_cuda_code(sch, args)
+        code      = code.replace("default_function_kernel", kname)
+        cuda_code = cuda_code + code
     
         # Evaluate kernel if needed
         if eval:
-            print("Execution time of %s operator: %.3f ms" % (kname, eval(func, shape)))
+            print("Execution time of %s operator: %.3f ms" % (kname, evaluation(func, shape)))
+
+    return kernel_info, cuda_code
+#-----------------------------------------------------------------------------------------------
+def get_test_suite(path, output, eval=True, tuning=False):
+    # Settings
+    # test_suite_name = ".".join(path.split("/")[-1].split(".")[:-1])
+    test_suite_name = output
+    test_suite_path = os.path.join(os.getcwd(), test_suite_name)
+
+    # Generate test suite directory
+    if os.path.exists(test_suite_path):
+        logging.warning("\"%s\" alreay exists." % test_suite_path)
+        logging.warning("Remove \"%s\"." % test_suite_path)
+        shutil.rmtree(test_suite_path)
+    os.mkdir(test_suite_path)
+
+    # Parse YAML files
+    with open(path) as f:
+        yaml_info = yaml.safe_load(f)
+
+    sets  = yaml_info["FusionSet"]
+    infos = yaml_info["KernelInfo"]
+
+    # Get fusion info & kernel list
+    kernel_list, fusion_info = get_fusion_info(sets)
+
+    # Get kernel info & CUDA kernel code
+    kernel_info, cuda_code = get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning)
+
+    # Create CUDA kernel file
+    code_path = "%s/kernels.cu" % (test_suite_path)
+    with open(code_path, "w+") as f:
+        f.write(cuda_code)
+
+    # Create fusion info YAML file
+    fusion_yaml_list = []
+    fusion_code_path = code_path.split("/")[-1]
+    for f_info in fusion_info:
+        f_dict = {
+            "File": fusion_code_path,
+            "Kernels": f_info
+        }
+        fusion_yaml_list.append(f_dict)
+
+    fusion_config_yaml = os.path.join(test_suite_path, "fusions.yaml")
+    with open(fusion_config_yaml, "w+") as f:
+        yaml.dump(fusion_yaml_list, f)
     
     # Create kernel info YAML file
-    yaml_dict = {}
-    for kernel in kernels:
-        kname  = kernel["KernelName"]
-        T_info = test_suite_thread_info[kname]
+    kernel_yaml_dict = {}
+    for kname in kernel_list:
+        t_info = kernel_info[kname]
 
         gridDim_dict = {
-            "X": int(T_info[0]),
-            "Y": int(T_info[1]),
-            "Z": int(T_info[2]),
+            "X": int(t_info[0]),
+            "Y": int(t_info[1]),
+            "Z": int(t_info[2]),
         }
         blockDim_dict = {
-            "X": int(T_info[3]),
-            "Y": int(T_info[4]),
-            "Z": int(T_info[5]),
+            "X": int(t_info[3]),
+            "Y": int(t_info[4]),
+            "Z": int(t_info[5]),
         }
         k_dict = {
             "KernelName": kname,
@@ -178,11 +238,11 @@ def get_test_suite(path, output, eval=True, tuning=False):
             "Reg": 32, # Don't care
             "ExecTime": -1, # Don't care
         }
-        yaml_dict[kname] = k_dict
+        kernel_yaml_dict[kname] = k_dict
     
-    config_yaml = os.path.join(test_suite_path, "kernels.yaml")
-    with open(config_yaml, "w+") as f:
-        yaml.dump(yaml_dict, f)
+    kernel_config_yaml = os.path.join(test_suite_path, "kernels.yaml")
+    with open(kernel_config_yaml, "w+") as f:
+        yaml.dump(kernel_yaml_dict, f)
 #-----------------------------------------------------------------------------------------------
 if __name__ == "__main__":
 

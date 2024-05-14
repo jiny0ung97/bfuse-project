@@ -1,53 +1,64 @@
-- KernelName: bgemm_0
-  Arguments:
+FusionSet:
+  - Set:
+    - bgemm_0
+    - bgemm_1
+    - bgemm_2
+    - bgemm_3
+    - bgemm_4
+    - bgemm_5
+    - bgemm_6
+    - bgemm_7
+  - Set:
+    - conv2d_0
+    - conv2d_1
+    - conv2d_2
+    - conv2d_3
+    - conv2d_4
+    - conv2d_5
+    - conv2d_6
+    - conv2d_7
+KernelInfo:
+  bgemm_0:
     - 16  # batch_size
     - 512 # M
     - 64  # K
     - 512 # N
-- KernelName: bgemm_1
-  Arguments:
+  bgemm_1:
     - 16
     - 512
     - 512
     - 64
-- KernelName: bgemm_2
-  Arguments:
+  bgemm_2:
     - 16
     - 256
     - 80
     - 256
-- KernelName: bgemm_3
-  Arguments: 
+  bgemm_3:
     - 16
     - 256
     - 256
     - 80
-- KernelName: bgemm_4
-  Arguments:
+  bgemm_4:
     - 16
     - 208
     - 80
     - 208
-- KernelName: bgemm_5
-  Arguments:
+  bgemm_5:
     - 16
     - 208
     - 208
     - 80
-- KernelName: bgemm_6
-  Arguments:
+  bgemm_6:
     - 1
     - 1024
     - 64
     - 512
-- KernelName: bgemm_7
-  Arguments:
+  bgemm_7:
     - 1
     - 1024
     - 512
     - 64
-- KernelName: conv2d_0
-  Arguments:
+  conv2d_0:
     - 1   # N
     - 112 # H
     - 112 # W
@@ -57,8 +68,7 @@
     - 3   # KW
     - 2   # stride
     - 0   # padding
-- KernelName: conv2d_1
-  Arguments:
+  conv2d_1:
     - 1
     - 147
     - 147
@@ -68,8 +78,7 @@
     - 3
     - 2
     - 0
-- KernelName: conv2d_2
-  Arguments:
+  conv2d_2:
     - 1
     - 56
     - 56
@@ -79,8 +88,7 @@
     - 3
     - 1
     - 0
-- KernelName: conv2d_3
-  Arguments:
+  conv2d_3:
     - 1
     - 28
     - 28
@@ -90,8 +98,7 @@
     - 3
     - 1
     - 0
-- KernelName: conv2d_4
-  Arguments:
+  conv2d_4:
     - 1
     - 227
     - 227
@@ -101,8 +108,7 @@
     - 3
     - 4
     - 0
-- KernelName: conv2d_5
-  Arguments:
+  conv2d_5:
     - 1
     - 56
     - 56
@@ -112,8 +118,7 @@
     - 1
     - 1
     - 0
-- KernelName: conv2d_6
-  Arguments:
+  conv2d_6:
     - 1
     - 56
     - 56
@@ -123,8 +128,7 @@
     - 1
     - 1
     - 0
-- KernelName: conv2d_7
-  Arguments:
+  conv2d_7:
     - 1
     - 56
     - 56

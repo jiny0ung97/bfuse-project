@@ -3,7 +3,7 @@
 import tvm
 from tvm import auto_scheduler
 
-import yaml
+import yaml, json
 import os, argparse, shutil
 import numpy as np
 import logging
@@ -160,7 +160,10 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
         kernel_info[kname] = threads_info
 
         # Get CUDA code
-        code      = get_cuda_code(sch, args)
+        code = get_cuda_code(sch, args)
+        # idx  = code.rfind("extern \"C\" __global__")
+        # code = code[idx:]
+
         code      = code.replace("default_function_kernel", kname)
         cuda_code = cuda_code + code
     
@@ -169,6 +172,19 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
             print("Execution time of %s operator: %.3f ms" % (kname, evaluation(func, shape)))
 
     return kernel_info, cuda_code
+#-----------------------------------------------------------------------------------------------
+def get_compile_commands(test_suite_path, file):
+    compile_commands_json = []
+    file_path             = os.path.join(test_suite_path, file)
+
+    compile_commands = {
+        "directory": test_suite_path,
+        "file": file_path,
+        "command": "clang++-16 " + file_path + " -resource-dir /usr/lib/clang/16 --cuda-gpu-arch=sm_70 --cuda-device-only -pthread"
+    }
+    compile_commands_json.append(compile_commands)
+
+    return compile_commands_json
 #-----------------------------------------------------------------------------------------------
 def get_test_suite(path, output, eval=True, tuning=False):
     # Settings
@@ -196,10 +212,19 @@ def get_test_suite(path, output, eval=True, tuning=False):
     # Get kernel info & CUDA kernel code
     kernel_info, cuda_code = get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning)
 
+    # Get compile commands
+    file = "kernels.cu"
+    compile_commands_json = get_compile_commands(test_suite_path, file)
+
     # Create CUDA kernel file
     code_path = "%s/kernels.cu" % (test_suite_path)
     with open(code_path, "w+") as f:
         f.write(cuda_code)
+
+    # Create compile_commands.json file
+    compile_commands_path = "%s/compile_commands.json" % (test_suite_path)
+    with open(compile_commands_path, "w+") as f:
+        json.dump(compile_commands_json, f)
 
     # Create fusion info YAML file
     fusion_yaml_list = []

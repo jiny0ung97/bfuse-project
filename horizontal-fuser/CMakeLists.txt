@@ -37,7 +37,7 @@ include(HandleLLVMOptions)
 include(AddClang)
 # ------------------------------------------------------------------
 # Sources
-set(FUSER_SOURCE_DIR lib)
+set(FUSER_SOURCE_DIR src)
 set(FUSER_SOURCES
   ${FUSER_SOURCE_DIR}/main.cc
   ${FUSER_SOURCE_DIR}/Fuse.cc

@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
-project(bfuse VERSION 1.0.0)
+project(horizontal-fuser VERSION 1.0.0)
 # ------------------------------------------------------------------
 # Configure files
-configure_file(BFuseConfig.h.in BFuseConfig.h)
+configure_file(CMakeConfig.h.in CMakeConfig.h)
 
 # C++ settings
 set(CMAKE_CXX_STANDARD 17)
@@ -36,20 +36,49 @@ include(AddLLVM)
 include(HandleLLVMOptions)
 include(AddClang)
 # ------------------------------------------------------------------
-# Build
-add_executable(${CMAKE_PROJECT_NAME} main.cc)
-# ------------------------------------------------------------------
-# BFuse
-add_subdirectory(bfuse)
-list(APPEND EXTRA_LIBS bfuse)
-# ------------------------------------------------------------------
-# HFuse
-add_subdirectory(hfuse)
-list(APPEND EXTRA_LIBS hfuse)
-# ------------------------------------------------------------------
-# Link libraries
-target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC ${EXTRA_LIBS})
+# Sources
+set(FUSER_SOURCE_DIR lib)
+set(FUSER_SOURCES
+  ${FUSER_SOURCE_DIR}/main.cc
+  ${FUSER_SOURCE_DIR}/Fuse.cc
+  ${FUSER_SOURCE_DIR}/Utils.cc
+  ${FUSER_SOURCE_DIR}/Contexts.cc
+  ${FUSER_SOURCE_DIR}/Tools.cc
+  ${FUSER_SOURCE_DIR}/Matchers.cc
+  # Add your sources here
+  # ${FUSER_SOURCE_DIR}/foo/bar/your_source.cc
+)
 
-# Include configure files
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR})
+# Headers
+set(FUSER_HEADER_DIR include)
+set(FUSER_HEADERS
+  ${FUSER_HEADER_DIR}/fuse/Fuse.h
+  ${FUSER_HEADER_DIR}/fuse/Utils.h
+  ${FUSER_HEADER_DIR}/fuse/Contexts.h
+  ${FUSER_HEADER_DIR}/fuse/Tools.h
+  ${FUSER_HEADER_DIR}/fuse/Matchers.h
+  # Add your headers here
+  # ${FUSER_HEADER_DIR}/foo/bar/your_header.h
+)
+# ------------------------------------------------------------------
+# Build
+set(LLVM_LINK_COMPONENTS support)
+add_clang_executable(${CMAKE_PROJECT_NAME} ${FUSER_HEADERS} ${FUSER_SOURCES})
+
+target_include_directories(${CMAKE_PROJECT_NAME}
+PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/${FUSER_HEADER_DIR}
+)
+
+# Link against Clang libraries
+target_link_libraries(${CMAKE_PROJECT_NAME}
+PRIVATE
+  clangAST
+  clangASTMatchers
+  clangBasic
+  clangFrontend
+  clangSerialization
+  clangTooling
+  clangToolingRefactoring
+)
 # ------------------------------------------------------------------

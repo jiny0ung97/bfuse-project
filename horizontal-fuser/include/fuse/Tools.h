@@ -30,16 +30,16 @@ public:
   int renameParameters();
   /// Rewrite the CUDA variables
   int rewriteCUDAVariables();
+  /// Rewrite the CUDA synchronization function
+  int rewriteCUDASynchronize();
   /// Hoist shared memory variable declarations
   int hoistSharedDecls();
   /// Rename shared memory variables
   int renameSharedVariables();
-  /// Create fused function
-  int createFusedKernel();
-
-  // /// Save fused function into disk
-  // int saveFusedKernel(const contexts::AnalysisContext &AContext, const std::string &ResultPath);
-  
+  /// Create bfuse function
+  int createBFuseKernel();
+  /// Create fuse function
+  int createHFuseKernel();
   /// Test function for print function declations
   int printFuncDecl();
   /// Get fused kernel as string

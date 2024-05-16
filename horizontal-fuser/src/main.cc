@@ -9,17 +9,20 @@
 using namespace std;
 //---------------------------------------------------------------------------
 static string ProgName            = "horizontal-fuser";
-static string OutputFolder        = "./output";
+static string OutputPath          = "./";
 static string FusionConfigPath    = "./fusions.json";
 static string KernelConfigPath    = "./kernels.json";
 static string CompileCommandsPath = "./";
+
+static bool ExecBFuse = false;
 //---------------------------------------------------------------------------
 static void print_help(const char *prog_name)
 {
-  cout << "Usage: " << prog_name << " [-h] [-o folder] fusion_config kernel_config compile_commands\n";
+  cout << "Usage: " << prog_name << " [-h] [-b] [-o folder] fusion_config kernel_config compile_commands\n";
   cout << "Options:\n";
   cout << " -h                : Print this page.\n";
-  cout << " -o                : Write output to the folder.           (default: ./output)\n";
+  cout << " -b                : Process Block-level fusion.                   (default: false)\n";
+  cout << " -o                : Write output to the directory.                (default: ./)\n";
   cout << "\n";
   cout << "fusion_config      : YAML file about fusion configuration.\n";
   cout << "kernel_config      : YAML file about kernel configuration.\n";
@@ -29,12 +32,15 @@ static void print_help(const char *prog_name)
 static void parse_opt(int argc, char **argv)
 {
   int c;
-  while ((c = getopt(argc, argv, "ho:")) != -1)
+  while ((c = getopt(argc, argv, "hbo:")) != -1)
   {
     switch (c)
     {
     case 'o':
-      OutputFolder = string(optarg);
+      OutputPath = string(optarg);
+      break;
+    case 'b':
+      ExecBFuse = true;
       break;
     case 'h':
     default:
@@ -75,7 +81,11 @@ int main(int argc, char* argv[])
   ProgName = string(argv[0]);
   parse_opt(argc, argv);
 
-  fuse::bfuse(ProgName, OutputFolder, FusionConfigPath, KernelConfigPath, CompileCommandsPath);
+  if (ExecBFuse) {
+    fuse::bfuse(ProgName, FusionConfigPath, KernelConfigPath, CompileCommandsPath, OutputPath);
+  } else {
+    fuse::hfuse(ProgName, FusionConfigPath, KernelConfigPath, CompileCommandsPath, OutputPath);
+  }
 
   return 0;
 }

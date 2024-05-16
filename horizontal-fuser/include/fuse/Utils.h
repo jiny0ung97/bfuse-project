@@ -25,9 +25,11 @@ namespace utils {
 //---------------------------------------------------------------------------
 std::string extractFilePath(contexts::FusionInfo& FInfo);
 //---------------------------------------------------------------------------
-void backUpFiles(const std::string &FileName);
+void backUpFile(const std::string &FileName);
 //---------------------------------------------------------------------------
-void recoverFiles(const std::string &FileName);
+void recoverFile(const std::string &FileName);
+//---------------------------------------------------------------------------
+void writeFile(const std::string &Path, const std::string &FileName, const std::string &Str);
 //---------------------------------------------------------------------------
 template <typename Info>
 Info readYAMLInfo(const std::string &Path)
@@ -48,6 +50,17 @@ Info readYAMLInfo(const std::string &Path)
   }
 
   return Infos;
+}
+//---------------------------------------------------------------------------
+template <typename Info>
+void writeYAMLInfo(const std::string &Path, const std::string &FileName, Info &Infos)
+{
+  std::error_code FileErr;
+  llvm::raw_fd_ostream Os(Path + "/" + FileName, FileErr, llvm::sys::fs::OF_None);
+
+  llvm::yaml::Output Yaml{Os};
+
+  Yaml << Infos;
 }
 //---------------------------------------------------------------------------
 } // namespace utils

@@ -40,6 +40,12 @@ public:
   /// The kernel's execution time
   float ExecTime_;
 
+  /// The constructor
+  KernelInfo() = default;
+  /// The constructor
+  KernelInfo(std::string KernelName, bool HasBarriers, GridDim GridDim, BlockDim BlockDim, int Reg, float ExecTime)
+            : KernelName_{KernelName}, HasBarriers_{HasBarriers}, GridDim_{GridDim}, BlockDim_{BlockDim}, Reg_{Reg}, ExecTime_{ExecTime} {}
+
   /// Print KernelInfo
   void print(const std::string &KName) const;
 };
@@ -69,13 +75,15 @@ public:
   GridDim FusedGridDim_;
   /// The fused kernel's BlockDim;
   BlockDim FusedBlockDim_;
-  /// The fused kernel's new cuda built-in declarations
+  /// The fused kernel's new cuda built-in declarations (for bfuse)
   std::string FusedBlockDeclStr_;
+  /// The fused kernel's new cuda built-in declarations (for hfuse)
+  std::map<std::string, std::string> FusedBlockDeclStrMap_;
   /// The fused kernel's branch condition for each kernel
   std::map<std::string, std::string> FusedCondStrMap_;
 
   /// The constructor
-  // FusionContext(FusionInfo &FInfo, std::map<std::string, KernelInfo> &KInfoMap);
+  FusionContext() = default;
   /// The constructor
   FusionContext(int TotalSM, std::vector<std::string> &&Kernels, std::map<std::string, KernelInfo> &&KernelInfoMap,
                 std::string &&FusedKernelName, GridDim &&FusedGridDim, BlockDim &&FusedBlockDim,
@@ -83,11 +91,18 @@ public:
                 : TotalSM_{TotalSM}, Kernels_{std::move(Kernels)}, KernelInfoMap_{std::move(KernelInfoMap)},
                   FusedKernelName_{std::move(FusedKernelName)}, FusedGridDim_{std::move(FusedGridDim)}, FusedBlockDim_{std::move(FusedBlockDim)},
                   FusedBlockDeclStr_{std::move(FusedBlockDeclStr)}, FusedCondStrMap_{std::move(FusedCondStrMap)} {}
+  /// The constructor
+  FusionContext(int TotalSM, std::vector<std::string> &&Kernels, std::map<std::string, KernelInfo> &&KernelInfoMap,
+                std::string &&FusedKernelName, GridDim &&FusedGridDim, BlockDim &&FusedBlockDim,
+                std::map<std::string, std::string> &&FusedBlockDeclStrMap, std::map<std::string, std::string> &&FusedCondStrMap)
+                : TotalSM_{TotalSM}, Kernels_{std::move(Kernels)}, KernelInfoMap_{std::move(KernelInfoMap)},
+                  FusedKernelName_{std::move(FusedKernelName)}, FusedGridDim_{std::move(FusedGridDim)}, FusedBlockDim_{std::move(FusedBlockDim)},
+                  FusedBlockDeclStrMap_{std::move(FusedBlockDeclStrMap)}, FusedCondStrMap_{std::move(FusedCondStrMap)} {}
   /// Print FusionContext
   void print() const;
 
   /// Create the KernelContext
-  static FusionContext create(FusionInfo &FInfo, std::map<std::string, KernelInfo> &KInfoMap);
+  static FusionContext create(FusionInfo &FInfo, std::map<std::string, KernelInfo> &KInfoMap, bool bfuse);
 };
 //---------------------------------------------------------------------------
 } // namespace contexts

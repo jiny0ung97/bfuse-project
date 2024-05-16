@@ -40,8 +40,11 @@ public:
   Arguments& operator=(Arguments &&other) = delete;
 };
 //---------------------------------------------------------------------------
-void bfuse(const std::string ProgName, const std::string OutputFolder,
-          const std::string FusionConfigPath, const std::string KernelConfigPath, const std::string CompileCommandsPath);
+void bfuse(const std::string ProgName, const std::string FusionConfigPath,
+           const std::string KernelConfigPath, const std::string CompileCommandsPath, const std::string OutputPath);
+//---------------------------------------------------------------------------
+void hfuse(const std::string ProgName, const std::string FusionConfigPath,
+           const std::string KernelConfigPath, const std::string CompileCommandsPath, const std::string OutputPath);
 //---------------------------------------------------------------------------
 } // namespace fuse
 //---------------------------------------------------------------------------

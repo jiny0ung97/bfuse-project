@@ -111,16 +111,16 @@ class CUDASyncRewriter
 private:
   /// The container of refactoring replacements
   std::map<std::string, clang::tooling::Replacements> &Repls_;
-  /// The map of threads' number
-  const std::map<std::string, int> &ThreadNumMap_;
+  /// The map of kernel's information
+  contexts::FusionContext FContext_;
 
 public:
   /// Run AST match finder
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  CUDASyncRewriter(std::map<std::string, clang::tooling::Replacements> &Repls, const std::map<std::string, int> &ThreadNumMap)
-                  : Repls_{Repls}, ThreadNumMap_{ThreadNumMap} {}
+  CUDASyncRewriter(std::map<std::string, clang::tooling::Replacements> &Repls, const contexts::FusionContext FContext)
+                  : Repls_{Repls}, FContext_{FContext} {}
 };
 //---------------------------------------------------------------------------
 class CUDASharedDeclExtractor
@@ -176,7 +176,7 @@ public:
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 };
 //---------------------------------------------------------------------------
-class CUDAFuncBuilder
+class BFuseBuilder
       : public clang::ast_matchers::MatchFinder::MatchCallback {
 private:
   /// Fusion information
@@ -201,7 +201,33 @@ public:
   virtual void onEndOfTranslationUnit() override;
 
   /// The constructor
-  CUDAFuncBuilder(const contexts::FusionContext &FContext, std::string &UnionStr, std::string &FuncStr) : FContext_{FContext}, UnionStr_{UnionStr}, FuncStream_{FuncStr} {}
+  BFuseBuilder(const contexts::FusionContext &FContext, const std::string &UnionStr, std::string &FuncStr) : FContext_{FContext}, UnionStr_{UnionStr}, FuncStream_{FuncStr} {}
+};
+//---------------------------------------------------------------------------
+class HFuseBuilder
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+private:
+  /// Fusion information
+  contexts::FusionContext FContext_;
+  /// The string stream of fused function
+  llvm::raw_string_ostream FuncStream_;
+  /// The list of functions to be fused
+  std::map<std::string, std::string> FuncBodyStringMap_;
+  /// Check whether at least one of the functions have template parameters
+  bool IsFuncTemplate_ = false;
+  /// The string list of template parameters
+  std::vector<std::string> TemplStringList_;
+  /// The string list of parameters
+  std::vector<std::string> ParmStringList_;
+
+public:
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+  /// Run finder at the end of the translation unit
+  virtual void onEndOfTranslationUnit() override;
+
+  /// The constructor
+  HFuseBuilder(const contexts::FusionContext &FContext, std::string &FuncStr) : FContext_{FContext}, FuncStream_{FuncStr} {}
 };
 //---------------------------------------------------------------------------
 class CUDAFuncDeclPrinter

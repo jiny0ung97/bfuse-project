@@ -53,12 +53,13 @@ void FusionContext::print() const
   }
 }
 //---------------------------------------------------------------------------
-FusionContext FusionContext::create(FusionInfo &FInfo, map<string, KernelInfo> &KInfoMap)
+FusionContext FusionContext::create(FusionInfo &FInfo, map<string, KernelInfo> &KInfoMap, bool bfuse)
 {
   int                     TotalSM;
   vector<string>          Kernels;
   map<string, KernelInfo> KernelInfoMap;
   string                  FusedKernelName;
+  FusionContext           FContext;
 
   // Temp: V100
   TotalSM = 84;
@@ -71,12 +72,21 @@ FusionContext FusionContext::create(FusionInfo &FInfo, map<string, KernelInfo> &
     KernelInfoMap[KName] = Info;
     FusedKernelName      += KName + "_";
   }
-  FusedKernelName += "fused_bfuse";
+  if (bfuse) {
+    FusedKernelName += "fused_bfuse";
+    auto [FusedBlockDeclStr, FusedCondStrMap, FusedGridDim, FusedBlockDim] = algorithms::fineInterleavePattern(FInfo.Kernels_, KInfoMap, TotalSM);
 
-  auto [FusedBlockDeclStr, FusedCondStrMap, FusedGridDim, FusedBlockDim] = algorithms::fineInterleavePattern(FInfo.Kernels_, KInfoMap, TotalSM);
+    FContext = FusionContext{TotalSM, move(Kernels), move(KernelInfoMap), move(FusedKernelName),
+                             move(FusedGridDim), move(FusedBlockDim), move(FusedBlockDeclStr), move(FusedCondStrMap)};
+  } else {
+    FusedKernelName += "fused_hfuse";
+    auto [FusedBlockDeclStrMap, FusedCondStrMap, FusedGridDim, FusedBlockDim] = algorithms::hfusePattern(FInfo.Kernels_, KInfoMap);
 
-  return FusionContext{TotalSM, move(Kernels), move(KernelInfoMap), move(FusedKernelName),
-                       move(FusedGridDim), move(FusedBlockDim), move(FusedBlockDeclStr), move(FusedCondStrMap)};
+    FContext = FusionContext{TotalSM, move(Kernels), move(KernelInfoMap), move(FusedKernelName),
+                             move(FusedGridDim), move(FusedBlockDim), move(FusedBlockDeclStrMap), move(FusedCondStrMap)};
+  }
+
+  return FContext;
 }
 //---------------------------------------------------------------------------
 } // namespace contexts

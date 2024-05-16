@@ -61,15 +61,22 @@ void Arguments::print() const
   cout << "\n";
 }
 //---------------------------------------------------------------------------
-void bfuse(const std::string ProgName, const std::string OutputFolder,
-          const std::string FusionConfigPath, const std::string KernelConfigPath, const std::string CompileCommandsPath)
+void bfuse(const string ProgName, const string FusionConfigPath,
+           const string KernelConfigPath, const string CompileCommandsPath, const string OutputPath)
 {
   // Extract information from yaml files
   auto FusionYAML = utils::readYAMLInfo<vector<FusionInfo>>(FusionConfigPath);
   auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelConfigPath);
 
+  // Results & Output YAML
+  string Results = "";
+  map<string, KernelInfo> FusedKernelYAML;
+
   // Run block-level fusion
-  for (auto& Info : FusionYAML) {
+  // for (auto& Info : FusionYAML) {
+  for (long unsigned I = 0; I < FusionYAML.size(); ++I) {
+    auto& Info = FusionYAML[I];
+
     // Create compilation database
     string CodePath = CompileCommandsPath + "/" + utils::extractFilePath(Info);
     Arguments Args{ProgName, CompileCommandsPath, CodePath};
@@ -93,10 +100,11 @@ void bfuse(const std::string ProgName, const std::string OutputFolder,
      * THE END
      */
 
-    FusionContext FContext = FusionContext::create(Info, KernelYAML);
+    FusionContext FContext = FusionContext::create(Info, KernelYAML, /**bfuse=*/true);
     FusionTool Tool{OptionsParser, FContext};
 
-    // AnalysisContext AContext = AnalysisContext::create(FContext);
+    cout << "[" << I + 1 << "/" << FusionYAML.size() << "]"
+         << " Start to bfuse \"" << FContext.FusedKernelName_ << "\" kernel...\n";
 
     // 0. Backup files first
     // -----------------------------------------------------------------
@@ -107,7 +115,7 @@ void bfuse(const std::string ProgName, const std::string OutputFolder,
 
     cout << "Backup files...\n";
     for (auto& S : OptionsParser.getSourcePathList()) {
-      utils::backUpFiles(S);
+      utils::backUpFile(S);
     }
 
     // 1. Initially rewrite code to analyze and rewrite easily
@@ -147,9 +155,9 @@ void bfuse(const std::string ProgName, const std::string OutputFolder,
     // Because when fusing kernels, the semantics of blockIdx and gridDim
     // are changed.
 
-    cout << "Rewriting pre-built variables...\n";
+    cout << "Rewriting CUDA pre-built variables...\n";
     if (Tool.rewriteCUDAVariables()) {
-      ERROR_MESSAGE("error occur while rewritin g CUDA pre-built variables");
+      ERROR_MESSAGE("error occur while rewriting CUDA pre-built variables");
       exit(1);
     }
 
@@ -173,16 +181,10 @@ void bfuse(const std::string ProgName, const std::string OutputFolder,
     // save it in the result path directory.
 
     cout << "Creating fused kernel...\n";
-    if (Tool.createFusedKernel()) {
+    if (Tool.createBFuseKernel()) {
       ERROR_MESSAGE("error occur while creating new function");
       exit(1);
     }
-
-    cout << Tool.getFuncStr();
-    // if (Tool.saveFusedKernel(AContext, ResultPath)) {
-    //   ERROR_MESSAGE("error occur while saving new function");
-    //   exit(0);
-    // }
 
     // 6. Recover files
     // -----------------------------------------------------------------
@@ -190,9 +192,169 @@ void bfuse(const std::string ProgName, const std::string OutputFolder,
 
     cout << "Recovering files...\n";
     for (auto &S : OptionsParser.getSourcePathList()) {
-      utils::recoverFiles(S);
+      utils::recoverFile(S);
     }
+
+    // 6. Save fused kernel's information
+    // -----------------------------------------------------------------
+    // Save fused kernel's information.
+    Results += Tool.getFuncStr();
+    FusedKernelYAML[FContext.FusedKernelName_] = KernelInfo(FContext.FusedKernelName_,
+                                                            true,
+                                                            FContext.FusedGridDim_,
+                                                            FContext.FusedBlockDim_,
+                                                            32,
+                                                            -1);
   }
+
+  utils::writeFile(OutputPath, "bfuse_kernels.cu", Results);
+  utils::writeYAMLInfo<map<string, KernelInfo>>(OutputPath, "bfuse_kernels.yaml", FusedKernelYAML);
+}
+//---------------------------------------------------------------------------
+void hfuse(const string ProgName, const string FusionConfigPath,
+           const string KernelConfigPath, const string CompileCommandsPath, const string OutputPath)
+{
+  // Extract information from yaml files
+  auto FusionYAML = utils::readYAMLInfo<vector<FusionInfo>>(FusionConfigPath);
+  auto KernelYAML = utils::readYAMLInfo<map<string, KernelInfo>>(KernelConfigPath);
+
+  // Results & Output YAML
+  string Results = "";
+  map<string, KernelInfo> FusedKernelYAML;
+
+  // Run block-level fusion
+  // for (auto& Info : FusionYAML) {
+  for (long unsigned I = 0; I < FusionYAML.size(); ++I) {
+    auto& Info = FusionYAML[I];
+
+    // Create compilation database
+    string CodePath = CompileCommandsPath + "/" + utils::extractFilePath(Info);
+    Arguments Args{ProgName, CompileCommandsPath, CodePath};
+
+    auto [argc, argv]   = Args.getArguments();
+    auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
+    if (!ExpectedParser) {
+      // Fail gracefully for unsupported options
+      llvm::errs() << ExpectedParser.takeError();
+      exit(0);
+    }
+    CommonOptionsParser &OptionsParser = ExpectedParser.get();
+
+    /*
+     * The Fusion-Flow
+     *
+     * First,  analysis the kernels and extract data to be used
+     * Second, rewrite kernels (Parameters, Synchronization, ThreadIdx, BlockIdx, etc...)
+     *         this rewriting rule needs to add  "Union Shared Memory Variable" Algorithm
+     * Third,  create new fused function and save it into the disk
+     * THE END
+     */
+
+    FusionContext FContext = FusionContext::create(Info, KernelYAML, /*bfuse=*/false);
+    FusionTool Tool{OptionsParser, FContext};
+
+    cout << "[" << I + 1 << "/" << FusionYAML.size() << "]"
+         << " Start to hfuse \"" << FContext.FusedKernelName_ << "\" kernel...\n";
+
+    // 0. Backup files first
+    // -----------------------------------------------------------------
+    // Backup the kernel codes to be fused.
+    // Because Clang libTooling is not suitable for creating new AST,
+    // so rather than creating new AST from code, backup existing files,
+    // and then refactoring the files. (Later recovery them)
+
+    cout << "Backup files...\n";
+    for (auto& S : OptionsParser.getSourcePathList()) {
+      utils::backUpFile(S);
+    }
+
+    // 1. Initially rewrite code to analyze and rewrite easily
+    // -----------------------------------------------------------------
+    // First, We need to rewrite whole body because when using libTooling
+    // rewriting shared memory declarations may occur error. (Maybe bug?)
+    // Then, this will append compound statement
+    // so that we can be free from semantic error,
+    // which can be occured during analyze and rewrite some variables.
+
+    cout << "Initializing codes at first...\n";
+    if (Tool.initiallyRewriteKernels()) {
+      ERROR_MESSAGE("error occur while initialzing codes");
+      exit(1);
+    }
+    if (Tool.rewriteCompStmt()) {
+      ERROR_MESSAGE("error occur while rewriting compound statment");
+      exit(1);
+    }
+
+    // 2. Renaming parameters
+    // -----------------------------------------------------------------
+    // Renaming kernels' parameters with kernels' name.
+    // Because when fusing kernels, each parameters' name can be duplicated
+    // in fused kernel.
+    // i.e. ParmName -> KernelName + "_" + ParmName + "_";
+
+    cout << "Renaming parameters...\n";
+    if (Tool.renameParameters()) {
+      ERROR_MESSAGE("error occur while renaming parameters");
+      exit(1);
+    }
+
+    // 3. Rewrite pre-built variables
+    // -----------------------------------------------------------------
+    // Rewrite blockIdx and gridDim variables.
+    // Because when fusing kernels, the semantics of blockIdx and gridDim
+    // are changed.
+
+    cout << "Rewriting CUDA pre-built variables...\n";
+    if (Tool.rewriteCUDAVariables()) {
+      ERROR_MESSAGE("error occur while rewriting CUDA pre-built variables");
+      exit(1);
+    }
+
+    // 4. Rewrite __syncthreads() functions
+    // -----------------------------------------------------------------
+    // TODO: add comments
+
+    cout << "Rewriting CUDA __syncthreads() functions...\n";
+    if (Tool.rewriteCUDASynchronize()) {
+      ERROR_MESSAGE("error occur while rewriting CUDA __syncthreads() functions");
+      exit(1);
+    }
+
+    // 5. Create fused kerenl
+    // -----------------------------------------------------------------
+    // Fuse two different kernels and
+    // save it in the result path directory.
+
+    cout << "Creating fused kernel...\n";
+    if (Tool.createHFuseKernel()) {
+      ERROR_MESSAGE("error occur while creating new function");
+      exit(1);
+    }
+
+    // 6. Recover files
+    // -----------------------------------------------------------------
+    // Recover files.
+
+    cout << "Recovering files...\n";
+    for (auto &S : OptionsParser.getSourcePathList()) {
+      utils::recoverFile(S);
+    }
+
+    // 6. Save fused kernel's information
+    // -----------------------------------------------------------------
+    // Save fused kernel's information.
+    Results += Tool.getFuncStr();
+    FusedKernelYAML[FContext.FusedKernelName_] = KernelInfo(FContext.FusedKernelName_,
+                                                            true,
+                                                            FContext.FusedGridDim_,
+                                                            FContext.FusedBlockDim_,
+                                                            32,
+                                                            -1);
+  }
+
+  utils::writeFile(OutputPath, "hfuse_kernels.cu", Results);
+  utils::writeYAMLInfo<map<string, KernelInfo>>(OutputPath, "hfuse_kernels.yaml", FusedKernelYAML);
 }
 //---------------------------------------------------------------------------
 } // namespace fuse

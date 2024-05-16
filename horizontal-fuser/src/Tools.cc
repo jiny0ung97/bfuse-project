@@ -136,12 +136,6 @@ int FusionTool::renameParameters()
 //---------------------------------------------------------------------------
 int FusionTool::rewriteCUDAVariables()
 {
-  map<string, int> ThreadNumMap;
-  for (auto &KName : FContext_.Kernels_) {
-    auto &KInfo = FContext_.KernelInfoMap_.at(KName);
-    ThreadNumMap[KName] = KInfo.BlockDim_.size();
-  }
-
   // Refactoring Tool
   RefactoringTool Tool(OptionsParser_.getCompilations(),
                        OptionsParser_.getSourcePathList());
@@ -156,6 +150,29 @@ int FusionTool::rewriteCUDAVariables()
                       &BInfoRewriter);
     // Finder.addMatcher(ASTPatternMatcher::getSyncMatcher(KName),
     //                   &SyncRewriter);
+  }
+  return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionTool::rewriteCUDASynchronize()
+{
+  map<string, int> ThreadNumMap;
+  for (auto &KName : FContext_.Kernels_) {
+    auto &KInfo = FContext_.KernelInfoMap_.at(KName);
+    ThreadNumMap[KName] = KInfo.BlockDim_.size();
+  }
+
+  // Refactoring Tool
+  RefactoringTool Tool(OptionsParser_.getCompilations(),
+                       OptionsParser_.getSourcePathList());
+
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDASyncRewriter SyncRewriter{Tool.getReplacements(), FContext_};
+
+  for (auto &KName : FContext_.Kernels_) {
+    Finder.addMatcher(ASTPatternMatcher::getSyncMatcher(KName),
+                      &SyncRewriter);
   }
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
 }
@@ -236,7 +253,7 @@ int FusionTool::renameSharedVariables()
   return ReTool.runAndSave(newFrontendActionFactory(&Renaming).get());
 }
 //---------------------------------------------------------------------------
-int FusionTool::createFusedKernel()
+int FusionTool::createBFuseKernel()
 {
   // Clang Tool
   ClangTool Tool(OptionsParser_.getCompilations(),
@@ -244,7 +261,23 @@ int FusionTool::createFusedKernel()
 
   // Add AST matchers
   MatchFinder Finder;
-  CUDAFuncBuilder Builder{FContext_, UnionStr_, FuncStr_};
+  BFuseBuilder Builder{FContext_, UnionStr_, FuncStr_};
+
+  for (auto &KName : FContext_.Kernels_) {
+    Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Builder);
+  }
+  return Tool.run(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionTool::createHFuseKernel()
+{
+  // Clang Tool
+  ClangTool Tool(OptionsParser_.getCompilations(),
+                 OptionsParser_.getSourcePathList());
+
+  // Add AST matchers
+  MatchFinder Finder;
+  HFuseBuilder Builder{FContext_, FuncStr_};
 
   for (auto &KName : FContext_.Kernels_) {
     Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Builder);

@@ -14,12 +14,12 @@ class FusionTool {
 private:
   /// The clang refactoring tool
   clang::tooling::CommonOptionsParser &OptionsParser_;
-
   /// The conatiner of fusion information
   contexts::FusionContext FContext_;
-
+  /// New shared variable declarations
+  std::string UnionStr_;
   /// The string result of the fused kernels
-  std::string FuncStr_;
+  std::string FuncStr_ = "";
 
 public:
   /// Rewrite Kernels at first
@@ -32,16 +32,18 @@ public:
   int rewriteCUDAVariables();
   /// Hoist shared memory variable declarations
   int hoistSharedDecls();
-  // /// Rename shared memory variables
-  // int renameSharedVariables();
-  // /// Create fused function
-  // int createFusedKernel();
+  /// Rename shared memory variables
+  int renameSharedVariables();
+  /// Create fused function
+  int createFusedKernel();
 
   // /// Save fused function into disk
   // int saveFusedKernel(const contexts::AnalysisContext &AContext, const std::string &ResultPath);
   
   /// Test function for print function declations
   int printFuncDecl();
+  /// Get fused kernel as string
+  std::string getFuncStr() const { return FuncStr_; }
 
   /// The constructor
   explicit FusionTool(clang::tooling::CommonOptionsParser &OptionsParser, contexts::FusionContext &FContext)

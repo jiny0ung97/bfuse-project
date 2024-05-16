@@ -34,10 +34,12 @@ static llvm::cl::extrahelp MoreHelp("\nMore help text...\n");
 //---------------------------------------------------------------------------
 namespace fuse {
 //---------------------------------------------------------------------------
-Arguments::Arguments(const std::string ProgName, const std::string CompileCommandsPath, const std::string FilePath)
+Arguments::Arguments(const std::string &ProgName, const std::string &CompileCommandsPath, const std::string &FilePath)
 {
   CompileCommands_ = CompileCommandsPath;
   File_            = FilePath;
+
+  Argc_ = 4;
 
   Argv_    = (const char**)malloc(sizeof(char *) * Argc_);
   Argv_[0] = ProgName.c_str();
@@ -119,83 +121,77 @@ void bfuse(const std::string ProgName, const std::string OutputFolder,
     cout << "Initializing codes at first...\n";
     if (Tool.initiallyRewriteKernels()) {
       ERROR_MESSAGE("error occur while initialzing codes");
-      exit(0);
+      exit(1);
     }
     if (Tool.rewriteCompStmt()) {
       ERROR_MESSAGE("error occur while rewriting compound statment");
-      exit(0);
+      exit(1);
     }
 
-    // // 2. Renaming parameters
-    // // -----------------------------------------------------------------
-    // // Renaming kernels' parameters with kernels' name.
-    // // Because when fusing kernels, each parameters' name can be duplicated
-    // // in fused kernel.
-    // // i.e. ParmName -> KernelName + "_" + ParmName + "_";
+    // 2. Renaming parameters
+    // -----------------------------------------------------------------
+    // Renaming kernels' parameters with kernels' name.
+    // Because when fusing kernels, each parameters' name can be duplicated
+    // in fused kernel.
+    // i.e. ParmName -> KernelName + "_" + ParmName + "_";
 
-    // cout << "Renaming parameters...\n";
-    // if (Tool.analyzeParameters(AContext)) {
-    //   ERROR_MESSAGE("error occur while analyzing parameters");
-    //   exit(0);
-    // }
-    // if (Tool.renameParameters(AContext)) {
-    //   ERROR_MESSAGE("error occur while renaming parameters");
-    //   exit(0);
-    // }
+    cout << "Renaming parameters...\n";
+    if (Tool.renameParameters()) {
+      ERROR_MESSAGE("error occur while renaming parameters");
+      exit(1);
+    }
 
-    // // 3. Rewrite pre-built variables
-    // // -----------------------------------------------------------------
-    // // Rewrite blockIdx and gridDim variables.
-    // // Because when fusing kernels, the semantics of blockIdx and gridDim
-    // // are changed.
+    // 3. Rewrite pre-built variables
+    // -----------------------------------------------------------------
+    // Rewrite blockIdx and gridDim variables.
+    // Because when fusing kernels, the semantics of blockIdx and gridDim
+    // are changed.
 
-    // cout << "Rewriting pre-built variables...\n";
-    // if (Tool.rewriteCUDAVariables(AContext)) {
-    //   ERROR_MESSAGE("error occur while rewritin g CUDA pre-built variables");
-    //   exit(0);
-    // }
+    cout << "Rewriting pre-built variables...\n";
+    if (Tool.rewriteCUDAVariables()) {
+      ERROR_MESSAGE("error occur while rewritin g CUDA pre-built variables");
+      exit(1);
+    }
 
-    // // 4. Hoisting & Renaming shared memory variables
-    // // -----------------------------------------------------------------
-    // // TODO: add comments
+    // 4. Hoisting & Renaming shared memory variables
+    // -----------------------------------------------------------------
+    // TODO: add comments
 
-    // cout << "Hoisting & Renaming shared memory variables...\n";
-    // if (Tool.hoistSharedDecls(AContext)) {
-    //   ERROR_MESSAGE("error occur while extracting shared memory declarations");
-    //   exit(0);
-    // }
-    // if (Tool.analyzeSharedVariables(AContext)) {
-    //   ERROR_MESSAGE("error occur while renaming shared memory variables");
-    //   exit(0);
-    // }
-    // if (Tool.renameSharedVariables(AContext)) {
-    //   ERROR_MESSAGE("error occur while renaming shared memory variables");
-    //   exit(0);
-    // }
+    cout << "Hoisting & Renaming shared memory variables...\n";
+    if (Tool.hoistSharedDecls()) {
+      ERROR_MESSAGE("error occur while extracting shared memory declarations");
+      exit(1);
+    }
+    if (Tool.renameSharedVariables()) {
+      ERROR_MESSAGE("error occur while renaming shared memory variables");
+      exit(1);
+    }
 
-    // // 5. Create fused kerenl
-    // // -----------------------------------------------------------------
-    // // Fuse two different kernels and
-    // // save it in the result path directory.
+    // 5. Create fused kerenl
+    // -----------------------------------------------------------------
+    // Fuse two different kernels and
+    // save it in the result path directory.
 
-    // cout << "Creating fused kernel...\n";
-    // if (Tool.createFusedKernel(AContext)) {
-    //   ERROR_MESSAGE("error occur while creating new function");
-    //   exit(0);
-    // }
+    cout << "Creating fused kernel...\n";
+    if (Tool.createFusedKernel()) {
+      ERROR_MESSAGE("error occur while creating new function");
+      exit(1);
+    }
+
+    cout << Tool.getFuncStr();
     // if (Tool.saveFusedKernel(AContext, ResultPath)) {
     //   ERROR_MESSAGE("error occur while saving new function");
     //   exit(0);
     // }
 
-    // // 6. Recover files
-    // // -----------------------------------------------------------------
-    // // Recover files.
+    // 6. Recover files
+    // -----------------------------------------------------------------
+    // Recover files.
 
-    // cout << "Recovering files...\n";
-    // for (auto &S : OptionsParser.getSourcePathList()) {
-    //   utils::recoverFiles(S);
-    // }
+    cout << "Recovering files...\n";
+    for (auto &S : OptionsParser.getSourcePathList()) {
+      utils::recoverFiles(S);
+    }
   }
 }
 //---------------------------------------------------------------------------

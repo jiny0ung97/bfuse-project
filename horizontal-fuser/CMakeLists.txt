@@ -45,6 +45,7 @@ set(FUSER_SOURCES
   ${FUSER_SOURCE_DIR}/Contexts.cc
   ${FUSER_SOURCE_DIR}/Tools.cc
   ${FUSER_SOURCE_DIR}/Matchers.cc
+  ${FUSER_SOURCE_DIR}/Algorithms.cc
   # Add your sources here
   # ${FUSER_SOURCE_DIR}/foo/bar/your_source.cc
 )
@@ -57,6 +58,7 @@ set(FUSER_HEADERS
   ${FUSER_HEADER_DIR}/fuse/Contexts.h
   ${FUSER_HEADER_DIR}/fuse/Tools.h
   ${FUSER_HEADER_DIR}/fuse/Matchers.h
+  ${FUSER_HEADER_DIR}/fuse/Algorithms.h
   # Add your headers here
   # ${FUSER_HEADER_DIR}/foo/bar/your_header.h
 )

@@ -352,15 +352,23 @@ void CUDASharedDeclRewriter::run(const MatchFinder::MatchResult &Result)
 
   string DeclStr;
   llvm::raw_string_ostream DeclStream{DeclStr};
-  DS->printPretty(DeclStream, nullptr, Context->getPrintingPolicy(), /*Indentation=*/1U);
+  DS->printPretty(DeclStream, nullptr, Context->getPrintingPolicy(), /*Indentation=*/0U);
   DeclStream.flush();
 
-  if (SharedDeclStringMap_.find(FName) == SharedDeclStringMap_.end()) {
-    SharedDeclStringMap_[FName] = "\n";
+  if (SharedDeclStrMap_.find(FName) == SharedDeclStrMap_.end()) {
+    SharedDeclStrMap_[FName] = vector<string>();
     Kernels_.push_back(FName);
   }
-  auto &SharedDeclString = SharedDeclStringMap_.at(FName);
-  SharedDeclString += DeclStr;
+  auto &SharedDeclStr = SharedDeclStrMap_.at(FName);
+
+  string ShrdAttr = "__attribute__((shared))";
+  string StaticAttr = "static";
+  auto ShrdIter = DeclStr.find(ShrdAttr);
+  DeclStr.erase(ShrdIter, ShrdIter+ShrdAttr.size());
+  auto StaticIter = DeclStr.find(StaticAttr);
+  DeclStr.erase(StaticIter, StaticIter+StaticAttr.size());
+
+  SharedDeclStr.push_back(DeclStr);
 
   if (ASTContextMap_.find(FName) == ASTContextMap_.end()) {
     ASTContextMap_[FName] = Context;
@@ -377,15 +385,210 @@ void CUDASharedDeclRewriter::onEndOfTranslationUnit()
   for (auto &KName : Kernels_) {
     auto *Context     = ASTContextMap_.at(KName);
     auto &SourceLoc   = SourceLocMap_.at(KName);
-    auto &ShrdDeclStr = SharedDeclStringMap_.at(KName);
+    auto &ShrdDeclStr = SharedDeclStrMap_.at(KName);
 
-    Replacement Repl{Context->getSourceManager(), SourceLoc, 0, ShrdDeclStr};
+    string TmpShrdDeclStr;
+    llvm::raw_string_ostream TmpStream{TmpShrdDeclStr};
+    // TmpStream << "\n"
+    //           << "  union ShrdUnion_ {\n"
+    //           << "    struct " << KName << " {\n";
+    // for (auto &DeclStr : ShrdDeclStr) {
+    //   TmpStream << "      " << DeclStr << ";\n";
+    // }
+    // TmpStream << "    };\n"
+    //           << "  };\n";
+
+    for (auto &DeclStr : ShrdDeclStr) {
+      TmpStream << "  __shared__" << DeclStr << ";\n";
+    }
+    // TmpStream << "__shared__ ShrdUnion_ Union_;\n";
+
+    TmpStream.flush();
+
+    Replacement Repl{Context->getSourceManager(), SourceLoc, 0, TmpShrdDeclStr};
     string FilePath = Repl.getFilePath().str();
     if (auto Err = Repls_[FilePath].add(Repl)) {
       llvm::errs() << "CUDASharedDeclRewriter error occur\n";
       exit(0);
     }
   }
+}
+//---------------------------------------------------------------------------
+void CUDASharedVarAnalyzer::run(const MatchFinder::MatchResult &Result)
+{
+  ASTContext *Context = Result.Context;
+  const DeclStmt *DS  = Result.Nodes.getNodeAs<DeclStmt>(ASTPatternMatcher::CUDASharedDecl);
+  if (!DS) {
+    return;
+  }
+
+  // Analyze shared memory variables
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
+  const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
+
+  string FName  = FD->getNameAsString();
+  string VName  = VD->getNameAsString();
+  auto ShrdUSR = getUSRsForDeclaration(VD->getUnderlyingDecl(), *Context);
+
+  // Skip temp variable
+  if(VName.compare("Union_") == 0) {
+    return;
+  }
+
+  string DeclStr;
+  llvm::raw_string_ostream DeclStream{DeclStr};
+  DS->printPretty(DeclStream, nullptr, Context->getPrintingPolicy(), /*Indentation=*/0U);
+  DeclStream.flush();
+
+  ShrdVarListMap_[FName].push_back(VName);
+  ShrdVarUSRsListMap_[FName].push_back(ShrdUSR);
+
+  if (SharedDeclStrMap_.find(FName) == SharedDeclStrMap_.end()) {
+    SharedDeclStrMap_[FName] = vector<string>();
+  }
+  auto &SharedDeclStr = SharedDeclStrMap_.at(FName);
+
+  string ShrdAttr   = " __attribute__((shared))";
+  string StaticAttr = "static";
+
+  auto ShrdIter   = DeclStr.find(ShrdAttr);
+  auto StaticIter = DeclStr.find(StaticAttr);
+
+  DeclStr.erase(ShrdIter, ShrdIter+ShrdAttr.size());
+  DeclStr.erase(StaticIter, StaticIter+StaticAttr.size());
+
+  SharedDeclStr.push_back(DeclStr);
+}
+//---------------------------------------------------------------------------
+void CUDAFuncBuilder::run(const MatchFinder::MatchResult &Result)
+{
+  ASTContext *Context    = Result.Context;
+  const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
+  if (!FD) {
+    return;
+  }
+
+  // Print function template parameters
+  if (auto *TD = FD->getDescribedFunctionTemplate()) {
+    IsFuncTemplate_ = true;
+
+    auto *PDList = TD->getTemplateParameters();
+    for (auto *PD : *PDList) {
+      string TemplStr;
+      llvm::raw_string_ostream TemplStream{TemplStr};
+
+      PD->print(TemplStream, Context->getPrintingPolicy());
+      TemplStream.flush();
+      TemplStringList_.push_back(TemplStr);
+    }
+  }
+
+  // Print function parameters
+  for (auto *PD : FD->parameters()) {
+    string ParamStr;
+    llvm::raw_string_ostream ParamStream{ParamStr};
+
+    PD->print(ParamStream, Context->getPrintingPolicy());
+    ParamStream.flush();
+    ParmStringList_.push_back(ParamStr);
+  }
+
+  // Print function body
+  string FName      = FD->getNameAsString();
+  auto &PrintPolicy = Context->getPrintingPolicy();
+
+  string BodyStr;
+  llvm::raw_string_ostream BodyStream{BodyStr};
+
+  if (FuncBodyStringMap_.find(FName) == FuncBodyStringMap_.end()) {
+    for (auto *Child : FD->getBody()->children()) {
+      if (auto *CS = dyn_cast<CompoundStmt>(Child)) {
+        CS->printPretty(BodyStream, nullptr, PrintPolicy, /*Indentation=*/1U);
+      }
+    }
+    BodyStream.flush();
+
+    string TmpName = "";
+    size_t TmpIter;
+
+    TmpName += "_Union_" + FName + "_";
+    while ((TmpIter = BodyStr.find(TmpName)) != string::npos) {
+      BodyStr.replace(TmpIter, TmpName.size(), "Union_." + FName + ".");
+    }
+    FuncBodyStringMap_[FName] = BodyStr;
+  }
+}
+//---------------------------------------------------------------------------
+void CUDAFuncBuilder::onEndOfTranslationUnit()
+{
+  // Attributes
+  string ExternAttr     = "extern \"C\"";
+  string CUDAGlobalAttr = "__global__";
+  string CUDALaunchAttr = "";
+  CUDALaunchAttr += "__launch_bounds__(" + to_string(FContext_.FusedBlockDim_.size()) + ")";
+
+  // Function declaration (name)
+  string CUDAFuncRtrTy = "void";
+  string CUDAFuncName  = FContext_.FusedKernelName_;
+
+  // Function declaration (template parameter)
+  auto AccFunc = [](string a, string b) { return a + ", " + b; };
+
+  string CUDAFuncTempl = "";
+  if (IsFuncTemplate_) {
+    string FuncTemplDecl;
+    if (TemplStringList_.size() > 1) {
+      FuncTemplDecl = accumulate(TemplStringList_.begin() + 1,
+                                 TemplStringList_.end(),
+                                 TemplStringList_[0],
+                                 AccFunc);
+    }
+    else if (TemplStringList_.size() == 1) {
+      FuncTemplDecl = TemplStringList_[0];
+    }
+
+    CUDAFuncTempl += "template <" + FuncTemplDecl + ">";
+  }
+
+  // Function declaration (paramenter)
+  string CUDAFuncParam = "";
+  if (ParmStringList_.size() > 1) {
+    CUDAFuncParam += accumulate(ParmStringList_.begin() + 1,
+                                ParmStringList_.end(),
+                                ParmStringList_[0],
+                                AccFunc);
+  }
+  else if (ParmStringList_.size() == 1) {
+    CUDAFuncParam += ParmStringList_[0];
+  }
+  
+  // Function body
+  auto &NewBlockInfoString = FContext_.FusedBlockDeclStr_;
+  auto &NewCondStrMap      = FContext_.FusedCondStrMap_;
+
+  string CUDAFuncBody = "";
+  CUDAFuncBody += NewBlockInfoString + UnionStr_ + "\n";
+  
+  for (auto &KName : FContext_.Kernels_) {
+    auto &CondStr = NewCondStrMap.at(KName);
+    auto &BodyStr = FuncBodyStringMap_.at(KName);
+
+    // Comments
+    CUDAFuncBody += "  // " + KName + "\n";
+    CUDAFuncBody += CondStr + BodyStr;
+  }
+
+  // Create fused function
+  FuncStream_ << "\n"
+              << CUDAFuncTempl << "\n"
+              << ExternAttr << " " << CUDAGlobalAttr << " "
+              << CUDALaunchAttr << " " << CUDAFuncRtrTy << " " << CUDAFuncName << "("
+              << CUDAFuncParam << ")\n"
+              << "{\n"
+              <<    CUDAFuncBody
+              << "}\n";
+             
+  FuncStream_.flush();
 }
 //---------------------------------------------------------------------------
 } // namespace matchers

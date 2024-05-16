@@ -7,6 +7,8 @@
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Tooling/Core/Replacement.h"
+
+#include "fuse/Contexts.h"
 //---------------------------------------------------------------------------
 namespace fuse {
 namespace matchers {
@@ -71,7 +73,7 @@ public:
   virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
 
   /// The constructor
-  explicit CUDACompStmtRewriter(std::map<std::string, clang::tooling::Replacements> Repls) : Repls_{Repls} {}
+  explicit CUDACompStmtRewriter(std::map<std::string, clang::tooling::Replacements> &Repls) : Repls_{Repls} {}
 };
 //---------------------------------------------------------------------------
 class CUDAFuncParmAnalyzer
@@ -147,7 +149,7 @@ private:
   /// The map of source locations
   std::map<std::string, clang::SourceLocation> SourceLocMap_;
   /// The map of shared memory declarations
-  std::map<std::string, std::string> SharedDeclStringMap_;
+  std::map<std::string, std::vector<std::string>> SharedDeclStrMap_;
 
 public:
   /// Run AST match finder
@@ -157,6 +159,49 @@ public:
 
   /// The constructor
   CUDASharedDeclRewriter(std::map<std::string, clang::tooling::Replacements> &Repls) : Repls_{Repls} {}
+};
+//---------------------------------------------------------------------------
+class CUDASharedVarAnalyzer
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+public:
+  /// The map of shared memory variables' list
+  std::map<std::string, std::vector<std::string>> ShrdVarListMap_;
+  /// The map of USRs lists for renaming shared memory variables
+  std::map<std::string, std::vector<std::vector<std::string>>> ShrdVarUSRsListMap_;
+  /// The map of shared memory declarations
+  std::map<std::string, std::vector<std::string>> SharedDeclStrMap_;
+
+public:
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+};
+//---------------------------------------------------------------------------
+class CUDAFuncBuilder
+      : public clang::ast_matchers::MatchFinder::MatchCallback {
+private:
+  /// Fusion information
+  contexts::FusionContext FContext_;
+  /// New shared variable declarations
+  std::string UnionStr_;
+  /// The string stream of fused function
+  llvm::raw_string_ostream FuncStream_;
+  /// The list of functions to be fused
+  std::map<std::string, std::string> FuncBodyStringMap_;
+  /// Check whether at least one of the functions have template parameters
+  bool IsFuncTemplate_ = false;
+  /// The string list of template parameters
+  std::vector<std::string> TemplStringList_;
+  /// The string list of parameters
+  std::vector<std::string> ParmStringList_;
+
+public:
+  /// Run AST match finder
+  virtual void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override;
+  /// Run finder at the end of the translation unit
+  virtual void onEndOfTranslationUnit() override;
+
+  /// The constructor
+  CUDAFuncBuilder(const contexts::FusionContext &FContext, std::string &UnionStr, std::string &FuncStr) : FContext_{FContext}, UnionStr_{UnionStr}, FuncStream_{FuncStr} {}
 };
 //---------------------------------------------------------------------------
 class CUDAFuncDeclPrinter

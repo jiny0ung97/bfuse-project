@@ -12,7 +12,7 @@ static string ProgName            = "horizontal-fuser";
 static string OutputFolder        = "./output";
 static string FusionConfigPath    = "./fusions.json";
 static string KernelConfigPath    = "./kernels.json";
-static string CompileCommandsPath = "./compile_commands.json";
+static string CompileCommandsPath = "./";
 //---------------------------------------------------------------------------
 static void print_help(const char *prog_name)
 {
@@ -23,7 +23,7 @@ static void print_help(const char *prog_name)
   cout << "\n";
   cout << "fusion_config      : YAML file about fusion configuration.\n";
   cout << "kernel_config      : YAML file about kernel configuration.\n";
-  cout << "compile_commands   : the \'compile_commands.json\' file.\n";
+  cout << "compile_commands   : the directory where \'compile_commands.json\' file is located.\n";
 }
 //---------------------------------------------------------------------------
 static void parse_opt(int argc, char **argv)

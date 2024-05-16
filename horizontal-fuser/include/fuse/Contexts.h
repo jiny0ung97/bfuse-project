@@ -57,16 +57,32 @@ public:
 //---------------------------------------------------------------------------
 class FusionContext {
 public:
+  /// The number of GPU's SM
+  int TotalSM_;
   /// The kernels to be fused
   std::vector<std::string> Kernels_;
   /// The kernel's information
   std::map<std::string, KernelInfo> KernelInfoMap_;
+  /// The fused kernel's name
+  std::string FusedKernelName_;
+  /// The fused kernel's GridDim;
+  GridDim FusedGridDim_;
+  /// The fused kernel's BlockDim;
+  BlockDim FusedBlockDim_;
+  /// The fused kernel's new cuda built-in declarations
+  std::string FusedBlockDeclStr_;
+  /// The fused kernel's branch condition for each kernel
+  std::map<std::string, std::string> FusedCondStrMap_;
 
   /// The constructor
   // FusionContext(FusionInfo &FInfo, std::map<std::string, KernelInfo> &KInfoMap);
   /// The constructor
-  FusionContext(std::vector<std::string> &&Kernels, std::map<std::string, KernelInfo> &&KernelInfoMap)
-                : Kernels_{std::move(Kernels)}, KernelInfoMap_{std::move(KernelInfoMap)} {}
+  FusionContext(int TotalSM, std::vector<std::string> &&Kernels, std::map<std::string, KernelInfo> &&KernelInfoMap,
+                std::string &&FusedKernelName, GridDim &&FusedGridDim, BlockDim &&FusedBlockDim,
+                std::string &&FusedBlockDeclStr, std::map<std::string, std::string> &&FusedCondStrMap)
+                : TotalSM_{TotalSM}, Kernels_{std::move(Kernels)}, KernelInfoMap_{std::move(KernelInfoMap)},
+                  FusedKernelName_{std::move(FusedKernelName)}, FusedGridDim_{std::move(FusedGridDim)}, FusedBlockDim_{std::move(FusedBlockDim)},
+                  FusedBlockDeclStr_{std::move(FusedBlockDeclStr)}, FusedCondStrMap_{std::move(FusedCondStrMap)} {}
   /// Print FusionContext
   void print() const;
 

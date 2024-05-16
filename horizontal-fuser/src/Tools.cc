@@ -4,12 +4,16 @@
 #include <numeric>
 #include <string>
 #include <map>
+#include <tuple>
+#include <functional>
 
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/Tooling/Refactoring.h"
 #include "clang/Tooling/Refactoring/Rename/RenamingAction.h"
+
+#include "llvm/Support/raw_ostream.h"
 
 #include "fuse/Tools.h"
 #include "fuse/Contexts.h"
@@ -26,7 +30,41 @@ using namespace fuse::matchers;
 //---------------------------------------------------------------------------
 namespace fuse {
 namespace tools {
-//---------------------------------------------------------------------------
+//--------------------------------------------------------------------------
+static tuple<vector<string>, vector<string>, vector<vector<string>>>
+renameVariables(vector<string> &Kernels,
+                map<string, vector<string>> &VarListMap, map<string, vector<vector<string>>> &VarUSRsListMap,
+                function<string(string, string)> &&RenameFunc)
+{
+  vector<string> NewVars;
+  vector<string> PrevVars;
+  vector<vector<string>> USRs;
+
+  for (auto &KName : Kernels) {
+    if (VarListMap.find(KName) == VarListMap.end()) {
+      continue;
+    }
+    
+    auto &PrevVarList = VarListMap.at(KName);
+    auto &USRsList    = VarUSRsListMap.at(KName);
+
+    vector<string> NewVarList{PrevVarList.size()};
+    transform(PrevVarList.begin(), PrevVarList.end(),
+              NewVarList.begin(),
+              [&KName, &RenameFunc](const string &VName) {
+                return RenameFunc(KName, VName);
+              });
+
+    NewVars.insert(NewVars.end(),
+                   NewVarList.begin(), NewVarList.end());
+    PrevVars.insert(PrevVars.end(),
+                    PrevVarList.begin(), PrevVarList.end());
+    USRs.insert(USRs.end(), USRsList.begin(), USRsList.end());
+  }
+
+  return make_tuple(NewVars, PrevVars, USRs);
+}
+//--------------------------------------------------------------------------
 int FusionTool::initiallyRewriteKernels()
 {
   // Refactoring Tool
@@ -83,32 +121,11 @@ int FusionTool::renameParameters()
                          OptionsParser_.getSourcePathList());
 
   // Collect parameters' information and return renamed parameter lists
-  vector<string> NewParams;
-  vector<string> PrevParams;
-  vector<vector<string>> USRs;
-
-  for (auto &KName : FContext_.Kernels_) {
-    if (Analyzer.ParmListMap_.find(KName) == Analyzer.ParmListMap_.end()) {
-      continue;
-    }
-    
-    auto &PrevParmList = Analyzer.ParmListMap_.at(KName);
-    auto &USRsList     = Analyzer.ParmUSRsListMap_.at(KName);
-
-    vector<string> NewParmList{PrevParmList.size()};
-    transform(PrevParmList.begin(), PrevParmList.end(),
-              NewParmList.begin(),
-              [&KName](const string &PName) {
-                return KName + "_" + PName + "_";
-              });
-
-    NewParams.insert(NewParams.end(),
-                     NewParmList.begin(), NewParmList.end());
-    PrevParams.insert(PrevParams.end(),
-                      PrevParmList.begin(), PrevParmList.end());
-    USRs.insert(USRs.end(),
-                USRsList.begin(), USRsList.end());
-  }
+  auto [NewParams, PrevParams, USRs] = renameVariables(FContext_.Kernels_,
+                                                       Analyzer.ParmListMap_, Analyzer.ParmUSRsListMap_,
+                                                       [](const string &KName, const string &PName) {
+                                                         return KName + "_" + PName + "_";
+                                                       });
 
   // Run renaming frontend action
   RenamingAction Renaming{NewParams, PrevParams,
@@ -160,6 +177,79 @@ int FusionTool::hoistSharedDecls()
   }
 
   return Tool.runAndSave(newFrontendActionFactory(&Finder).get());
+}
+//---------------------------------------------------------------------------
+int FusionTool::renameSharedVariables()
+{
+  // Clang Tool
+  ClangTool Tool(OptionsParser_.getCompilations(),
+                 OptionsParser_.getSourcePathList());
+
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDASharedVarAnalyzer Analyzer;
+
+  for (auto &KName : FContext_.Kernels_) {
+    Finder.addMatcher(ASTPatternMatcher::getSharedDeclMatcher(KName), &Analyzer);
+  }
+
+  auto Err = Tool.run(newFrontendActionFactory(&Finder).get());
+  if (Err) {
+    return Err;
+  }
+
+  // New Declaration of shared variables in the fused kernel
+  llvm::raw_string_ostream UnionStream{UnionStr_};
+
+  UnionStream << "  union ShrdUnion_ {\n";
+  for (auto &KName : FContext_.Kernels_) {
+    if (Analyzer.SharedDeclStrMap_.find(KName) == Analyzer.SharedDeclStrMap_.end()) {
+      continue;
+    }
+
+    auto &ShrdDeclStr = Analyzer.SharedDeclStrMap_.at(KName);
+    UnionStream << "    struct " << KName << " {\n";
+    for (auto &DeclStr : ShrdDeclStr) {
+      UnionStream << "      " << DeclStr << ";\n";
+    }
+    UnionStream << "    };\n";
+  }
+  UnionStream << "  };\n"
+              << "  __shared__ ShrdUnion_ Union_;\n";
+  UnionStream.flush();
+
+  // Refactoring Tool
+  RefactoringTool ReTool(OptionsParser_.getCompilations(),
+                         OptionsParser_.getSourcePathList());
+
+  // Collect parameters' information and return renamed parameter lists
+  auto [NewShrdVars, PrevShrdVars, USRs] = renameVariables(FContext_.Kernels_,
+                                                           Analyzer.ShrdVarListMap_, Analyzer.ShrdVarUSRsListMap_,
+                                                           [](const string &KName, const string &SName) {
+                                                             return "_Union_" + KName + "_" + SName;
+                                                           });
+
+  // Run renaming frontend action
+  RenamingAction Renaming{NewShrdVars, PrevShrdVars,
+                          USRs, ReTool.getReplacements()};
+
+  return ReTool.runAndSave(newFrontendActionFactory(&Renaming).get());
+}
+//---------------------------------------------------------------------------
+int FusionTool::createFusedKernel()
+{
+  // Clang Tool
+  ClangTool Tool(OptionsParser_.getCompilations(),
+                 OptionsParser_.getSourcePathList());
+
+  // Add AST matchers
+  MatchFinder Finder;
+  CUDAFuncBuilder Builder{FContext_, UnionStr_, FuncStr_};
+
+  for (auto &KName : FContext_.Kernels_) {
+    Finder.addMatcher(ASTPatternMatcher::getFuncDeclMatcher(KName), &Builder);
+  }
+  return Tool.run(newFrontendActionFactory(&Finder).get());
 }
 //---------------------------------------------------------------------------
 int FusionTool::printFuncDecl()

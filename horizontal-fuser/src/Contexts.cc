@@ -6,6 +6,7 @@
 #include <map>
 
 #include "fuse/Contexts.h"
+#include "fuse/Algorithms.h"
 
 using namespace std;
 //---------------------------------------------------------------------------
@@ -54,18 +55,28 @@ void FusionContext::print() const
 //---------------------------------------------------------------------------
 FusionContext FusionContext::create(FusionInfo &FInfo, map<string, KernelInfo> &KInfoMap)
 {
-  vector<string>             Kernels;
-  map<string, KernelInfo>    KernelInfoMap;
+  int                     TotalSM;
+  vector<string>          Kernels;
+  map<string, KernelInfo> KernelInfoMap;
+  string                  FusedKernelName;
 
-  // Intialize containers
+  // Temp: V100
+  TotalSM = 84;
+
+  FusedKernelName = "";
   for (auto& KName : FInfo.Kernels_) {
     auto& Info = KInfoMap.at(KName);
 
     Kernels.push_back(KName);
     KernelInfoMap[KName] = Info;
+    FusedKernelName      += KName + "_";
   }
+  FusedKernelName += "fused_bfuse";
 
-  return FusionContext{move(Kernels), move(KernelInfoMap)};
+  auto [FusedBlockDeclStr, FusedCondStrMap, FusedGridDim, FusedBlockDim] = algorithms::fineInterleavePattern(FInfo.Kernels_, KInfoMap, TotalSM);
+
+  return FusionContext{TotalSM, move(Kernels), move(KernelInfoMap), move(FusedKernelName),
+                       move(FusedGridDim), move(FusedBlockDim), move(FusedBlockDeclStr), move(FusedCondStrMap)};
 }
 //---------------------------------------------------------------------------
 } // namespace contexts

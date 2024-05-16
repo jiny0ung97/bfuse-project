@@ -9,7 +9,7 @@ namespace fuse {
 class Arguments {
 private:
   /// The argc parameter
-  int Argc_ = 4;
+  int Argc_;
   /// The argv parameter
   const char **Argv_;
   /// The path of compile_commands.json
@@ -24,7 +24,7 @@ public:
   void print() const;
 
   /// The constructor
-  Arguments(const std::string ProgName, const std::string CompileCommandsPath, const std::string FilePath);
+  Arguments(const std::string &ProgName, const std::string &CompileCommandsPath, const std::string &FilePath);
   /// The destructor
   ~Arguments();
 

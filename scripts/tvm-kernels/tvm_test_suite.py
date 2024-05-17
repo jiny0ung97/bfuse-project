@@ -175,7 +175,7 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
 #-----------------------------------------------------------------------------------------------
 def get_compile_commands(test_suite_path, file):
     compile_commands_json = []
-    file_path             = os.path.join(test_suite_path, file)
+    file_path             = os.path.join(test_suite_path, "cuda", file)
 
     compile_commands = {
         "directory": test_suite_path,
@@ -189,8 +189,10 @@ def get_compile_commands(test_suite_path, file):
 def get_test_suite(path, output, eval=True, tuning=False):
     # Settings
     # test_suite_name = ".".join(path.split("/")[-1].split(".")[:-1])
-    test_suite_name = output
-    test_suite_path = os.path.join(os.getcwd(), test_suite_name)
+    test_suite_name        = output
+    test_suite_path        = os.path.join(os.getcwd(), test_suite_name)
+    test_suite_cuda_path   = os.path.join(test_suite_path, "cuda")
+    test_suite_config_path = os.path.join(test_suite_path, "config")
 
     # Generate test suite directory
     if os.path.exists(test_suite_path):
@@ -198,6 +200,8 @@ def get_test_suite(path, output, eval=True, tuning=False):
         logging.warning("Remove \"%s\"." % test_suite_path)
         shutil.rmtree(test_suite_path)
     os.mkdir(test_suite_path)
+    os.mkdir(test_suite_cuda_path)
+    os.mkdir(test_suite_config_path)
 
     # Parse YAML files
     with open(path) as f:
@@ -217,12 +221,12 @@ def get_test_suite(path, output, eval=True, tuning=False):
     compile_commands_json = get_compile_commands(test_suite_path, file)
 
     # Create CUDA kernel file
-    code_path = "%s/kernels.cu" % (test_suite_path)
+    code_path = "%s/kernels.cu" % (test_suite_cuda_path)
     with open(code_path, "w+") as f:
         f.write(cuda_code)
 
     # Create compile_commands.json file
-    compile_commands_path = "%s/compile_commands.json" % (test_suite_path)
+    compile_commands_path = "%s/compile_commands.json" % (test_suite_cuda_path)
     with open(compile_commands_path, "w+") as f:
         json.dump(compile_commands_json, f)
 
@@ -236,7 +240,7 @@ def get_test_suite(path, output, eval=True, tuning=False):
         }
         fusion_yaml_list.append(f_dict)
 
-    fusion_config_yaml = os.path.join(test_suite_path, "fusions.yaml")
+    fusion_config_yaml = os.path.join(test_suite_config_path, "fusions.yaml")
     with open(fusion_config_yaml, "w+") as f:
         yaml.dump(fusion_yaml_list, f)
     
@@ -265,7 +269,7 @@ def get_test_suite(path, output, eval=True, tuning=False):
         }
         kernel_yaml_dict[kname] = k_dict
     
-    kernel_config_yaml = os.path.join(test_suite_path, "kernels.yaml")
+    kernel_config_yaml = os.path.join(test_suite_config_path, "kernels.yaml")
     with open(kernel_config_yaml, "w+") as f:
         yaml.dump(kernel_yaml_dict, f)
 #-----------------------------------------------------------------------------------------------

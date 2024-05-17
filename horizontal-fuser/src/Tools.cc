@@ -218,22 +218,43 @@ int FusionTool::renameSharedVariables()
   // New Declaration of shared variables in the fused kernel
   llvm::raw_string_ostream UnionStream{UnionStr_};
 
-  UnionStream << "  union ShrdUnion_ {\n";
   for (auto &KName : FContext_.Kernels_) {
     if (Analyzer.SharedDeclStrMap_.find(KName) == Analyzer.SharedDeclStrMap_.end()) {
       continue;
     }
-
     auto &ShrdDeclStr = Analyzer.SharedDeclStrMap_.at(KName);
-    UnionStream << "    struct " << KName << " {\n";
+
+    UnionStream << "  typedef struct " << KName << " {\n";
     for (auto &DeclStr : ShrdDeclStr) {
-      UnionStream << "      " << DeclStr << ";\n";
+      UnionStream << "    " << DeclStr << ";\n";
     }
-    UnionStream << "    };\n";
+    UnionStream << "  } " << KName << "Ty_;\n";
   }
-  UnionStream << "  };\n"
-              << "  __shared__ ShrdUnion_ Union_;\n";
-  UnionStream.flush();
+
+  UnionStream << "  typedef union ShrdUnion {\n";
+  for (auto &KName : FContext_.Kernels_) {
+    UnionStream << "    " << KName << "Ty_ " << KName <<";\n";
+  }
+  UnionStream << "  } ShrdUnionTy_;\n";
+  UnionStream << "\n";
+  UnionStream << "  __shared__ ShrdUnionTy_ SU_;\n";
+
+  // UnionStream << "  typedef union ShrdUnion_ {\n";
+  // for (auto &KName : FContext_.Kernels_) {
+  //   if (Analyzer.SharedDeclStrMap_.find(KName) == Analyzer.SharedDeclStrMap_.end()) {
+  //     continue;
+  //   }
+
+  //   auto &ShrdDeclStr = Analyzer.SharedDeclStrMap_.at(KName);
+  //   UnionStream << "    struct " << KName << " {\n";
+  //   for (auto &DeclStr : ShrdDeclStr) {
+  //     UnionStream << "      " << DeclStr << ";\n";
+  //   }
+  //   UnionStream << "    };\n";
+  // }
+  // UnionStream << "  };\n"
+  //             << "  __shared__ ShrdUnion_ Union_;\n";
+  // UnionStream.flush();
 
   // Refactoring Tool
   RefactoringTool ReTool(OptionsParser_.getCompilations(),
@@ -243,7 +264,7 @@ int FusionTool::renameSharedVariables()
   auto [NewShrdVars, PrevShrdVars, USRs] = renameVariables(FContext_.Kernels_,
                                                            Analyzer.ShrdVarListMap_, Analyzer.ShrdVarUSRsListMap_,
                                                            [](const string &KName, const string &SName) {
-                                                             return "_Union_" + KName + "_" + SName;
+                                                             return "_SU_" + KName + "_" + SName;
                                                            });
 
   // Run renaming frontend action

@@ -280,12 +280,12 @@ tuple<string, map<string, string>, GridDim, BlockDim> fineInterleavePattern(vect
     auto &KInfo = KernelInfoMap.at(KName);
 
     if (IsFirstCond) {
-      CondStream << "  if (KernelID_ == " << I << ")"
-                 << " && (" << CurrentThreadIdx << " >= 0 && " << CurrentThreadIdx << " < " << KInfo.BlockDim_.size() << ")\n";
+      CondStream << "  if ((KernelID_ == " << I << ")"
+                 << " && (" << CurrentThreadIdx << " >= 0 && " << CurrentThreadIdx << " < " << KInfo.BlockDim_.size() << "))\n";
       IsFirstCond = false;
     } else {
-      CondStream << "  else if (KernelID_ == " << I << ")"
-                 << " && (" << CurrentThreadIdx << " >= 0 && " << CurrentThreadIdx << " < " << KInfo.BlockDim_.size() << ")\n";
+      CondStream << "  else if ((KernelID_ == " << I << ")"
+                 << " && (" << CurrentThreadIdx << " >= 0 && " << CurrentThreadIdx << " < " << KInfo.BlockDim_.size() << "))\n";
     }
 
     CondStream.flush();

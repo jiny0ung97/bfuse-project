@@ -329,9 +329,12 @@ void CUDASharedDeclExtractor::run(const MatchFinder::MatchResult &Result)
 
   // Remove existing declaration
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
-  // const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
+  const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
 
   string FName = FD->getNameAsString();
+  if (VD->hasExternalStorage()) {
+    return;
+  }
 
   auto &SourceMgr     = Context->getSourceManager();
   auto SourceBeginLoc = DS->getBeginLoc();
@@ -354,9 +357,12 @@ void CUDASharedDeclRewriter::run(const MatchFinder::MatchResult &Result)
 
   // Store SharedDecl, ASTContext and SourceLocation
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
-  // const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
+  const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
 
   string FName = FD->getNameAsString();
+  if (VD->hasExternalStorage()) {
+    return;
+  }
 
   string DeclStr;
   llvm::raw_string_ostream DeclStream{DeclStr};
@@ -367,15 +373,8 @@ void CUDASharedDeclRewriter::run(const MatchFinder::MatchResult &Result)
     SharedDeclStrMap_[FName] = vector<string>();
     Kernels_.push_back(FName);
   }
+
   auto &SharedDeclStr = SharedDeclStrMap_.at(FName);
-
-  string ShrdAttr = "__attribute__((shared))";
-  string StaticAttr = "static";
-  auto ShrdIter = DeclStr.find(ShrdAttr);
-  DeclStr.erase(ShrdIter, ShrdIter+ShrdAttr.size());
-  auto StaticIter = DeclStr.find(StaticAttr);
-  DeclStr.erase(StaticIter, StaticIter+StaticAttr.size());
-
   SharedDeclStr.push_back(DeclStr);
 
   if (ASTContextMap_.find(FName) == ASTContextMap_.end()) {
@@ -399,7 +398,7 @@ void CUDASharedDeclRewriter::onEndOfTranslationUnit()
     llvm::raw_string_ostream TmpStream{TmpShrdDeclStr};
 
     for (auto &DeclStr : ShrdDeclStr) {
-      TmpStream << "  __shared__" << DeclStr << ";\n";
+      TmpStream << "  " << DeclStr << ";\n";
     }
     TmpStream.flush();
 
@@ -424,12 +423,16 @@ void CUDASharedVarAnalyzer::run(const MatchFinder::MatchResult &Result)
   const FunctionDecl *FD = Result.Nodes.getNodeAs<FunctionDecl>(ASTPatternMatcher::CUDAFuncDecl);
   const VarDecl      *VD = Result.Nodes.getNodeAs<VarDecl>(ASTPatternMatcher::CUDASharedVar);
 
+  if (VD->hasExternalStorage()) {
+    return;
+  }
+
   string FName  = FD->getNameAsString();
   string VName  = VD->getNameAsString();
   auto ShrdUSR = getUSRsForDeclaration(VD->getUnderlyingDecl(), *Context);
 
   // Skip temp variable
-  if(VName.compare("Union_") == 0) {
+  if(VName.compare("SU_") == 0) {
     return;
   }
 
@@ -509,9 +512,9 @@ void BFuseBuilder::run(const MatchFinder::MatchResult &Result)
     string TmpName = "";
     size_t TmpIter;
 
-    TmpName += "_Union_" + FName + "_";
+    TmpName += "_SU_" + FName + "_";
     while ((TmpIter = BodyStr.find(TmpName)) != string::npos) {
-      BodyStr.replace(TmpIter, TmpName.size(), "Union_." + FName + ".");
+      BodyStr.replace(TmpIter, TmpName.size(), "SU_." + FName + ".");
     }
     FuncBodyStringMap_[FName] = BodyStr;
   }

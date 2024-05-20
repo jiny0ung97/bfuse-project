@@ -255,7 +255,7 @@ void hfuse(const string ProgName, const string FusionConfigPath,
     FusionContext FContext = FusionContext::create(Info, KernelYAML, /*bfuse=*/false);
     FusionTool Tool{OptionsParser, FContext};
 
-    cout << "[" << I + 1 << "/" << FusionYAML.size() << "]"
+    cout << "(" << I + 1 << "/" << FusionYAML.size() << ")"
          << " Start to hfuse \"" << FContext.FusedKernelName_ << "\" kernel...\n";
 
     // 0. Backup files first

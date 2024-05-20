@@ -62,7 +62,8 @@ void Arguments::print() const
 }
 //---------------------------------------------------------------------------
 void bfuse(const string ProgName, const string FusionConfigPath,
-           const string KernelConfigPath, const string CompileCommandsPath, const string OutputPath)
+           const string KernelConfigPath, const string CompileCommandsPath,
+           const string OutputPath, const string YAMLOutputPath)
 {
   // Extract information from yaml files
   auto FusionYAML = utils::readYAMLInfo<vector<FusionInfo>>(FusionConfigPath);
@@ -103,7 +104,7 @@ void bfuse(const string ProgName, const string FusionConfigPath,
     FusionContext FContext = FusionContext::create(Info, KernelYAML, /**bfuse=*/true);
     FusionTool Tool{OptionsParser, FContext};
 
-    cout << "[" << I + 1 << "/" << FusionYAML.size() << "]"
+    cout << "(" << I + 1 << "/" << FusionYAML.size() << ")"
          << " Start to bfuse \"" << FContext.FusedKernelName_ << "\" kernel...\n";
 
     // 0. Backup files first
@@ -129,11 +130,11 @@ void bfuse(const string ProgName, const string FusionConfigPath,
     cout << "Initializing codes at first...\n";
     if (Tool.initiallyRewriteKernels()) {
       ERROR_MESSAGE("error occur while initialzing codes");
-      exit(1);
+      exit(0);
     }
     if (Tool.rewriteCompStmt()) {
       ERROR_MESSAGE("error occur while rewriting compound statment");
-      exit(1);
+      exit(0);
     }
 
     // 2. Renaming parameters
@@ -146,7 +147,7 @@ void bfuse(const string ProgName, const string FusionConfigPath,
     cout << "Renaming parameters...\n";
     if (Tool.renameParameters()) {
       ERROR_MESSAGE("error occur while renaming parameters");
-      exit(1);
+      exit(0);
     }
 
     // 3. Rewrite pre-built variables
@@ -158,7 +159,7 @@ void bfuse(const string ProgName, const string FusionConfigPath,
     cout << "Rewriting CUDA pre-built variables...\n";
     if (Tool.rewriteCUDAVariables()) {
       ERROR_MESSAGE("error occur while rewriting CUDA pre-built variables");
-      exit(1);
+      exit(0);
     }
 
     // 4. Hoisting & Renaming shared memory variables
@@ -168,11 +169,11 @@ void bfuse(const string ProgName, const string FusionConfigPath,
     cout << "Hoisting & Renaming shared memory variables...\n";
     if (Tool.hoistSharedDecls()) {
       ERROR_MESSAGE("error occur while extracting shared memory declarations");
-      exit(1);
+      exit(0);
     }
     if (Tool.renameSharedVariables()) {
       ERROR_MESSAGE("error occur while renaming shared memory variables");
-      exit(1);
+      exit(0);
     }
 
     // 5. Create fused kerenl
@@ -183,7 +184,7 @@ void bfuse(const string ProgName, const string FusionConfigPath,
     cout << "Creating fused kernel...\n";
     if (Tool.createBFuseKernel()) {
       ERROR_MESSAGE("error occur while creating new function");
-      exit(1);
+      exit(0);
     }
 
     // 6. Recover files
@@ -208,11 +209,12 @@ void bfuse(const string ProgName, const string FusionConfigPath,
   }
 
   utils::writeFile(OutputPath, "bfuse_kernels.cu", Results);
-  utils::writeYAMLInfo<map<string, KernelInfo>>(OutputPath, "bfuse_kernels.yaml", FusedKernelYAML);
+  utils::writeYAMLInfo<map<string, KernelInfo>>(YAMLOutputPath, "bfuse_kernels.yaml", FusedKernelYAML);
 }
 //---------------------------------------------------------------------------
 void hfuse(const string ProgName, const string FusionConfigPath,
-           const string KernelConfigPath, const string CompileCommandsPath, const string OutputPath)
+           const string KernelConfigPath, const string CompileCommandsPath,
+           const string OutputPath, const string YAMLOutputPath)
 {
   // Extract information from yaml files
   auto FusionYAML = utils::readYAMLInfo<vector<FusionInfo>>(FusionConfigPath);
@@ -279,11 +281,11 @@ void hfuse(const string ProgName, const string FusionConfigPath,
     cout << "Initializing codes at first...\n";
     if (Tool.initiallyRewriteKernels()) {
       ERROR_MESSAGE("error occur while initialzing codes");
-      exit(1);
+      exit(0);
     }
     if (Tool.rewriteCompStmt()) {
       ERROR_MESSAGE("error occur while rewriting compound statment");
-      exit(1);
+      exit(0);
     }
 
     // 2. Renaming parameters
@@ -296,7 +298,7 @@ void hfuse(const string ProgName, const string FusionConfigPath,
     cout << "Renaming parameters...\n";
     if (Tool.renameParameters()) {
       ERROR_MESSAGE("error occur while renaming parameters");
-      exit(1);
+      exit(0);
     }
 
     // 3. Rewrite pre-built variables
@@ -308,7 +310,7 @@ void hfuse(const string ProgName, const string FusionConfigPath,
     cout << "Rewriting CUDA pre-built variables...\n";
     if (Tool.rewriteCUDAVariables()) {
       ERROR_MESSAGE("error occur while rewriting CUDA pre-built variables");
-      exit(1);
+      exit(0);
     }
 
     // 4. Rewrite __syncthreads() functions
@@ -318,7 +320,7 @@ void hfuse(const string ProgName, const string FusionConfigPath,
     cout << "Rewriting CUDA __syncthreads() functions...\n";
     if (Tool.rewriteCUDASynchronize()) {
       ERROR_MESSAGE("error occur while rewriting CUDA __syncthreads() functions");
-      exit(1);
+      exit(0);
     }
 
     // 5. Create fused kerenl
@@ -329,7 +331,7 @@ void hfuse(const string ProgName, const string FusionConfigPath,
     cout << "Creating fused kernel...\n";
     if (Tool.createHFuseKernel()) {
       ERROR_MESSAGE("error occur while creating new function");
-      exit(1);
+      exit(0);
     }
 
     // 6. Recover files
@@ -354,7 +356,7 @@ void hfuse(const string ProgName, const string FusionConfigPath,
   }
 
   utils::writeFile(OutputPath, "hfuse_kernels.cu", Results);
-  utils::writeYAMLInfo<map<string, KernelInfo>>(OutputPath, "hfuse_kernels.yaml", FusedKernelYAML);
+  utils::writeYAMLInfo<map<string, KernelInfo>>(YAMLOutputPath, "hfuse_kernels.yaml", FusedKernelYAML);
 }
 //---------------------------------------------------------------------------
 } // namespace fuse

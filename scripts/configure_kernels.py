@@ -108,7 +108,7 @@ def get_fusion_info(fusion_sets):
     # Check the given sets are valid
     if len(fusion_sets) != 2:
         loggging.error("Number of fusion sets are only 2.")
-        exit(0)
+        exit(1)
     
     for s0 in fusion_sets[0]["Set"]:
         for s1 in fusion_sets[1]["Set"]:
@@ -143,7 +143,7 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
                 sch, args = tvm_schedules.cuda_schedule_conv2d(*kargs)
         else:
             logging.ERROR("Function and schedule with given kernel's name do not exist.")
-            exit(0)
+            exit(1)
 
         # Build & analysis kernel
         target = tvm.target.Target("cuda")
@@ -197,7 +197,7 @@ def get_test_suite(path, output, eval=True, tuning=False):
     # Generate test suite directory
     if os.path.exists(test_suite_path):
         logging.error("\"%s\" alreay exists." % test_suite_path)
-        exit(0)
+        exit(1)
 
     os.mkdir(test_suite_path)
     os.mkdir(test_suite_cuda_path)
@@ -286,8 +286,7 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("config", action="store",
-                        help="config file path for generate test suite")
+    parser.add_argument("config", action="store", help="config file path for generate test suite")
     parser.add_argument("-e", action="store_true", default=False, dest="eval",
                         help="run evaluation with test suite kernels")
     parser.add_argument("-t", action="store_true", default=False, dest="tuning",
@@ -304,7 +303,7 @@ if __name__ == "__main__":
     
     if not os.path.exists(config):
         logging.error("Given config path \"%s\" doesn't exist." % config)
-        exit(0)
+        exit(1)
 
     get_test_suite(config, output, eval=eval, tuning=tuning)
 #-----------------------------------------------------------------------------------------------

@@ -284,12 +284,14 @@ int main(int argc, char **argv)
   free(F1);
   free(I1);
   
-  if (!result) {{
-    printf("Validation Result: %s\\n", "INVALID");
-    exit(1);
-  }}
-  else {{
-    printf("Validation Result: %s\\n", "VALID");
+  if (validation) {{
+    if (!result) {{
+      printf("Validation Result: %s\\n", "INVALID");
+      exit(1);
+    }}
+    else {{
+      printf("Validation Result: %s\\n", "VALID");
+    }}
   }}
 
   return 0;

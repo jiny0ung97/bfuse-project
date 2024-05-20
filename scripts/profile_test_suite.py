@@ -7,8 +7,8 @@ import yaml
 import subprocess
 #-----------------------------------------------------------------------------------------------
 # Settings
-metrics_trial = 30
-exec_trial    = 100
+metrics_trials = 30
+exec_trials    = 100
 #-----------------------------------------------------------------------------------------------
 def get_valid_commands(infoYAML, benchmark_path):
     # Parse YAML
@@ -18,7 +18,7 @@ def get_valid_commands(infoYAML, benchmark_path):
     # Check the given sets are valid
     if len(fusion_sets) != 2:
         loggging.error("Number of fusion sets are only 2.")
-        exit(0)
+        exit(1)
 
     kernel1_size   = len(fusion_sets[0]["Set"])
     kernel2_size   = len(fusion_sets[1]["Set"])
@@ -54,7 +54,7 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
     # Check the given sets are valid
     if len(fusion_sets) != 2:
         loggging.error("Number of fusion sets are only 2.")
-        exit(0)
+        exit(1)
 
     kernel1_size   = len(fusion_sets[0]["Set"])
     kernel2_size   = len(fusion_sets[1]["Set"])
@@ -78,13 +78,13 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
             for kidx in range(kernel1_size):
                 file_path = os.path.join(metrics_path, f"{idx}_{kidx}_0.csv")
                 command   = common_command + [file_path]
-                command   = command + [benchmark_path, "-n", str(metrics_trial), str(idx), str(kidx), "0"]
+                command   = command + [benchmark_path, "-n", str(metrics_trials), str(idx), str(kidx), "0"]
                 metrics_commands.append(command)
         if idx == 1:
             for kidx in range(kernel2_size):
                 file_path = os.path.join(metrics_path, f"{idx}_0_{kidx}.csv")
                 command   = common_command + [file_path]
-                command = command + [benchmark_path, "-n", str(metrics_trial), str(idx), "0", str(kidx)]
+                command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), "0", str(kidx)]
                 metrics_commands.append(command)
     
     return metrics_commands
@@ -97,7 +97,7 @@ def get_exec_commands(infoYAML, benchmark_path, exec_path):
     # Check the given sets are valid
     if len(fusion_sets) != 2:
         loggging.error("Number of fusion sets are only 2.")
-        exit(0)
+        exit(1)
 
     kernel1_size   = len(fusion_sets[0]["Set"])
     kernel2_size   = len(fusion_sets[1]["Set"])
@@ -111,20 +111,20 @@ def get_exec_commands(infoYAML, benchmark_path, exec_path):
             for kidx in range(kernel1_size):
                 file_path = os.path.join(exec_path, f"{idx}_{kidx}_0.csv")
                 command   = common_command + [file_path]
-                command   = command + [benchmark_path, "-n", str(exec_trial), str(idx), str(kidx), "0"]
+                command   = command + [benchmark_path, "-n", str(exec_trials), str(idx), str(kidx), "0"]
                 exec_commands.append(command)
         if idx == 1:
             for kidx in range(kernel2_size):
                 file_path = os.path.join(exec_path, f"{idx}_0_{kidx}.csv")
                 command   = common_command + [file_path]
-                command   = command + [benchmark_path, "-n", str(exec_trial), str(idx), "0", str(kidx)]
+                command   = command + [benchmark_path, "-n", str(exec_trials), str(idx), "0", str(kidx)]
                 exec_commands.append(command)
         if idx == 2 or idx == 3 or idx == 4:
             for kidx1 in range(kernel1_size):
                 for kidx2 in range(kernel2_size):
                     file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}.csv")
                     command   = common_command + [file_path]
-                    command   = command + [benchmark_path, "-n", str(exec_trial), str(idx), str(kidx1), str(kidx2)]
+                    command   = command + [benchmark_path, "-n", str(exec_trials), str(idx), str(kidx1), str(kidx2)]
                     exec_commands.append(command)
     
     return exec_commands
@@ -135,13 +135,12 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
     if valid:
         valid_commands = get_valid_commands(infoYAML, benchmark_path)
         for idx, command in enumerate(valid_commands):
-            print(f"[{idx+1}/{len(valid_commands)}] Validation check : ", end="")
+            print(f"({idx+1}/{len(valid_commands)}) Validation check : ", end="")
             try:
                 result = subprocess.run(command,
                                         stdout=subprocess.PIPE,
                                         text=True,
                                         check=True,
-                                        # shell=True,
                                         # timeout=10,
                                         )
             except subprocess.CalledProcessError as e:
@@ -157,7 +156,7 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
 
         metrics_commands = get_metrics_commands(infoYAML, benchmark_path, metrics_path)
         for idx, command in enumerate(metrics_commands):
-            print(f"[{idx+1}/{len(metrics_commands)}] Profile metrics...")
+            print(f"({idx+1}/{len(metrics_commands)}) Profile metrics...")
             try:
                 result = subprocess.run(command,
                                         stdout=subprocess.PIPE,
@@ -176,7 +175,7 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
 
         exec_commands = get_exec_commands(infoYAML, benchmark_path, exec_path)
         for idx, command in enumerate(exec_commands):
-            print(f"[{idx+1}/{len(exec_commands)}] Profile execution...")
+            print(f"({idx+1}/{len(exec_commands)}) Profile execution...")
             try:
                 result = subprocess.run(command,
                                         stdout=subprocess.PIPE,
@@ -205,34 +204,34 @@ if __name__ == "__main__":
     parser.add_argument("file", action="store", help="path of generated test-suite")
 
     # Get arguments
-    args   = parser.parse_args()
-    output = args.file
-    valid  = args.valid
+    args      = parser.parse_args()
+    file_path = args.file
+    valid     = args.valid
 
     profile_metrics = args.metrics
     profile_exec    = args.exec
     
-    output = os.path.abspath(output)
+    output = os.path.abspath(file_path)
 
     # Check the neccessary directories/files exist
-    if not os.path.exists(output):
-        logging.error("Given config path \"%s\" doesn't exist." % output)
+    if not os.path.exists(file_path):
+        logging.error("Given config path \"%s\" doesn't exist." % file_path)
         exit(1)
 
-    benchmark_path = os.path.join(output, "benchmark")
+    benchmark_path = os.path.join(file_path, "benchmark")
     if not os.path.exists(benchmark_path):
         logging.error("Given config path \"%s\" doesn't exist." % benchmark_path)
         exit(1)
 
     # Parse YAML files
-    config_path = os.path.join(output, "config")
+    config_path = os.path.join(file_path, "config")
     info_path   = os.path.join(config_path, "info.yaml")
 
     with open(info_path) as f:
         yaml_info = yaml.safe_load(f)
 
     # Create profile data directory
-    profile_path = os.path.join(output, "profile")
+    profile_path = os.path.join(file_path, "profile")
     if os.path.exists(profile_path):
         logging.error("\"%s\" alreay exists." % profile_path)
         exit(1)

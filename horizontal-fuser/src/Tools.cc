@@ -239,23 +239,6 @@ int FusionTool::renameSharedVariables()
   UnionStream << "\n";
   UnionStream << "  __shared__ ShrdUnionTy_ SU_;\n";
 
-  // UnionStream << "  typedef union ShrdUnion_ {\n";
-  // for (auto &KName : FContext_.Kernels_) {
-  //   if (Analyzer.SharedDeclStrMap_.find(KName) == Analyzer.SharedDeclStrMap_.end()) {
-  //     continue;
-  //   }
-
-  //   auto &ShrdDeclStr = Analyzer.SharedDeclStrMap_.at(KName);
-  //   UnionStream << "    struct " << KName << " {\n";
-  //   for (auto &DeclStr : ShrdDeclStr) {
-  //     UnionStream << "      " << DeclStr << ";\n";
-  //   }
-  //   UnionStream << "    };\n";
-  // }
-  // UnionStream << "  };\n"
-  //             << "  __shared__ ShrdUnion_ Union_;\n";
-  // UnionStream.flush();
-
   // Refactoring Tool
   RefactoringTool ReTool(OptionsParser_.getCompilations(),
                          OptionsParser_.getSourcePathList());

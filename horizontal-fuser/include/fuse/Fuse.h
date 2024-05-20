@@ -41,10 +41,12 @@ public:
 };
 //---------------------------------------------------------------------------
 void bfuse(const std::string ProgName, const std::string FusionConfigPath,
-           const std::string KernelConfigPath, const std::string CompileCommandsPath, const std::string OutputPath);
+           const std::string KernelConfigPath, const std::string CompileCommandsPath,
+           const std::string OutputPath, const std::string YAMLOutputPath);
 //---------------------------------------------------------------------------
 void hfuse(const std::string ProgName, const std::string FusionConfigPath,
-           const std::string KernelConfigPath, const std::string CompileCommandsPath, const std::string OutputPath);
+           const std::string KernelConfigPath, const std::string CompileCommandsPath,
+           const std::string OutputPath, const std::string YAMLOutputPath);
 //---------------------------------------------------------------------------
 } // namespace fuse
 //---------------------------------------------------------------------------

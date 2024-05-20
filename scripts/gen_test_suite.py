@@ -22,18 +22,18 @@ if __name__ == "__main__":
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("file", action="store", help="benchmark path of generated test-suite")
+    parser.add_argument("file", action="store", help="path of generated test-suite")
 
     # Get arguments
-    args   = parser.parse_args()
-    output = args.file
+    args      = parser.parse_args()
+    file_path = args.file
     
-    if not os.path.exists(output):
-        logging.error("Given config path \"%s\" doesn't exist." % output)
+    if not os.path.exists(file_path):
+        logging.error("Given config path \"%s\" doesn't exist." % file_path)
         exit(1)
 
     # Parse YAML files
-    config_path  = os.path.join(output, "config")
+    config_path  = os.path.join(file_path, "config")
     info_path    = os.path.join(config_path, "info.yaml")
     kernels_path = os.path.join(config_path, "kernels.yaml")
     hfuse_path   = os.path.join(config_path, "hfuse_kernels.yaml")
@@ -49,13 +49,13 @@ if __name__ == "__main__":
         yaml_bfuse = yaml.safe_load(f)
 
     # Generate benchmark codes
-    macro_h_path      = os.path.join(output, "macro.h")
-    main_cc_path      = os.path.join(output, "main.cc")
-    Makefile_path     = os.path.join(output, "Makefile")
-    operation_cu_path = os.path.join(output, "operation.cu")
-    operation_h_path  = os.path.join(output, "operation.h")
-    utils_cc_path     = os.path.join(output, "utils.cc")
-    utils_h_path      = os.path.join(output, "utils.h")
+    macro_h_path      = os.path.join(file_path, "macro.h")
+    main_cc_path      = os.path.join(file_path, "main.cc")
+    Makefile_path     = os.path.join(file_path, "Makefile")
+    operation_cu_path = os.path.join(file_path, "operation.cu")
+    operation_h_path  = os.path.join(file_path, "operation.h")
+    utils_cc_path     = os.path.join(file_path, "utils.cc")
+    utils_h_path      = os.path.join(file_path, "utils.h")
     
     with open(macro_h_path, "w+") as f:
         f.write(macro_h.get_macro_h(yaml_info, yaml_kernels, yaml_hfuse, yaml_bfuse))

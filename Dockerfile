@@ -35,8 +35,8 @@ WORKDIR /root/Settings/tvm
 RUN mkdir build
 RUN cp cmake/config.cmake build
 
-RUN sed -i "s/\bUSE_CUDA OFF\b/USE_CUDA ON/g" build/config.cmake
-RUN sed -i "s/\bUSE_LLVM OFF\b/USE_LLVM ON/g" build/config.cmake
+RUN sed -i "s/USE_CUDA OFF/USE_CUDA ON/g" build/config.cmake
+RUN sed -i "s/USE_LLVM OFF/USE_LLVM ON/g" build/config.cmake
 
 WORKDIR /root/Settings/tvm/build
 RUN cmake .. -G"Ninja"
@@ -44,11 +44,16 @@ RUN ninja
 
 # Install tvm python package
 RUN echo "export TVM_HOME=/root/Settings/tvm" >> /root/.bashrc
-RUN echo "export PYTHONPATH=$TVM_HOME/python:${PYTHONPATH}" >> /root/.bashrc
+RUN echo "export PYTHONPATH=\$TVM_HOME/python:\${PYTHONPATH}" >> /root/.bashrc
 
 RUN apt-get install -y python3-pip
 RUN pip3 install --user numpy decorator attrs
+RUN pip3 install --user typing-extensions psutil scipy
 RUN pip3 install --user tornado psutil 'xgboost>=1.1.0' cloudpickle
+
+# Modify tvm (force to unroll explicitly)
+RUN sed -i "s/cfg\[\"unroll_explicit\"\].val/True/g" /root/Settings/tvm/python/tvm/topi/cuda/batch_matmul.py
+RUN sed -i "s/cfg\[\"unroll_explicit\"\].val/True/g" /root/Settings/tvm/python/tvm/topi/cuda/conv2d_direct.py
 
 # Install bfuse-project
 WORKDIR /root/Settings/

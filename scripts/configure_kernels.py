@@ -4,9 +4,13 @@ import tvm
 from tvm import auto_scheduler
 
 import yaml, json
-import os, argparse, shutil
+import os, sys
+import argparse
 import numpy as np
 import logging
+
+tvm_kernels_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-utils/tvm-kernels")
+sys.path.append(tvm_kernels_module_path)
 
 import tvm_schedules
 #-----------------------------------------------------------------------------------------------
@@ -15,10 +19,6 @@ trials = 900
 
 # Temporal variables
 threads_info = [1, 1, 1, 1, 1, 1]
-
-# Colors
-color_red   = "\033[31m"
-color_white = "\033[37m"
 #-----------------------------------------------------------------------------------------------
 def auto_tuning(func, args, log_file):
     # Target
@@ -108,7 +108,7 @@ def get_fusion_info(fusion_sets):
     # Check the given sets are valid
     if len(fusion_sets) != 2:
         loggging.error("Number of fusion sets are only 2.")
-        exit(1)
+        exit(0)
     
     for s0 in fusion_sets[0]["Set"]:
         for s1 in fusion_sets[1]["Set"]:
@@ -143,7 +143,7 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
                 sch, args = tvm_schedules.cuda_schedule_conv2d(*kargs)
         else:
             logging.ERROR("Function and schedule with given kernel's name do not exist.")
-            exit(1)
+            exit(0)
 
         # Build & analysis kernel
         target = tvm.target.Target("cuda")
@@ -161,8 +161,8 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
 
         # Get CUDA code
         code = get_cuda_code(sch, args)
-        # idx  = code.rfind("extern \"C\" __global__")
-        # code = code[idx:]
+        idx  = code.rfind("extern \"C\" __global__")
+        code = code[idx:]
 
         code      = code.replace("default_function_kernel", kname)
         cuda_code = cuda_code + code
@@ -173,12 +173,12 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
 
     return kernel_info, cuda_code
 #-----------------------------------------------------------------------------------------------
-def get_compile_commands(test_suite_path, file):
+def get_compile_commands(test_suite_cuda_path, file):
     compile_commands_json = []
-    file_path             = os.path.join(test_suite_path, "cuda", file)
+    file_path             = os.path.join(test_suite_cuda_path, file)
 
     compile_commands = {
-        "directory": test_suite_path,
+        "directory": test_suite_cuda_path,
         "file": file_path,
         "command": "clang++-16 " + file_path + " -resource-dir /usr/lib/clang/16 --cuda-gpu-arch=sm_70 --cuda-device-only -pthread"
     }
@@ -196,9 +196,9 @@ def get_test_suite(path, output, eval=True, tuning=False):
 
     # Generate test suite directory
     if os.path.exists(test_suite_path):
-        logging.warning("\"%s\" alreay exists." % test_suite_path)
-        logging.warning("Remove \"%s\"." % test_suite_path)
-        shutil.rmtree(test_suite_path)
+        logging.error("\"%s\" alreay exists." % test_suite_path)
+        exit(0)
+
     os.mkdir(test_suite_path)
     os.mkdir(test_suite_cuda_path)
     os.mkdir(test_suite_config_path)
@@ -218,7 +218,7 @@ def get_test_suite(path, output, eval=True, tuning=False):
 
     # Get compile commands
     file = "kernels.cu"
-    compile_commands_json = get_compile_commands(test_suite_path, file)
+    compile_commands_json = get_compile_commands(test_suite_cuda_path, file)
 
     # Create CUDA kernel file
     code_path = "%s/kernels.cu" % (test_suite_cuda_path)
@@ -272,6 +272,11 @@ def get_test_suite(path, output, eval=True, tuning=False):
     kernel_config_yaml = os.path.join(test_suite_config_path, "kernels.yaml")
     with open(kernel_config_yaml, "w+") as f:
         yaml.dump(kernel_yaml_dict, f)
+
+    # Copy input YAML file
+    input_config_yaml = os.path.join(test_suite_config_path, "info.yaml")
+    with open(input_config_yaml, "w+") as f:
+        yaml.dump(yaml_info, f)
 #-----------------------------------------------------------------------------------------------
 if __name__ == "__main__":
 
@@ -299,7 +304,7 @@ if __name__ == "__main__":
     
     if not os.path.exists(config):
         logging.error("Given config path \"%s\" doesn't exist." % config)
-        exit(1)
+        exit(0)
 
     get_test_suite(config, output, eval=eval, tuning=tuning)
 #-----------------------------------------------------------------------------------------------

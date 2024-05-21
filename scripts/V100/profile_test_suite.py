@@ -138,7 +138,7 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
             print(f"({idx+1}/{len(valid_commands)}) Validation check : ", end="")
             try:
                 result = subprocess.run(command,
-                                        stdout=subprocess.PIPE,
+                                        # stdout=subprocess.PIPE,
                                         text=True,
                                         check=True,
                                         # timeout=10,
@@ -159,7 +159,7 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
             print(f"({idx+1}/{len(metrics_commands)}) Profile metrics...")
             try:
                 result = subprocess.run(command,
-                                        stdout=subprocess.PIPE,
+                                        # stdout=subprocess.PIPE,
                                         text=True,
                                         check=True,
                                         # timeout=10,
@@ -178,7 +178,7 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
             print(f"({idx+1}/{len(exec_commands)}) Profile execution...")
             try:
                 result = subprocess.run(command,
-                                        stdout=subprocess.PIPE,
+                                        # stdout=subprocess.PIPE,
                                         text=True,
                                         check=True,
                                         # timeout=10,

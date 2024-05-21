@@ -12,8 +12,8 @@ import matplotlib.ticker as ticker
 #-----------------------------------------------------------------------------------------------
 # Settings
 warmup_trials  = 3
-metrics_trials = 30
-exec_trials    = 100
+metrics_trials = 10
+exec_trials    = 50
 #-----------------------------------------------------------------------------------------------
 def parse_csv(csv_path):
     nvvp_list = []

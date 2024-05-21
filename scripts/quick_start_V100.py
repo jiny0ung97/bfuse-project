@@ -108,7 +108,7 @@ if __name__ == "__main__":
     # Profile the benchmark
     # ./profile_test_suite.py -vme ${test_suite_name}
     print("[5/6] ========================= Profile the benchmark =========================")
-    profile_test_suite_path = os.path.join(cur_path, "profile_test_suite.py")
+    profile_test_suite_path = os.path.join(cur_path, "profile_test_suite_V100.py")
 
     command = [profile_test_suite_path, "-vme", output_path]
     try:

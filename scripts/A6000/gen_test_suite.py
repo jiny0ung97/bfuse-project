@@ -5,7 +5,7 @@ import argparse
 import logging
 import yaml
 
-file_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-utils/test-suite-files")
+file_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../test-utils/test-suite-files")
 sys.path.append(file_module_path)
 
 import macro_h

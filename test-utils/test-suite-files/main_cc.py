@@ -286,11 +286,11 @@ int main(int argc, char **argv)
   
   if (validation) {{
     if (!result) {{
-      printf("Validation Result: %s\\n", "INVALID");
+      // printf("Validation Result: %s\\n", "INVALID");
       exit(1);
     }}
     else {{
-      printf("Validation Result: %s\\n", "VALID");
+      // printf("Validation Result: %s\\n", "VALID");
     }}
   }}
 

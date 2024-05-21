@@ -7,8 +7,8 @@ import yaml
 import subprocess
 #-----------------------------------------------------------------------------------------------
 # Settings
-metrics_trials = 10
-exec_trials    = 50
+metrics_trials = 30
+exec_trials    = 100
 #-----------------------------------------------------------------------------------------------
 def get_valid_commands(infoYAML, benchmark_path):
     # Parse YAML
@@ -71,7 +71,7 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
                       "stall_texture"]
 
     metrics_commands = []
-    common_command   = ["nvprof", "--metrics", ",".join(test_metrics), "--csv", "--log-file"]
+    common_command   = ["ncu", "--metrics", ",".join(test_metrics), "--csv", "-o"]
 
     for idx, test_name in enumerate(test_methology):
         if idx == 0:
@@ -104,7 +104,7 @@ def get_exec_commands(infoYAML, benchmark_path, exec_path):
     test_methology = ["kernel1", "kernel2", "parallel", "hfuse", "bfuse"]
 
     exec_commands  = []
-    common_command = ["nvprof", "--print-gpu-trace", "--csv", "--log-file"]
+    common_command = ["ncu", "--print-gpu-trace", "--csv", "-o"]
 
     for idx, test_name in enumerate(test_methology):
         if idx == 0:
@@ -138,7 +138,7 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
             print(f"({idx+1}/{len(valid_commands)}) Validation check : ", end="")
             try:
                 result = subprocess.run(command,
-                                        stdout=subprocess.PIPE,
+                                        # stdout=subprocess.PIPE,
                                         text=True,
                                         check=True,
                                         # timeout=10,
@@ -159,7 +159,7 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
             print(f"({idx+1}/{len(metrics_commands)}) Profile metrics...")
             try:
                 result = subprocess.run(command,
-                                        stdout=subprocess.PIPE,
+                                        # stdout=subprocess.PIPE,
                                         text=True,
                                         check=True,
                                         # timeout=10,
@@ -178,7 +178,7 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
             print(f"({idx+1}/{len(exec_commands)}) Profile execution...")
             try:
                 result = subprocess.run(command,
-                                        stdout=subprocess.PIPE,
+                                        # stdout=subprocess.PIPE,
                                         text=True,
                                         check=True,
                                         # timeout=10,

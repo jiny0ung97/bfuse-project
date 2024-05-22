@@ -223,6 +223,10 @@ def draw_exec_graph(infoYAML, profile_path, output_path):
             hfuse.append(hfuse_exec)
             bfuse.append(bfuse_exec)
 
+    print(f"parallel | max: {np.max(parallel)}, min: {np.min(parallel)}, avg: {np.mean(parallel)}")
+    print(f"hfuse    | max: {np.max(hfuse)}, min: {np.min(hfuse)}, avg: {np.mean(hfuse)}")
+    print(f"bfuse    | max: {np.max(bfuse)}, min: {np.min(bfuse)}, avg: {np.mean(bfuse)}")
+
     # Settings
     if len(kernel1) > 1:
         f, axes = plt.subplots(nrows=len(kernel1), ncols=1, sharex=False, sharey=True)

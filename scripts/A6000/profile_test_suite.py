@@ -104,29 +104,43 @@ def get_exec_commands(infoYAML, benchmark_path, exec_path):
     test_methology = ["kernel1", "kernel2", "parallel", "hfuse", "bfuse"]
 
     exec_commands  = []
-    common_command = ["ncu", "--print-gpu-trace", "--csv", "-o"]
 
+    # Profile timeline (.nsys-rep) & Report into file (.csv)
+    common_command1 = ["nsys", "nvprof", "--print-gpu-trace", "-o"]
+    common_command2 = ["nsys", "stats", "--force-export=true",
+                       "--report", "cuda_gpu_trace", "--format", "csv",
+                       "-o"]
+    common_command3 = ["rm", "-Rf"]
     for idx, test_name in enumerate(test_methology):
         if idx == 0:
             for kidx in range(kernel1_size):
-                file_path = os.path.join(exec_path, f"{idx}_{kidx}_0.csv")
-                command   = common_command + [file_path]
-                command   = command + [benchmark_path, "-n", str(exec_trials), str(idx), str(kidx), "0"]
-                exec_commands.append(command)
+                file_path = os.path.join(exec_path, f"{idx}_{kidx}_0")
+                command1  = common_command1 + [file_path]
+                command1  = command1 + [benchmark_path, "-n", str(exec_trials), str(idx), str(kidx), "0"]
+                command2  = common_command2 + [file_path]
+                command2  = command2 + [file_path + ".nsys-rep"]
+                command3  = common_command3 + [file_path + ".nsys-rep", file_path + ".sqlite"]
+                exec_commands.append([command1, command2, command3])
         if idx == 1:
             for kidx in range(kernel2_size):
-                file_path = os.path.join(exec_path, f"{idx}_0_{kidx}.csv")
-                command   = common_command + [file_path]
-                command   = command + [benchmark_path, "-n", str(exec_trials), str(idx), "0", str(kidx)]
-                exec_commands.append(command)
+                file_path = os.path.join(exec_path, f"{idx}_0_{kidx}")
+                command1  = common_command1 + [file_path]
+                command1  = command1 + [benchmark_path, "-n", str(exec_trials), str(idx), "0", str(kidx)]
+                command2  = common_command2 + [file_path]
+                command2  = command2 + [file_path + ".nsys-rep"]
+                command3  = common_command3 + [file_path + ".nsys-rep", file_path + ".sqlite"]
+                exec_commands.append([command1, command2, command3])
         if idx == 2 or idx == 3 or idx == 4:
             for kidx1 in range(kernel1_size):
                 for kidx2 in range(kernel2_size):
-                    file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}.csv")
-                    command   = common_command + [file_path]
-                    command   = command + [benchmark_path, "-n", str(exec_trials), str(idx), str(kidx1), str(kidx2)]
-                    exec_commands.append(command)
-    
+                    file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}")
+                    command1  = common_command1 + [file_path]
+                    command1  = command1 + [benchmark_path, "-n", str(exec_trials), str(idx), str(kidx1), str(kidx2)]
+                    command2  = common_command2 + [file_path]
+                    command2  = command2 + [file_path + ".nsys-rep"]
+                    command3  = common_command3 + [file_path + ".nsys-rep", file_path + ".sqlite"]
+                    exec_commands.append([command1, command2, command3])
+
     return exec_commands
 #-----------------------------------------------------------------------------------------------
 def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profile_metrics=False, profile_exec=False):
@@ -150,23 +164,23 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
                 print("VALID")
     
     # Profile metrics
-    if profile_metrics:
-        metrics_path = os.path.join(profile_path, "metrics")
-        os.mkdir(metrics_path)
+    # if profile_metrics:
+    #     metrics_path = os.path.join(profile_path, "metrics")
+    #     os.mkdir(metrics_path)
 
-        metrics_commands = get_metrics_commands(infoYAML, benchmark_path, metrics_path)
-        for idx, command in enumerate(metrics_commands):
-            print(f"({idx+1}/{len(metrics_commands)}) Profile metrics...")
-            try:
-                result = subprocess.run(command,
-                                        # stdout=subprocess.PIPE,
-                                        text=True,
-                                        check=True,
-                                        # timeout=10,
-                                        )
-            except subprocess.CalledProcessError as e:
-                logging.error("Error occurs while profiling metrics.")
-                exit(1)
+    #     metrics_commands = get_metrics_commands(infoYAML, benchmark_path, metrics_path)
+    #     for idx, command in enumerate(metrics_commands):
+    #         print(f"({idx+1}/{len(metrics_commands)}) Profile metrics...")
+    #         try:
+    #             result = subprocess.run(command,
+    #                                     # stdout=subprocess.PIPE,
+    #                                     text=True,
+    #                                     check=True,
+    #                                     # timeout=10,
+    #                                     )
+    #         except subprocess.CalledProcessError as e:
+    #             logging.error("Error occurs while profiling metrics.")
+    #             exit(1)
 
     # Profile exectuion
     if profile_exec:
@@ -174,18 +188,19 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
         os.mkdir(exec_path)
 
         exec_commands = get_exec_commands(infoYAML, benchmark_path, exec_path)
-        for idx, command in enumerate(exec_commands):
+        for idx, commands in enumerate(exec_commands):
             print(f"({idx+1}/{len(exec_commands)}) Profile execution...")
-            try:
-                result = subprocess.run(command,
-                                        # stdout=subprocess.PIPE,
-                                        text=True,
-                                        check=True,
-                                        # timeout=10,
-                                        )
-            except subprocess.CalledProcessError as e:
-                logging.error("Error occurs while profiling executions.")
-                exit(1)
+            for command in commands:
+                try:
+                    result = subprocess.run(command,
+                                            stdout=subprocess.PIPE,
+                                            text=True,
+                                            check=True,
+                                            # timeout=10,
+                                            )
+                except subprocess.CalledProcessError as e:
+                    logging.error("Error occurs while profiling executions.")
+                    exit(1)
 #-----------------------------------------------------------------------------------------------
 if __name__ == "__main__":
 

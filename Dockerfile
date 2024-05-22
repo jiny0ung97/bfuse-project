@@ -65,3 +65,11 @@ RUN cmake --build build
 
 # Install bfuse-project python package
 RUN pip3 install --user pyyaml matplotlib
+
+# Install NVIDIA Nsight Systems
+RUN apt update
+RUN apt install -y --no-install-recommends gnupg
+RUN echo "deb http://developer.download.nvidia.com/devtools/repos/ubuntu$(source /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d .)/$(dpkg --print-architecture) /" | tee /etc/apt/sources.list.d/nvidia-devtools.list
+RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+RUN apt update
+RUN apt install -y nsight-systems-cli

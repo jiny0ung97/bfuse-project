@@ -20,19 +20,19 @@ def parse_csv(csv_path):
     with open(csv_path, "r") as f:
         lines = csv.reader(f)
         for idx, line in enumerate(lines):
-            if idx < 3:
-                # ==2119== NVPROF is profiling process 2119, command: ./fusion_bench -n 10 -t 0 0
-                # ==2119== Profiling application: ./fusion_bench -n 10 -t 0 0
-                # ==2119== Profiling result:
-                continue
-            elif idx == 3:
-                # "Start","Duration","Grid X","Grid Y","Grid Z","Block X","Block Y","Block Z","Registers Per Thread","Static SMem","Dynamic SMem","Size","Throughput","SrcMemType","DstMemType","Device","Context","Stream","Name","Correlation_ID"
+            # if idx < 3:
+            #     # ==2119== NVPROF is profiling process 2119, command: ./fusion_bench -n 10 -t 0 0
+            #     # ==2119== Profiling application: ./fusion_bench -n 10 -t 0 0
+            #     # ==2119== Profiling result:
+            #     continue
+            if idx == 0:
+                # Start (ns),Duration (ns),CorrId,GrdX,GrdY,GrdZ,BlkX,BlkY,BlkZ,Reg/Trd,StcSMem (MB),DymSMem (MB),Bytes (MB),Throughput (MB/s),SrcMemKd,DstMemKd,Device,Ctx,GreenCtx,Strm,Name
                 types = line
                 continue
-            elif idx ==4:
-                # ms,ms,,,,,,,,KB,B,MB,GB/s,,,,,,,
-                units = line
-                continue
+            # elif idx ==4:
+            #     # ms,ms,,,,,,,,KB,B,MB,GB/s,,,,,,,
+            #     units = line
+            #     continue
             if not line:
                 continue
 
@@ -41,14 +41,17 @@ def parse_csv(csv_path):
             for i, data in enumerate(line):
                 type = types[i]
 
-                if type == "Start" or type == "Duration":
-                    unit = units[i]
+                if type.startswith("Start") or type.startswith("Duration"):
+                    unit = type.split(" ")[-1].strip("()")
+                    type = type.split(" ")[0]
                     if unit == "s":
                         row_dict[type] = float(data) * 1000
                     elif unit == "ms":
                         row_dict[type] = float(data)
                     elif unit == "us":
                         row_dict[type] = float(data) / 1000
+                    elif unit == "ns":
+                        row_dict[type] = float(data) / 1000000
                     else:
                         print("Error: unknown unit")
                 else:
@@ -142,7 +145,7 @@ def preprocess_datas(infoYAML, profile_path):
     for idx, test_name in enumerate(test_methology):
         if idx == 0:
             for kidx in range(kernel1_size):
-                file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx}_0.csv")
+                file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx}_0_cuda_gpu_trace.csv")
                 data, _   = parse_csv(file_path)
                 kname     = fusion_sets[0]["Set"][kidx]
 
@@ -150,7 +153,7 @@ def preprocess_datas(infoYAML, profile_path):
                 kernel1_datas.append(data_mean)
         elif idx == 1:
             for kidx in range(kernel2_size):
-                file_path = os.path.join(profile_path, "exec", f"{idx}_0_{kidx}.csv")
+                file_path = os.path.join(profile_path, "exec", f"{idx}_0_{kidx}_cuda_gpu_trace.csv")
                 data, _   = parse_csv(file_path)
                 kname     = fusion_sets[1]["Set"][kidx]
 
@@ -159,7 +162,7 @@ def preprocess_datas(infoYAML, profile_path):
         elif idx == 2:
             for kidx1 in range(kernel1_size):
                 for kidx2 in range(kernel2_size):
-                    file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx1}_{kidx2}.csv")
+                    file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
                     kname1    = fusion_sets[0]["Set"][kidx1]
                     kname2    = fusion_sets[1]["Set"][kidx2]
@@ -169,7 +172,7 @@ def preprocess_datas(infoYAML, profile_path):
         elif idx == 3:
             for kidx1 in range(kernel1_size):
                 for kidx2 in range(kernel2_size):
-                    file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx1}_{kidx2}.csv")
+                    file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
                     kname1    = fusion_sets[0]["Set"][kidx1]
                     kname2    = fusion_sets[1]["Set"][kidx2]
@@ -179,7 +182,7 @@ def preprocess_datas(infoYAML, profile_path):
         elif idx == 4:
             for kidx1 in range(kernel1_size):
                 for kidx2 in range(kernel2_size):
-                    file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx1}_{kidx2}.csv")
+                    file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
                     kname1    = fusion_sets[0]["Set"][kidx1]
                     kname2    = fusion_sets[1]["Set"][kidx2]
@@ -222,6 +225,10 @@ def draw_exec_graph(infoYAML, profile_path, output_path):
             parallel.append(parallel_exec)
             hfuse.append(hfuse_exec)
             bfuse.append(bfuse_exec)
+
+    print(f"parallel | max: {np.max(parallel)}, min: {np.min(parallel)}, avg: {np.mean(parallel)}")
+    print(f"hfuse    | max: {np.max(hfuse)}, min: {np.min(hfuse)}, avg: {np.mean(hfuse)}")
+    print(f"bfuse    | max: {np.max(bfuse)}, min: {np.min(bfuse)}, avg: {np.mean(bfuse)}")
 
     # Settings
     if len(kernel1) > 1:

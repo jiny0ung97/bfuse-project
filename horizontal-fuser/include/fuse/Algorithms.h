@@ -14,7 +14,10 @@ std::tuple<std::map<std::string, std::string>, std::map<std::string, std::string
 hfusePattern(std::vector<std::string> &Kernels, std::map<std::string, contexts::KernelInfo> &KernelInfoMap);
 //---------------------------------------------------------------------------
 std::tuple<std::string, std::map<std::string, std::string>, contexts::GridDim, contexts::BlockDim>
-fineInterleavePattern(std::vector<std::string> &Kernels, std::map<std::string, contexts::KernelInfo> &KernelInfoMap, int TotalSM);
+coarseInterleavePattern(std::vector<std::string> &Kernels, std::map<std::string, contexts::KernelInfo> &KernelInfoMap, int TotalSM);
+//---------------------------------------------------------------------------
+std::tuple<std::string, std::map<std::string, std::string>, contexts::GridDim, contexts::BlockDim>
+coarseInterleaveWithoutSMPattern(std::vector<std::string> &Kernels, std::map<std::string, contexts::KernelInfo> &KernelInfoMap);
 //---------------------------------------------------------------------------
 } // namespace algorithms
 } // namespace fuse

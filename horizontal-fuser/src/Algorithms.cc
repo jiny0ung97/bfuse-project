@@ -115,7 +115,7 @@ tuple<map<string, string>, map<string, string>, GridDim, BlockDim> hfusePattern(
   return make_tuple(BlockDeclStrMap, CondStrMap, FusedGridDim, FusedBlockDim);
 }
 //---------------------------------------------------------------------------
-tuple<string, map<string, string>, GridDim, BlockDim> fineInterleavePattern(vector<string> &Kernels, map<string, KernelInfo> &KernelInfoMap, int TotalSM)
+tuple<string, map<string, string>, GridDim, BlockDim> coarseInterleavePattern(vector<string> &Kernels, map<string, KernelInfo> &KernelInfoMap, int TotalSM)
 {
   auto compareKernelsByThreadBlock = [&KernelInfoMap](string KName1, string KName2) {
     auto& KInfo1 = KernelInfoMap.at(KName1);
@@ -286,6 +286,212 @@ tuple<string, map<string, string>, GridDim, BlockDim> fineInterleavePattern(vect
     } else {
       CondStream << "  else if ((KernelID_ == " << I << ")"
                  << " && (" << CurrentThreadIdx << " >= 0 && " << CurrentThreadIdx << " < " << KInfo.BlockDim_.size() << "))\n";
+    }
+
+    CondStream.flush();
+    CondStrMap[KName] = CondStr;
+  }
+
+  int AccBlocks  = 0;
+  int MaxThreads = 0;
+  for (auto &KName : Kernels) {
+    auto &KInfo   = KernelInfoMap.at(KName);
+    AccBlocks     += KInfo.GridDim_.size();
+    MaxThreads    = MaxThreads > KInfo.BlockDim_.size() ? MaxThreads : KInfo.BlockDim_.size();
+  }
+
+  // Generate GridDim, BlockDim
+  GridDim FusedGridDim;
+  BlockDim FusedBlockDim;
+
+  FusedGridDim.X = AccBlocks;
+  FusedGridDim.Y = 1;
+  FusedGridDim.Z = 1;
+  FusedBlockDim.X = MaxThreads;
+  FusedBlockDim.Y = 1;
+  FusedBlockDim.Z = 1;
+
+  return make_tuple(BlockDeclStr, CondStrMap, FusedGridDim, FusedBlockDim);
+}
+//---------------------------------------------------------------------------
+tuple<string, map<string, string>, GridDim, BlockDim> coarseInterleaveWithoutSMPattern(vector<string> &Kernels, map<string, KernelInfo> &KernelInfoMap)
+{
+  int MinOption = 256;
+  // Calculate ratio for each kernel
+  map<string, int> BlockRatios;
+  int MinRatio = -1;
+  for (auto &KName : Kernels) {
+    auto &KInfo        = KernelInfoMap.at(KName);
+    int GridDimSize    = KInfo.GridDim_.size();
+    BlockRatios[KName] = GridDimSize;
+
+    if (MinRatio == -1) {
+      MinRatio = GridDimSize;  
+    } else {
+      MinRatio = MinRatio < GridDimSize ? MinRatio : GridDimSize;
+    }
+  }
+
+  MinRatio = int(MinRatio / MinOption);
+  MinRatio = MinRatio > 0 ? MinRatio : 1;
+
+  int MinQuot = -1;
+  for (auto &KName : Kernels) {
+    auto &KInfo        = KernelInfoMap.at(KName);
+    int BlockRatio     = int(BlockRatios.at(KName) / MinRatio);
+    int Quot           = int(KInfo.GridDim_.size() / BlockRatio);
+    BlockRatios[KName] = BlockRatio;
+
+    if (MinQuot == -1) {
+      MinQuot = Quot;
+    } else {
+      MinQuot = MinQuot < Quot ? MinQuot : Quot;
+    }
+  }
+
+  map<string, int> RemainBlocks;
+  int EndBound     = 0;
+  int RotateBlocks = 0;
+  for (auto &KName : Kernels) {
+    auto &KInfo         = KernelInfoMap.at(KName);
+    int BlockRatio      = BlockRatios.at(KName);
+    RemainBlocks[KName] = KInfo.GridDim_.size() - BlockRatio * MinQuot;
+    EndBound            += BlockRatio * MinQuot;
+    RotateBlocks        += BlockRatio;
+  }
+
+  map<string, pair<int, int>> MyIdx;
+  int AccIdx = 0;
+  for (auto &KName : Kernels) {
+    int BlockRatio = BlockRatios.at(KName);
+    MyIdx[KName]   = make_pair(AccIdx, AccIdx + BlockRatio);
+    AccIdx         += BlockRatio;
+  }
+
+  // Generate BlockDeclStr
+  auto PrintPairCondFunc = [=](string V, int BEnd, int RotateBlocks, long unsigned IdxStart, long unsigned IdxEnd) {
+    string Str;
+    llvm::raw_string_ostream RawStream{Str};
+
+    RawStream << "("
+              << "(" << V << " < " << BEnd << ")"
+              << " && "
+              << "(" << V << " % " << RotateBlocks << " >= " << IdxStart << ") && "
+              << "(" << V << " % " << RotateBlocks << " < " << IdxEnd << ")"
+              << ")";
+    RawStream.flush();
+    return Str;
+  };
+
+  string BlockDeclStr;
+  llvm::raw_string_ostream DeclStream{BlockDeclStr};
+
+  DeclStream << "  /*\n"
+            << "   * KernelID_ means...\n";
+  for (long unsigned I = 0; I < Kernels.size(); ++I) {
+    string &KName = Kernels[I];
+    DeclStream << "   * " << I << ": " << KName << "\n";
+  }
+  DeclStream << "   */\n";
+  DeclStream << "  int gridDim_x_, gridDim_y_, gridDim_z_;\n"
+             << "  int blockIdx_x_, blockIdx_y_, blockIdx_z_;\n"
+             << "  int blockDim_x_, blockDim_y_, blockDim_z_;\n"
+             << "  int threadIdx_x_, threadIdx_y_, threadIdx_z_;\n"
+             << "  int NewBlockIdx_;\n"
+             << "  int KernelID_;\n"
+             << "  \n";
+
+  // string CurrentBlockIdx  = "(int)(blockIdx.x + blockIdx.y * gridDim.x + blockIdx.z * gridDim.x * gridDim.y)";
+  // string CurrentThreadIdx = "(int)(threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y)";
+  string CurrentBlockIdx  = "(int)blockIdx.x";
+  string CurrentThreadIdx = "(int)threadIdx.x";
+  bool FirstIf = true;
+
+  for (long unsigned I = 0; I < Kernels.size(); ++I) {
+    auto &KName = Kernels[I];
+    auto &KInfo = KernelInfoMap.at(KName);
+    auto &Ratio = BlockRatios.at(KName);
+    auto &KIdx  = MyIdx.at(KName);
+
+    if (FirstIf) {
+      DeclStream << "  if " << PrintPairCondFunc(CurrentBlockIdx, EndBound, RotateBlocks, KIdx.first, KIdx.second) << "\n";
+      FirstIf = false;
+    } else {
+      DeclStream << "  else if " << PrintPairCondFunc(CurrentBlockIdx, EndBound, RotateBlocks, KIdx.first, KIdx.second) << "\n";
+    }
+      DeclStream << "  {\n"
+                 << "    NewBlockIdx_ = " << "int(" <<  CurrentBlockIdx << " / " << RotateBlocks << ") * " << Ratio
+                                          << " + (" << CurrentBlockIdx << " % " << RotateBlocks << " - " << KIdx.first << ");\n"
+                 << "    KernelID_  = " << I << ";\n"
+                 << "    gridDim_x_ = " << KInfo.GridDim_.X << ";\n"
+                 << "    gridDim_y_ = " << KInfo.GridDim_.Y << ";\n"
+                 << "    gridDim_z_ = " << KInfo.GridDim_.Z << ";\n"
+                 << "    blockDim_x_ = " << KInfo.BlockDim_.X << ";\n"
+                 << "    blockDim_y_ = " << KInfo.BlockDim_.Y << ";\n"
+                 << "    blockDim_z_ = " << KInfo.BlockDim_.Z << ";\n"
+                 << "  }\n";
+  }
+
+  auto PrintPairCondFunc2 = [](string V, int Bstart, int Bend) {
+    string Str;
+    llvm::raw_string_ostream RawStream{Str};
+    RawStream << "(" << V << " >= " << Bstart << " && " << V << " < " << Bend << ")";
+    RawStream.flush();
+    return Str;
+  };
+
+  for (long unsigned I = 0; I < Kernels.size(); ++I) {
+    auto &KName  = Kernels[I];
+    auto &KInfo  = KernelInfoMap.at(KName);
+    auto &Ratio  = BlockRatios.at(KName);
+    auto &Remain = RemainBlocks.at(KName);
+    
+    if (FirstIf) {
+      DeclStream << "  if " << PrintPairCondFunc2(CurrentBlockIdx, EndBound, EndBound + Remain) << "\n";
+      FirstIf = false;
+    } else {
+      DeclStream << "  else if " << PrintPairCondFunc2(CurrentBlockIdx, EndBound, EndBound + Remain) << "\n";
+    }
+    DeclStream << "  {\n"
+               << "    NewBlockIdx_ = " << CurrentBlockIdx << " - " << EndBound << " + " << Ratio * MinQuot << ";\n"
+               << "    KernelID_  = " << I << ";\n"
+               << "    gridDim_x_ = " << KInfo.GridDim_.X << ";\n"
+               << "    gridDim_y_ = " << KInfo.GridDim_.Y << ";\n"
+               << "    gridDim_z_ = " << KInfo.GridDim_.Z << ";\n"
+               << "    blockDim_x_ = " << KInfo.BlockDim_.X << ";\n"
+               << "    blockDim_y_ = " << KInfo.BlockDim_.Y << ";\n"
+               << "    blockDim_z_ = " << KInfo.BlockDim_.Z << ";\n"
+               << "  }\n";
+    
+    EndBound += Remain;
+  }
+
+  DeclStream << "  blockIdx_x_ = NewBlockIdx_ % gridDim_x_;\n"
+             << "  blockIdx_y_ = NewBlockIdx_ / gridDim_x_ % gridDim_y_;\n"
+             << "  blockIdx_z_ = NewBlockIdx_ / (gridDim_x_ * gridDim_y_);\n"
+             << "  threadIdx_x_ = " << CurrentThreadIdx << " % blockDim_x_;\n"
+             << "  threadIdx_y_ = " << CurrentThreadIdx << " / blockDim_x_ % blockDim_y_;\n"
+             << "  threadIdx_z_ = " << CurrentThreadIdx << " / (blockDim_x_ * blockDim_y_);\n";
+  DeclStream.flush();
+
+  // Generate CondStrMap
+  map<string, string> CondStrMap;
+  int IsFirstCond = true;
+
+  for (long unsigned I = 0; I < Kernels.size(); ++I) {
+    string CondStr;
+    llvm::raw_string_ostream CondStream{CondStr};
+
+    auto &KName = Kernels[I];
+    auto &KInfo = KernelInfoMap.at(KName);
+
+    if (IsFirstCond) {
+      CondStream << "  if ((KernelID_ == " << I << ")"
+                 << " && (" << CurrentThreadIdx << " < " << KInfo.BlockDim_.size() << "))\n";
+      IsFirstCond = false;
+    } else {
+      CondStream << "  else if ((KernelID_ == " << I << ")"
+                 << " && (" << CurrentThreadIdx << " < " << KInfo.BlockDim_.size() << "))\n";
     }
 
     CondStream.flush();

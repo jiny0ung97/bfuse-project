@@ -569,6 +569,16 @@ void BFuseBuilder::onEndOfTranslationUnit()
 
   string CUDAFuncBody = "";
   CUDAFuncBody += NewBlockInfoString + "\n" + UnionStr_ + "\n";
+
+  // Check CUDA block scheduler
+  // CUDAFuncBody += "  uint streamingMultiprocessorId;\n";
+	// CUDAFuncBody += "  asm(\"mov.u32 %0, %smid;\" : \"=r\"(streamingMultiprocessorId));\n";
+  // CUDAFuncBody += "  uint warpId;\n";
+	// CUDAFuncBody += "  asm volatile (\"mov.u32 %0, %warpid;\" : \"=r\"(warpId));\n";
+  // CUDAFuncBody += "  uint laneId;\n";
+	// CUDAFuncBody += "  asm volatile (\"mov.u32 %0, %laneid;\" : \"=r\"(laneId));\n";
+  // CUDAFuncBody += "  printf(\"Block: %d | SM: %d - Here!\\n\", blockIdx.x, streamingMultiprocessorId);\n";
+  // CUDAFuncBody += "  \n";
   
   for (auto &KName : FContext_.Kernels_) {
     auto &CondStr = NewCondStrMap.at(KName);

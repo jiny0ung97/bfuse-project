@@ -54,13 +54,21 @@ if __name__ == "__main__":
     command1 = [horizontal_fuser_path, "-y", fuser_config_path, "-o", fuser_output_path, fuser_fusions_path, fuser_kernels_path, fuser_output_path]
     command2 = [horizontal_fuser_path, "-b", "-y", fuser_config_path, "-o", fuser_output_path, fuser_fusions_path, fuser_kernels_path, fuser_output_path]
     try:
+<<<<<<< HEAD
         print("RUN: " + " ".join(command))
+=======
+        print("RUN: " + " ".join(command1))
+>>>>>>> a5f9df417db46699a2b3a473da7d2c6e01c81fba
         result1 = subprocess.run(command1,
                                 # stdout=subprocess.PIPE,
                                 text=True,
                                 check=True,
                                 # timeout=10,
                                 )
+<<<<<<< HEAD
+=======
+        print("RUN: " + " ".join(command2))
+>>>>>>> a5f9df417db46699a2b3a473da7d2c6e01c81fba
         result2 = subprocess.run(command2,
                                 # stdout=subprocess.PIPE,
                                 text=True,
@@ -95,6 +103,7 @@ if __name__ == "__main__":
     tmp_path = os.getcwd()
     command  = ["make"]
     try:
+        print("RUN: " + " ".join(command))
         os.chdir(output_path)
         print("RUN: " + " ".join(command))
         result = subprocess.run(command,

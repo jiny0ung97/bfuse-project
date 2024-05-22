@@ -223,6 +223,10 @@ def draw_exec_graph(infoYAML, profile_path, output_path):
             hfuse.append(hfuse_exec)
             bfuse.append(bfuse_exec)
 
+    print(f"parallel | max: {np.max(parallel)}, min: {np.min(parallel)}, avg: {np.mean(parallel)}")
+    print(f"hfuse    | max: {np.max(hfuse)}, min: {np.min(hfuse)}, avg: {np.mean(hfuse)}")
+    print(f"bfuse    | max: {np.max(bfuse)}, min: {np.min(bfuse)}, avg: {np.mean(bfuse)}")
+
     # Settings
     if len(kernel1) > 1:
         f, axes = plt.subplots(nrows=len(kernel1), ncols=1, sharex=False, sharey=True)
@@ -246,7 +250,8 @@ def draw_exec_graph(infoYAML, profile_path, output_path):
         axes[bi].axhline(y=1, color="r", linewidth=0.5, linestyle="--")
 
         # Set ticks
-        axes[bi].set_xticks(index, axes_m, fontsize=3)
+        # axes[bi].set_xticks(index, axes_m, fontsize=3)
+        axes[bi].set_xticks(index, [], fontsize=3)
 
         # Set limitation of y axis
         axes[bi].set_ylim(0, math.ceil(max(hfuse + bfuse)))
@@ -254,17 +259,19 @@ def draw_exec_graph(infoYAML, profile_path, output_path):
         # Set major & minor yticks
         axes[bi].yaxis.set_major_locator(ticker.MultipleLocator(1))
         axes[bi].yaxis.set_major_formatter("{x:.0f}")
-        axes[bi].yaxis.set_minor_locator(ticker.MultipleLocator(0.5))
+        axes[bi].yaxis.set_minor_locator(ticker.MultipleLocator(0.1))
         axes[bi].yaxis.set_minor_formatter("{x:.0f}")
 
         # Set major & minor yticklabels
-        yticks = axes[bi].get_yticks()
-        axes[bi].set_yticklabels(yticks, fontdict={"fontsize": 3})
-        yticks = axes[bi].get_yticks(minor=True)
-        axes[bi].set_yticklabels(yticks, fontdict={"fontsize": 2}, minor=True)
+        # yticks = axes[bi].get_yticks()
+        # axes[bi].set_yticklabels(yticks, fontdict={"fontsize": 3})
+        axes[bi].set_yticklabels([], fontdict={"fontsize": 3})
+        # yticks = axes[bi].get_yticks(minor=True)
+        # axes[bi].set_yticklabels(yticks, fontdict={"fontsize": 2}, minor=True)
+        axes[bi].set_yticklabels([], fontdict={"fontsize": 3}, minor=True)
 
-        axes[bi].set_ylabel('Speed up', fontsize=3)
-        axes[bi].legend(ncol=1, loc="upper left", fontsize=2)
+        # axes[bi].set_ylabel('Speed up', fontsize=3)
+        # axes[bi].legend(ncol=1, loc="upper left", fontsize=2)
 
     # Save figure
     f.tight_layout()

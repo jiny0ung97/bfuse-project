@@ -74,7 +74,8 @@ FusionContext FusionContext::create(FusionInfo &FInfo, map<string, KernelInfo> &
   }
   if (bfuse) {
     FusedKernelName += "fused_bfuse";
-    auto [FusedBlockDeclStr, FusedCondStrMap, FusedGridDim, FusedBlockDim] = algorithms::fineInterleavePattern(FInfo.Kernels_, KInfoMap, TotalSM);
+    // auto [FusedBlockDeclStr, FusedCondStrMap, FusedGridDim, FusedBlockDim] = algorithms::coarseInterleavePattern(FInfo.Kernels_, KInfoMap, TotalSM);
+    auto [FusedBlockDeclStr, FusedCondStrMap, FusedGridDim, FusedBlockDim] = algorithms::coarseInterleaveWithoutSMPattern(FInfo.Kernels_, KInfoMap);
 
     FContext = FusionContext{TotalSM, move(Kernels), move(KernelInfoMap), move(FusedKernelName),
                              move(FusedGridDim), move(FusedBlockDim), move(FusedBlockDeclStr), move(FusedCondStrMap)};

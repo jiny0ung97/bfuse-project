@@ -31,12 +31,12 @@ if __name__ == "__main__":
     command = [configure_kernels_path, "-o", output_path, exam_path]
     try:
         print("RUN: " + " ".join(command))
-        result = subprocess.run(command,
-                                # stdout=subprocess.PIPE,
-                                text=True,
-                                check=True,
-                                # timeout=10,
-                                )
+        # result = subprocess.run(command,
+        #                         # stdout=subprocess.PIPE,
+        #                         text=True,
+        #                         check=True,
+        #                         # timeout=10,
+        #                         )
     except subprocess.CalledProcessError as e:
         logging.error(f"Error occurs while configuring \'{output_path}\'.")
         exit(1)

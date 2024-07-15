@@ -8,9 +8,8 @@ OBJECTS=main.cc.o utils.cc.o operation.cu.o       \\
         cuda/hfuse_kernels.cu.o                   \\
         cuda/bfuse_kernels.cu.o                   \\
 
-# CPPFLAGS=-std=c++14 -O3 -Wall -march=native -mavx2 -mfma -fopenmp -mno-avx512f -I/usr/local/cuda/include
 CPPFLAGS=-std=c++14 -O3 -w -march=native -mavx2 -mfma -fopenmp -mno-avx512f -I/usr/local/cuda/include
-CUDA_CFLAGS:=$(foreach option, $(CPPFLAGS),-Xcompiler=$(option)) -O3 -gencode arch=compute_70,code=sm_70
+CUDA_CFLAGS:=$(foreach option, $(CPPFLAGS),-Xcompiler=$(option)) -O3 -gencode arch=compute_80,code=sm_80
 
 LDFLAGS=-L/usr/local/cuda/lib64
 LDLIBS=-lstdc++ -lcudart -lm

@@ -1,0 +1,726 @@
+==7495== NVPROF is profiling process 7495, command: V100_large_bgemm_conv2d_same/benchmark -n 100 3 6 5
+==7495== Profiling application: V100_large_bgemm_conv2d_same/benchmark -n 100 3 6 5
+==7495== Profiling result:
+"Start","Duration","Grid X","Grid Y","Grid Z","Block X","Block Y","Block Z","Registers Per Thread","Static SMem","Dynamic SMem","Size","Throughput","SrcMemType","DstMemType","Device","Context","Stream","Name","Correlation_ID"
+s,ms,,,,,,,,KB,B,MB,GB/s,,,,,,,
+0.488120,3.456784,,,,,,,,,,26.000000,7.345158,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",497
+0.491717,3.441007,,,,,,,,,,26.000000,7.378836,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",498
+0.495296,23.714286,,,,,,,,,,182.250000,7.505118,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",499
+0.519031,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",500
+0.519079,2.901234,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",501
+0.522001,7.422556,,,,,,,,,,84.500000,11.117401,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",504
+0.529527,8.006361,,,,,,,,,,91.125000,11.114820,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",505
+0.554660,3.214097,,,,,,,,,,26.000000,7.899769,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",506
+0.558006,3.173777,,,,,,,,,,26.000000,8.000129,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",507
+0.561310,21.944470,,,,,,,,,,182.250000,8.110404,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",508
+0.583273,0.004289,,,,,,,,,,0.031250,7.115313,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",509
+0.583299,2.891602,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",510
+0.586210,7.439228,,,,,,,,,,84.500000,11.092486,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",513
+0.593754,7.999673,,,,,,,,,,91.125000,11.124112,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",514
+0.618825,3.215760,,,,,,,,,,26.000000,7.895684,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",515
+0.622170,3.174961,,,,,,,,,,26.000000,7.997145,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",516
+0.625474,21.990230,,,,,,,,,,182.250000,8.093527,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",517
+0.647482,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",518
+0.647503,2.887506,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",519
+0.650410,7.428541,,,,,,,,,,84.500000,11.108444,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",522
+0.657940,7.999482,,,,,,,,,,91.125000,11.124378,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",523
+0.683025,3.205681,,,,,,,,,,26.000000,7.920509,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",524
+0.686362,3.180657,,,,,,,,,,26.000000,7.982824,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",525
+0.689673,21.990902,,,,,,,,,,182.250000,8.093279,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",526
+0.711683,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",527
+0.711704,2.893938,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",528
+0.714616,7.428572,,,,,,,,,,84.500000,11.108398,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",531
+0.722145,7.993850,,,,,,,,,,91.125000,11.132215,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",532
+0.747224,3.250225,,,,,,,,,,26.000000,7.811959,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",533
+0.750605,3.186481,,,,,,,,,,26.000000,7.968234,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",534
+0.753920,21.981910,,,,,,,,,,182.250000,8.096590,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",535
+0.775922,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",536
+0.775947,2.884274,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",537
+0.778852,7.428764,,,,,,,,,,84.500000,11.108110,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",540
+0.786381,8.007385,,,,,,,,,,91.125000,11.113398,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",541
+0.811439,3.216912,,,,,,,,,,26.000000,7.892857,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",542
+0.814789,3.181265,,,,,,,,,,26.000000,7.981298,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",543
+0.818097,21.915863,,,,,,,,,,182.250000,8.120991,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",544
+0.840032,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",545
+0.840052,2.905521,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",546
+0.842976,7.433597,,,,,,,,,,84.500000,11.100888,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",549
+0.850512,8.009498,,,,,,,,,,91.125000,11.110466,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",550
+0.875632,3.216752,,,,,,,,,,26.000000,7.893249,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",551
+0.878980,3.182705,,,,,,,,,,26.000000,7.977687,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",552
+0.882292,21.985334,,,,,,,,,,182.250000,8.095329,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",553
+0.904296,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",554
+0.904323,2.905330,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",555
+0.907247,7.429084,,,,,,,,,,84.500000,11.107632,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",558
+0.914779,8.045241,,,,,,,,,,91.125000,11.061105,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",559
+0.939918,3.209905,,,,,,,,,,26.000000,7.910086,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",560
+0.943259,3.172337,,,,,,,,,,26.000000,8.003760,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",561
+0.946559,22.056373,,,,,,,,,,182.250000,8.069256,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",562
+0.968634,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",563
+0.968661,2.893042,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",564
+0.971573,7.438076,,,,,,,,,,84.500000,11.094204,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",567
+0.979112,7.989209,,,,,,,,,,91.125000,11.138682,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",568
+1.004159,3.223984,,,,,,,,,,26.000000,7.875543,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",569
+1.007515,3.175952,,,,,,,,,,26.000000,7.994650,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",570
+1.010819,22.098965,,,,,,,,,,182.250000,8.053704,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",571
+1.032938,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",572
+1.032959,2.895762,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",573
+1.035871,7.429596,,,,,,,,,,84.500000,11.106867,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",576
+1.043402,8.000697,,,,,,,,,,91.125000,11.122688,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",577
+1.068328,3.210289,,,,,,,,,,26.000000,7.909140,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",578
+1.071668,3.185361,,,,,,,,,,26.000000,7.971035,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",579
+1.074981,22.012054,,,,,,,,,,182.250000,8.085502,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",580
+1.097012,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",581
+1.097032,2.899634,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",582
+1.099948,7.426556,,,,,,,,,,84.500000,11.111413,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",585
+1.107476,8.004026,,,,,,,,,,91.125000,11.118062,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",586
+1.132515,3.202576,,,,,,,,,,26.000000,7.928188,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",587
+1.135850,3.181872,,,,,,,,,,26.000000,7.979776,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",588
+1.139160,22.016854,,,,,,,,,,182.250000,8.083740,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",589
+1.161198,0.004289,,,,,,,,,,0.031250,7.115313,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",590
+1.161222,2.885874,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",591
+1.164125,7.419164,,,,,,,,,,84.500000,11.122484,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",594
+1.171648,8.006393,,,,,,,,,,91.125000,11.114775,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",595
+1.196743,3.184816,,,,,,,,,,26.000000,7.972399,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",596
+1.200059,3.183888,,,,,,,,,,26.000000,7.974723,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",597
+1.203372,21.993878,,,,,,,,,,182.250000,8.092184,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",598
+1.225386,0.004289,,,,,,,,,,0.031250,7.115313,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",599
+1.225408,2.899186,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",600
+1.228325,7.422813,,,,,,,,,,84.500000,11.117016,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",603
+1.235848,8.005626,,,,,,,,,,91.125000,11.115840,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",604
+1.260942,3.211377,,,,,,,,,,26.000000,7.906460,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",605
+1.264295,3.162193,,,,,,,,,,26.000000,8.029436,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",606
+1.267587,22.012342,,,,,,,,,,182.250000,8.085397,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",607
+1.289619,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",608
+1.289642,2.892434,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",609
+1.292553,7.424925,,,,,,,,,,84.500000,11.113854,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",612
+1.300078,7.991162,,,,,,,,,,91.125000,11.135960,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",613
+1.325138,3.202289,,,,,,,,,,26.000000,7.928899,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",614
+1.328471,3.170609,,,,,,,,,,26.000000,8.008122,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",615
+1.331770,22.026518,,,,,,,,,,182.250000,8.080193,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",616
+1.353816,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",617
+1.353840,2.897810,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",618
+1.356756,7.418748,,,,,,,,,,84.500000,11.123107,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",621
+1.364294,8.002105,,,,,,,,,,91.125000,11.120731,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",622
+1.389371,3.210736,,,,,,,,,,26.000000,7.908039,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",623
+1.392713,3.175152,,,,,,,,,,26.000000,7.996664,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",624
+1.396017,21.989878,,,,,,,,,,182.250000,8.093656,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",625
+1.418026,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",626
+1.418049,2.886738,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",627
+1.420953,7.441084,,,,,,,,,,84.500000,11.089719,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",630
+1.428502,7.993369,,,,,,,,,,91.125000,11.132885,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",631
+1.453568,3.221136,,,,,,,,,,26.000000,7.882506,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",632
+1.456919,3.163664,,,,,,,,,,26.000000,8.025702,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",633
+1.460219,21.971190,,,,,,,,,,182.250000,8.100541,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",634
+1.482210,0.004287,,,,,,,,,,0.031250,7.118633,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",635
+1.482236,2.904786,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",636
+1.485158,7.424125,,,,,,,,,,84.500000,11.115051,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",639
+1.492684,8.005018,,,,,,,,,,91.125000,11.116684,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",640
+1.517771,3.217873,,,,,,,,,,26.000000,7.890499,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",641
+1.521120,3.174449,,,,,,,,,,26.000000,7.998435,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",642
+1.524423,21.998166,,,,,,,,,,182.250000,8.090607,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",643
+1.546441,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",644
+1.546460,2.894770,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",645
+1.549386,7.439644,,,,,,,,,,84.500000,11.091866,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",648
+1.556930,7.995034,,,,,,,,,,91.125000,11.130567,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",649
+1.581994,3.222929,,,,,,,,,,26.000000,7.878121,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",650
+1.585348,3.175153,,,,,,,,,,26.000000,7.996662,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",651
+1.588653,21.982710,,,,,,,,,,182.250000,8.096295,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",652
+1.610656,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",653
+1.610683,2.907602,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",654
+1.613608,7.435388,,,,,,,,,,84.500000,11.098215,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",657
+1.621145,7.997049,,,,,,,,,,91.125000,11.127762,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",658
+1.646217,3.211473,,,,,,,,,,26.000000,7.906224,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",659
+1.649557,3.178513,,,,,,,,,,26.000000,7.988209,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",660
+1.652864,22.018518,,,,,,,,,,182.250000,8.083129,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",661
+1.674903,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",662
+1.674921,2.904402,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",663
+1.677844,7.421564,,,,,,,,,,84.500000,11.118887,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",666
+1.685367,7.992473,,,,,,,,,,91.125000,11.134133,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",667
+1.710389,3.211024,,,,,,,,,,26.000000,7.907330,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",668
+1.713732,3.183280,,,,,,,,,,26.000000,7.976246,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",669
+1.717044,21.951926,,,,,,,,,,182.250000,8.107649,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",670
+1.739016,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",671
+1.739034,2.888210,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",672
+1.741941,7.424028,,,,,,,,,,84.500000,11.115197,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",675
+1.749466,8.043129,,,,,,,,,,91.125000,11.064010,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",676
+1.774588,3.211665,,,,,,,,,,26.000000,7.905751,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",677
+1.777929,3.186321,,,,,,,,,,26.000000,7.968634,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",678
+1.781245,21.955158,,,,,,,,,,182.250000,8.106456,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",679
+1.803220,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",680
+1.803245,2.901170,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",681
+1.806165,7.426268,,,,,,,,,,84.500000,11.111844,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",684
+1.813693,8.001529,,,,,,,,,,91.125000,11.121532,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",685
+1.838770,3.211025,,,,,,,,,,26.000000,7.907327,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",686
+1.842114,3.168721,,,,,,,,,,26.000000,8.012894,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",687
+1.845413,21.980213,,,,,,,,,,182.250000,8.097215,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",688
+1.867413,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",689
+1.867431,2.890802,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",690
+1.870340,7.436700,,,,,,,,,,84.500000,11.096257,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",693
+1.877877,7.995929,,,,,,,,,,91.125000,11.129321,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",694
+1.902933,3.202384,,,,,,,,,,26.000000,7.928663,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",695
+1.906266,3.186801,,,,,,,,,,26.000000,7.967433,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",696
+1.909579,22.027414,,,,,,,,,,182.250000,8.079864,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",697
+1.931628,0.004287,,,,,,,,,,0.031250,7.118633,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",698
+1.931651,2.897458,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",699
+1.934569,7.427740,,,,,,,,,,84.500000,11.109642,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",702
+1.942097,8.025561,,,,,,,,,,91.125000,11.088229,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",703
+1.967296,3.646126,,,,,,,,,,26.000000,6.963727,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",704
+1.971075,3.284240,,,,,,,,,,26.000000,7.731050,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",705
+1.974494,23.180624,,,,,,,,,,182.250000,7.677900,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",706
+1.997696,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",707
+1.997723,2.889683,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",708
+2.000632,7.433245,,,,,,,,,,84.500000,11.101414,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",711
+2.008169,7.995802,,,,,,,,,,91.125000,11.129497,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",712
+2.033252,3.224849,,,,,,,,,,26.000000,7.873431,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",713
+2.036610,3.171825,,,,,,,,,,26.000000,8.005052,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",714
+2.039911,22.049494,,,,,,,,,,182.250000,8.071773,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",715
+2.061981,0.004352,,,,,,,,,,0.031250,7.012311,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",716
+2.062003,2.894419,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",717
+2.064915,7.428476,,,,,,,,,,84.500000,11.108541,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",720
+2.072447,8.004058,,,,,,,,,,91.125000,11.118018,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",721
+2.097512,3.211185,,,,,,,,,,26.000000,7.906933,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",722
+2.100855,3.168337,,,,,,,,,,26.000000,8.013865,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",723
+2.104151,21.967478,,,,,,,,,,182.250000,8.101909,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",724
+2.126139,0.004704,,,,,,,,,,0.031250,6.487580,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",725
+2.126158,2.883890,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",726
+2.129059,7.436796,,,,,,,,,,84.500000,11.096113,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",729
+2.136600,8.003705,,,,,,,,,,91.125000,11.118508,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",730
+2.161716,3.207953,,,,,,,,,,26.000000,7.914899,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",731
+2.165056,3.178161,,,,,,,,,,26.000000,7.989093,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",732
+2.168364,21.983638,,,,,,,,,,182.250000,8.095954,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",733
+2.190367,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",734
+2.190392,2.893842,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",735
+2.193305,7.431644,,,,,,,,,,84.500000,11.103806,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",738
+2.200838,7.996761,,,,,,,,,,91.125000,11.128163,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",739
+2.225905,3.224560,,,,,,,,,,26.000000,7.874136,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",740
+2.229262,3.184049,,,,,,,,,,26.000000,7.974320,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",741
+2.232575,21.984054,,,,,,,,,,182.250000,8.095801,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",742
+2.254579,0.004287,,,,,,,,,,0.031250,7.118633,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",743
+2.254599,2.888466,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",744
+2.257506,7.425949,,,,,,,,,,84.500000,11.112321,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",747
+2.265032,7.989561,,,,,,,,,,91.125000,11.138191,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",748
+2.290108,3.212529,,,,,,,,,,26.000000,7.903625,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",749
+2.293451,3.188881,,,,,,,,,,26.000000,7.962237,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",750
+2.296768,21.967030,,,,,,,,,,182.250000,8.102075,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",751
+2.318755,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",752
+2.318774,2.900050,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",753
+2.321693,7.420764,,,,,,,,,,84.500000,11.120086,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",756
+2.329214,8.005850,,,,,,,,,,91.125000,11.115529,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",757
+2.354330,3.208305,,,,,,,,,,26.000000,7.914031,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",758
+2.357670,3.178545,,,,,,,,,,26.000000,7.988128,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",759
+2.360977,21.996726,,,,,,,,,,182.250000,8.091137,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",760
+2.382993,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",761
+2.383019,2.895826,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",762
+2.385934,7.427452,,,,,,,,,,84.500000,11.110073,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",765
+2.393461,8.002842,,,,,,,,,,91.125000,11.119707,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",766
+2.418546,3.207632,,,,,,,,,,26.000000,7.915691,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",767
+2.421886,3.203441,,,,,,,,,,26.000000,7.926047,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",768
+2.425219,21.985206,,,,,,,,,,182.250000,8.095376,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",769
+2.447225,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",770
+2.447251,2.895090,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",771
+2.450164,7.418844,,,,,,,,,,84.500000,11.122964,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",774
+2.457685,8.000698,,,,,,,,,,91.125000,11.122687,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",775
+2.482744,3.214512,,,,,,,,,,26.000000,7.898749,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",776
+2.486090,3.170096,,,,,,,,,,26.000000,8.009418,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",777
+2.489390,21.942519,,,,,,,,,,182.250000,8.111125,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",778
+2.511352,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",779
+2.511371,2.891313,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",780
+2.514282,7.429469,,,,,,,,,,84.500000,11.107056,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",783
+2.521812,7.998554,,,,,,,,,,91.125000,11.125668,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",784
+2.546862,3.203217,,,,,,,,,,26.000000,7.926602,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",785
+2.550196,3.223313,,,,,,,,,,26.000000,7.877183,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",786
+2.553550,21.991382,,,,,,,,,,182.250000,8.093103,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",787
+2.575561,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",788
+2.575586,2.892370,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",789
+2.578497,7.433532,,,,,,,,,,84.500000,11.100986,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",792
+2.586032,7.991962,,,,,,,,,,91.125000,11.134845,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",793
+2.611067,3.204560,,,,,,,,,,26.000000,7.923280,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",794
+2.614400,3.177297,,,,,,,,,,26.000000,7.991266,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",795
+2.617708,21.967702,,,,,,,,,,182.250000,8.101827,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",796
+2.639695,0.004321,,,,,,,,,,0.031250,7.062619,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",797
+2.639714,2.901906,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",798
+2.642634,7.428092,,,,,,,,,,84.500000,11.109115,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",801
+2.650164,8.000057,,,,,,,,,,91.125000,11.123578,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",802
+2.675238,3.203921,,,,,,,,,,26.000000,7.924860,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",803
+2.678573,3.189809,,,,,,,,,,26.000000,7.959920,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",804
+2.681892,21.978550,,,,,,,,,,182.250000,8.097828,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",805
+2.703890,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",806
+2.703909,2.900018,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",807
+2.706827,7.426044,,,,,,,,,,84.500000,11.112179,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",810
+2.714355,8.009210,,,,,,,,,,91.125000,11.110866,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",811
+2.739412,3.217040,,,,,,,,,,26.000000,7.892543,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",812
+2.742760,3.178225,,,,,,,,,,26.000000,7.988933,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",813
+2.746067,21.976949,,,,,,,,,,182.250000,8.098418,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",814
+2.768063,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",815
+2.768086,2.897554,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",816
+2.771003,7.428444,,,,,,,,,,84.500000,11.108589,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",819
+2.778535,7.999801,,,,,,,,,,91.125000,11.123934,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",820
+2.803590,3.224752,,,,,,,,,,26.000000,7.873667,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",821
+2.806946,3.175920,,,,,,,,,,26.000000,7.994731,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",822
+2.810252,21.950070,,,,,,,,,,182.250000,8.108335,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",823
+2.832220,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",824
+2.832242,2.886738,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",825
+2.835146,7.431036,,,,,,,,,,84.500000,11.104714,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",828
+2.842678,7.993850,,,,,,,,,,91.125000,11.132215,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",829
+2.867760,3.231600,,,,,,,,,,26.000000,7.856983,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",830
+2.871123,3.185745,,,,,,,,,,26.000000,7.970075,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",831
+2.874439,21.959606,,,,,,,,,,182.250000,8.104814,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",832
+2.896418,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",833
+2.896438,2.884178,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",834
+2.899340,7.427964,,,,,,,,,,84.500000,11.109307,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",837
+2.906869,7.987194,,,,,,,,,,91.125000,11.141492,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",838
+2.931937,3.209808,,,,,,,,,,26.000000,7.910325,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",839
+2.935277,3.171440,,,,,,,,,,26.000000,8.006024,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",840
+2.938578,22.043381,,,,,,,,,,182.250000,8.074012,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",841
+2.960641,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",842
+2.960666,2.897330,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",843
+2.963582,7.425724,,,,,,,,,,84.500000,11.112658,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",846
+2.971110,7.998233,,,,,,,,,,91.125000,11.126115,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",847
+2.996178,3.235120,,,,,,,,,,26.000000,7.848434,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",848
+2.999544,3.174833,,,,,,,,,,26.000000,7.997468,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",849
+3.002847,22.074902,,,,,,,,,,182.250000,8.062483,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",850
+3.024942,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",851
+3.024967,2.897266,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",852
+3.027882,7.428444,,,,,,,,,,84.500000,11.108589,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",855
+3.035412,8.002458,,,,,,,,,,91.125000,11.120241,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",856
+3.060529,3.201329,,,,,,,,,,26.000000,7.931276,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",857
+3.063864,3.182641,,,,,,,,,,26.000000,7.977848,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",858
+3.067175,22.001302,,,,,,,,,,182.250000,8.089454,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",859
+3.089195,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",860
+3.089217,2.909234,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",861
+3.092144,7.426012,,,,,,,,,,84.500000,11.112227,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",864
+3.099671,8.000537,,,,,,,,,,91.125000,11.122911,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",865
+3.124757,3.196433,,,,,,,,,,26.000000,7.943425,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",866
+3.128082,3.180304,,,,,,,,,,26.000000,7.983710,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",867
+3.131392,22.045781,,,,,,,,,,182.250000,8.073133,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",868
+3.153457,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",869
+3.153481,2.892882,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",870
+3.156392,7.431004,,,,,,,,,,84.500000,11.104762,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",873
+3.163926,8.012378,,,,,,,,,,91.125000,11.106473,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",874
+3.189039,3.194225,,,,,,,,,,26.000000,7.948916,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",875
+3.192364,3.175089,,,,,,,,,,26.000000,7.996823,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",876
+3.195668,21.987830,,,,,,,,,,182.250000,8.094410,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",877
+3.217676,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",878
+3.217698,2.895602,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",879
+3.220612,7.414524,,,,,,,,,,84.500000,11.129444,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",882
+3.228128,7.989305,,,,,,,,,,91.125000,11.138548,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",883
+3.253191,3.219504,,,,,,,,,,26.000000,7.886502,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",884
+3.256541,3.177617,,,,,,,,,,26.000000,7.990461,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",885
+3.259854,21.996821,,,,,,,,,,182.250000,8.091102,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",886
+3.281870,0.004319,,,,,,,,,,0.031250,7.065890,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",887
+3.281889,2.901361,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",888
+3.284806,7.420700,,,,,,,,,,84.500000,11.120182,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",891
+3.292333,8.002681,,,,,,,,,,91.125000,11.119931,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",892
+3.317410,3.214672,,,,,,,,,,26.000000,7.898356,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",893
+3.320755,3.173073,,,,,,,,,,26.000000,8.001904,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",894
+3.324059,22.020054,,,,,,,,,,182.250000,8.082565,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",895
+3.346098,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",896
+3.346116,2.880179,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",897
+3.349013,7.459868,,,,,,,,,,84.500000,11.061795,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",900
+3.356579,8.008345,,,,,,,,,,91.125000,11.112066,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",901
+3.381631,3.214256,,,,,,,,,,26.000000,7.899379,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",902
+3.384974,3.164689,,,,,,,,,,26.000000,8.023103,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",903
+3.388279,21.996310,,,,,,,,,,182.250000,8.091290,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",904
+3.410295,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",905
+3.410319,2.882322,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",906
+3.413222,7.425596,,,,,,,,,,84.500000,11.112850,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",909
+3.420750,8.014362,,,,,,,,,,91.125000,11.103723,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",910
+3.445860,3.215121,,,,,,,,,,26.000000,7.897253,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",911
+3.449206,3.182065,,,,,,,,,,26.000000,7.979292,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",912
+3.452517,21.973078,,,,,,,,,,182.250000,8.099845,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",913
+3.474509,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",914
+3.474535,2.891410,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",915
+3.477446,7.435964,,,,,,,,,,84.500000,11.097355,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",918
+3.484985,8.001849,,,,,,,,,,91.125000,11.121087,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",919
+3.510039,3.213392,,,,,,,,,,26.000000,7.901503,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",920
+3.513385,3.183344,,,,,,,,,,26.000000,7.976086,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",921
+3.516699,22.051125,,,,,,,,,,182.250000,8.071176,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",922
+3.538770,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",923
+3.538793,2.894578,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",924
+3.541705,7.440892,,,,,,,,,,84.500000,11.090005,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",927
+3.549247,8.033465,,,,,,,,,,91.125000,11.077319,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",928
+3.574306,3.230416,,,,,,,,,,26.000000,7.859862,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",929
+3.577666,3.183152,,,,,,,,,,26.000000,7.976567,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",930
+3.580977,22.060470,,,,,,,,,,182.250000,8.067757,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",931
+3.603058,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",932
+3.603083,2.896498,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",933
+3.605998,7.427228,,,,,,,,,,84.500000,11.110408,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",936
+3.613527,8.005626,,,,,,,,,,91.125000,11.115840,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",937
+3.638603,3.212689,,,,,,,,,,26.000000,7.903232,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",938
+3.641947,3.176561,,,,,,,,,,26.000000,7.993117,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",939
+3.645254,22.003958,,,,,,,,,,182.250000,8.088477,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",940
+3.667277,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",941
+3.667297,2.897650,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",942
+3.670211,7.433532,,,,,,,,,,84.500000,11.100986,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",945
+3.677747,8.011801,,,,,,,,,,91.125000,11.107273,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",946
+3.702802,3.203376,,,,,,,,,,26.000000,7.926208,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",947
+3.706136,3.185616,,,,,,,,,,26.000000,7.970397,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",948
+3.709451,21.954550,,,,,,,,,,182.250000,8.106680,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",949
+3.731426,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",950
+3.731445,2.899794,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",951
+3.734361,7.428956,,,,,,,,,,84.500000,11.107823,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",954
+3.741892,7.986650,,,,,,,,,,91.125000,11.142251,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",955
+3.766973,3.205777,,,,,,,,,,26.000000,7.920272,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",956
+3.770309,3.190769,,,,,,,,,,26.000000,7.957525,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",957
+3.773629,21.975478,,,,,,,,,,182.250000,8.098960,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",958
+3.795624,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",959
+3.795650,2.886130,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",960
+3.798555,7.432284,,,,,,,,,,84.500000,11.102850,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",963
+3.806088,7.998938,,,,,,,,,,91.125000,11.125134,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",964
+3.831149,3.208145,,,,,,,,,,26.000000,7.914426,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",965
+3.834487,3.178352,,,,,,,,,,26.000000,7.988613,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",966
+3.837795,22.002197,,,,,,,,,,182.250000,8.089125,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",967
+3.859816,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",968
+3.859835,2.905330,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",969
+3.862760,7.425116,,,,,,,,,,84.500000,11.113568,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",972
+3.870286,7.993817,,,,,,,,,,91.125000,11.132261,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",973
+3.895317,3.197745,,,,,,,,,,26.000000,7.940166,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",974
+3.898646,3.189520,,,,,,,,,,26.000000,7.960641,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",975
+3.901966,22.029077,,,,,,,,,,182.250000,8.079254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",976
+3.924017,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",977
+3.924041,2.890195,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",978
+3.926948,7.431580,,,,,,,,,,84.500000,11.103901,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",981
+3.934481,7.997402,,,,,,,,,,91.125000,11.127271,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",982
+3.959628,3.214896,,,,,,,,,,26.000000,7.897806,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",983
+3.962973,3.173680,,,,,,,,,,26.000000,8.000373,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",984
+3.966274,21.968118,,,,,,,,,,182.250000,8.101673,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",985
+3.988262,0.004321,,,,,,,,,,0.031250,7.062619,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",986
+3.988288,2.890355,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",987
+3.991197,7.428861,,,,,,,,,,84.500000,11.107965,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",990
+3.998729,8.010425,,,,,,,,,,91.125000,11.109181,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",991
+4.023827,3.193233,,,,,,,,,,26.000000,7.951385,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",992
+4.027149,3.176848,,,,,,,,,,26.000000,7.992395,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",993
+4.030456,22.015158,,,,,,,,,,182.250000,8.084362,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",994
+4.052490,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",995
+4.052511,2.888850,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",996
+4.055418,7.431996,,,,,,,,,,84.500000,11.103280,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",999
+4.062950,7.993114,,,,,,,,,,91.125000,11.133240,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1000
+4.088006,3.215217,,,,,,,,,,26.000000,7.897018,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1001
+4.091353,3.182705,,,,,,,,,,26.000000,7.977687,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1002
+4.094664,21.993174,,,,,,,,,,182.250000,8.092443,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1003
+4.116677,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1004
+4.116696,2.897714,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1005
+4.119612,7.432764,,,,,,,,,,84.500000,11.102133,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1008
+4.127146,7.995130,,,,,,,,,,91.125000,11.130433,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1009
+4.152185,3.242160,,,,,,,,,,26.000000,7.831392,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1010
+4.155559,3.177457,,,,,,,,,,26.000000,7.990863,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1011
+4.158866,21.981782,,,,,,,,,,182.250000,8.096637,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1012
+4.180869,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1013
+4.180893,2.900146,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1014
+4.183809,7.428349,,,,,,,,,,84.500000,11.108731,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1017
+4.191339,7.998170,,,,,,,,,,91.125000,11.126202,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1018
+4.216410,3.202576,,,,,,,,,,26.000000,7.928188,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1019
+4.219742,3.191089,,,,,,,,,,26.000000,7.956727,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1020
+4.223063,21.996342,,,,,,,,,,182.250000,8.091278,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1021
+4.245079,0.004321,,,,,,,,,,0.031250,7.062619,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1022
+4.245101,2.901171,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1023
+4.248020,7.422811,,,,,,,,,,84.500000,11.117019,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1026
+4.255545,8.004858,,,,,,,,,,91.125000,11.116906,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1027
+4.280678,3.213584,,,,,,,,,,26.000000,7.901030,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1028
+4.284023,3.190416,,,,,,,,,,26.000000,7.958406,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1029
+4.287342,21.974006,,,,,,,,,,182.250000,8.099502,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1030
+4.309335,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1031
+4.309354,2.893298,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1032
+4.312264,7.414461,,,,,,,,,,84.500000,11.129539,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1035
+4.319779,8.005434,,,,,,,,,,91.125000,11.116107,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1036
+4.344844,3.198417,,,,,,,,,,26.000000,7.938497,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1037
+4.348174,3.186065,,,,,,,,,,26.000000,7.969274,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1038
+4.351489,22.005750,,,,,,,,,,182.250000,8.087819,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1039
+4.373514,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1040
+4.373538,2.902706,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1041
+4.376458,7.428060,,,,,,,,,,84.500000,11.109163,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1044
+4.383987,7.991674,,,,,,,,,,91.125000,11.135246,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1045
+4.409031,3.202480,,,,,,,,,,26.000000,7.928426,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1046
+4.412365,3.160848,,,,,,,,,,26.000000,8.032852,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1047
+4.415656,21.975830,,,,,,,,,,182.250000,8.098830,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1048
+4.437652,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1049
+4.437678,2.897011,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1050
+4.440591,7.428219,,,,,,,,,,84.500000,11.108925,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1053
+4.448120,7.986778,,,,,,,,,,91.125000,11.142072,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1054
+4.473166,3.214769,,,,,,,,,,26.000000,7.898118,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1055
+4.476512,3.168913,,,,,,,,,,26.000000,8.012408,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1056
+4.479810,21.993654,,,,,,,,,,182.250000,8.092267,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1057
+4.501822,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1058
+4.501841,2.898834,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1059
+4.504756,7.418844,,,,,,,,,,84.500000,11.122964,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1062
+4.512282,7.991001,,,,,,,,,,91.125000,11.136184,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1063
+4.537334,3.223184,,,,,,,,,,26.000000,7.877498,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1064
+4.540687,3.192081,,,,,,,,,,26.000000,7.954255,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1065
+4.544008,22.043669,,,,,,,,,,182.250000,8.073906,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1066
+4.566073,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1067
+4.566097,2.897554,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1068
+4.569012,7.439452,,,,,,,,,,84.500000,11.092152,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1071
+4.576553,8.009498,,,,,,,,,,91.125000,11.110466,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1072
+4.601642,3.215121,,,,,,,,,,26.000000,7.897253,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1073
+4.604987,3.159985,,,,,,,,,,26.000000,8.035046,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1074
+4.608285,22.006870,,,,,,,,,,182.250000,8.087407,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1075
+4.630312,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1076
+4.630331,2.893554,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1077
+4.633244,7.426780,,,,,,,,,,84.500000,11.111078,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1080
+4.640771,8.004153,,,,,,,,,,91.125000,11.117886,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1081
+4.665838,3.219952,,,,,,,,,,26.000000,7.885405,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1082
+4.669189,3.182416,,,,,,,,,,26.000000,7.978412,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1083
+4.672501,21.959894,,,,,,,,,,182.250000,8.104707,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1084
+4.694480,0.004287,,,,,,,,,,0.031250,7.118633,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1085
+4.694501,2.889747,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1086
+4.697409,7.434909,,,,,,,,,,84.500000,11.098930,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1089
+4.704945,7.993114,,,,,,,,,,91.125000,11.133240,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1090
+4.729998,3.210353,,,,,,,,,,26.000000,7.908982,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1091
+4.733339,3.176241,,,,,,,,,,26.000000,7.993923,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1092
+4.736644,22.001206,,,,,,,,,,182.250000,8.089489,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1093
+4.758665,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1094
+4.758688,2.896306,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1095
+4.761604,7.441116,,,,,,,,,,84.500000,11.089671,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1098
+4.769148,7.999866,,,,,,,,,,91.125000,11.123844,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1099
+4.794198,3.207920,,,,,,,,,,26.000000,7.914981,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1100
+4.797535,3.180593,,,,,,,,,,26.000000,7.982985,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1101
+4.800844,21.950550,,,,,,,,,,182.250000,8.108157,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1102
+4.822814,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1103
+4.822836,2.890386,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1104
+4.825744,7.423549,,,,,,,,,,84.500000,11.115914,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1107
+4.833268,7.999449,,,,,,,,,,91.125000,11.124423,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1108
+4.858353,3.221968,,,,,,,,,,26.000000,7.880471,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1109
+4.861707,3.194192,,,,,,,,,,26.000000,7.948998,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1110
+4.865029,21.986038,,,,,,,,,,182.250000,8.095070,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1111
+4.887034,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1112
+4.887054,2.894258,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1113
+4.889967,7.421980,,,,,,,,,,84.500000,11.118264,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1116
+4.897489,7.995514,,,,,,,,,,91.125000,11.129898,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1117
+4.922574,3.276720,,,,,,,,,,26.000000,7.748793,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1118
+4.925981,3.193040,,,,,,,,,,26.000000,7.951866,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1119
+4.929304,21.978006,,,,,,,,,,182.250000,8.098028,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1120
+4.951302,0.004321,,,,,,,,,,0.031250,7.062619,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1121
+4.951328,2.896689,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1122
+4.954243,7.477787,,,,,,,,,,84.500000,11.035288,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1125
+4.961828,8.009049,,,,,,,,,,91.125000,11.111089,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1126
+4.986917,3.214672,,,,,,,,,,26.000000,7.898356,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1127
+4.990263,3.178352,,,,,,,,,,26.000000,7.988613,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1128
+4.993570,21.981974,,,,,,,,,,182.250000,8.096567,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1129
+5.015572,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1130
+5.015598,2.889650,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1131
+5.018507,7.441852,,,,,,,,,,84.500000,11.088575,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1134
+5.026049,7.987482,,,,,,,,,,91.125000,11.141090,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1135
+5.051113,3.212689,,,,,,,,,,26.000000,7.903232,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1136
+5.054458,3.176977,,,,,,,,,,26.000000,7.992071,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1137
+5.057763,21.950006,,,,,,,,,,182.250000,8.108358,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1138
+5.079732,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1139
+5.079751,2.902578,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1140
+5.082673,7.431484,,,,,,,,,,84.500000,11.104045,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1143
+5.090207,8.001401,,,,,,,,,,91.125000,11.121710,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1144
+5.115278,3.215665,,,,,,,,,,26.000000,7.895917,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1145
+5.118623,3.170801,,,,,,,,,,26.000000,8.007638,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1146
+5.121922,21.975638,,,,,,,,,,182.250000,8.098901,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1147
+5.143918,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1148
+5.143937,2.895122,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1149
+5.146849,7.430076,,,,,,,,,,84.500000,11.106149,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1152
+5.154379,8.026361,,,,,,,,,,91.125000,11.087124,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1153
+5.179505,3.217648,,,,,,,,,,26.000000,7.891051,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1154
+5.182854,3.183153,,,,,,,,,,26.000000,7.976564,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1155
+5.186167,21.975893,,,,,,,,,,182.250000,8.098807,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1156
+5.208163,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1157
+5.208187,2.894002,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1158
+5.211102,7.428828,,,,,,,,,,84.500000,11.108015,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1161
+5.218632,8.002969,,,,,,,,,,91.125000,11.119530,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1162
+5.243679,3.211440,,,,,,,,,,26.000000,7.906305,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1163
+5.247022,3.173521,,,,,,,,,,26.000000,8.000774,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1164
+5.250324,21.970870,,,,,,,,,,182.250000,8.100659,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1165
+5.272316,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1166
+5.272334,2.902322,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1167
+5.275256,7.427004,,,,,,,,,,84.500000,11.110743,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1170
+5.282784,8.005434,,,,,,,,,,91.125000,11.116107,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1171
+5.307868,3.212336,,,,,,,,,,26.000000,7.904100,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1172
+5.311214,3.173169,,,,,,,,,,26.000000,8.001662,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1173
+5.314516,21.970869,,,,,,,,,,182.250000,8.100659,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1174
+5.336507,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1175
+5.336527,2.891218,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1176
+5.339437,7.573532,,,,,,,,,,84.500000,10.895779,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1179
+5.347118,7.994265,,,,,,,,,,91.125000,11.131637,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1180
+5.372253,3.200784,,,,,,,,,,26.000000,7.932627,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1181
+5.375585,3.178832,,,,,,,,,,26.000000,7.987407,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1182
+5.378891,21.998998,,,,,,,,,,182.250000,8.090301,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1183
+5.400909,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1184
+5.400935,2.893554,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1185
+5.403846,7.433148,,,,,,,,,,84.500000,11.101559,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1188
+5.411381,7.991162,,,,,,,,,,91.125000,11.135960,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1189
+5.436483,3.200336,,,,,,,,,,26.000000,7.933737,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1190
+5.439816,3.172848,,,,,,,,,,26.000000,8.002471,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1191
+5.443118,21.986582,,,,,,,,,,182.250000,8.094870,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1192
+5.465125,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1193
+5.465148,2.897106,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1194
+5.468065,7.428380,,,,,,,,,,84.500000,11.108685,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1197
+5.475594,7.994393,,,,,,,,,,91.125000,11.131459,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1198
+5.500681,3.210609,,,,,,,,,,26.000000,7.908352,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1199
+5.504023,3.186065,,,,,,,,,,26.000000,7.969274,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1200
+5.507338,21.989334,,,,,,,,,,182.250000,8.093857,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1201
+5.529347,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1202
+5.529367,2.893874,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1203
+5.532277,7.420732,,,,,,,,,,84.500000,11.120134,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1206
+5.539798,8.004506,,,,,,,,,,91.125000,11.117395,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1207
+5.564915,3.205745,,,,,,,,,,26.000000,7.920351,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1208
+5.568265,3.172401,,,,,,,,,,26.000000,8.003599,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1209
+5.571567,21.968630,,,,,,,,,,182.250000,8.101485,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1210
+5.593555,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1211
+5.593579,2.895698,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1212
+5.596492,7.421372,,,,,,,,,,84.500000,11.119175,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1215
+5.604015,8.006073,,,,,,,,,,91.125000,11.115219,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1216
+5.629077,3.222576,,,,,,,,,,26.000000,7.878984,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1217
+5.632430,3.174513,,,,,,,,,,26.000000,7.998274,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1218
+5.635733,21.997782,,,,,,,,,,182.250000,8.090748,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1219
+5.657750,0.004319,,,,,,,,,,0.031250,7.065890,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1220
+5.657770,2.887891,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1221
+5.660675,7.428957,,,,,,,,,,84.500000,11.107822,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1224
+5.668210,7.991513,,,,,,,,,,91.125000,11.135471,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1225
+5.693264,3.208849,,,,,,,,,,26.000000,7.912689,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1226
+5.696605,3.179024,,,,,,,,,,26.000000,7.986925,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1227
+5.699913,21.966518,,,,,,,,,,182.250000,8.102263,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1228
+5.721900,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1229
+5.721919,2.885458,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1230
+5.724820,7.426844,,,,,,,,,,84.500000,11.110982,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1233
+5.732348,7.993146,,,,,,,,,,91.125000,11.133196,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1234
+5.757433,3.210833,,,,,,,,,,26.000000,7.907800,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1235
+5.760774,3.166097,,,,,,,,,,26.000000,8.019535,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1236
+5.764069,21.974773,,,,,,,,,,182.250000,8.099220,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1237
+5.786063,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1238
+5.786087,2.889746,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1239
+5.788994,7.426716,,,,,,,,,,84.500000,11.111174,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1242
+5.796523,7.994457,,,,,,,,,,91.125000,11.131370,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1243
+5.821591,3.214896,,,,,,,,,,26.000000,7.897806,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1244
+5.824938,3.169905,,,,,,,,,,26.000000,8.009901,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1245
+5.828249,22.006518,,,,,,,,,,182.250000,8.087536,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1246
+5.850275,0.004319,,,,,,,,,,0.031250,7.065890,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1247
+5.850300,2.886483,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1248
+5.853205,7.424413,,,,,,,,,,84.500000,11.114620,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1251
+5.860730,8.045305,,,,,,,,,,91.125000,11.061017,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1252
+5.885852,3.206000,,,,,,,,,,26.000000,7.919721,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1253
+5.889189,3.175152,,,,,,,,,,26.000000,7.996664,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1254
+5.892493,21.993046,,,,,,,,,,182.250000,8.092490,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1255
+5.914505,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1256
+5.914532,2.889937,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1257
+5.917442,7.473212,,,,,,,,,,84.500000,11.042043,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1260
+5.925023,7.999577,,,,,,,,,,91.125000,11.124245,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1261
+5.950110,3.201168,,,,,,,,,,26.000000,7.931675,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1262
+5.953443,3.216016,,,,,,,,,,26.000000,7.895056,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1263
+5.956789,21.958870,,,,,,,,,,182.250000,8.105085,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1264
+5.978768,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1265
+5.978794,2.896785,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1266
+5.981710,7.437117,,,,,,,,,,84.500000,11.095634,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1269
+5.989248,7.996314,,,,,,,,,,91.125000,11.128785,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1270
+6.014321,3.214129,,,,,,,,,,26.000000,7.899691,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1271
+6.017667,3.177361,,,,,,,,,,26.000000,7.991105,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1272
+6.020973,22.013174,,,,,,,,,,182.250000,8.085091,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1273
+6.043006,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1274
+6.043024,2.880498,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1275
+6.045922,7.437340,,,,,,,,,,84.500000,11.095302,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1278
+6.053460,8.004666,,,,,,,,,,91.125000,11.117173,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1279
+6.078477,3.216560,,,,,,,,,,26.000000,7.893720,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1280
+6.081826,3.170705,,,,,,,,,,26.000000,8.007880,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1281
+6.085127,22.040885,,,,,,,,,,182.250000,8.074926,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1282
+6.107187,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1283
+6.107205,2.895090,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1284
+6.110117,7.433500,,,,,,,,,,84.500000,11.101033,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1287
+6.117652,8.000825,,,,,,,,,,91.125000,11.122510,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1288
+6.142714,3.211664,,,,,,,,,,26.000000,7.905754,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1289
+6.146057,3.170384,,,,,,,,,,26.000000,8.008691,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1290
+6.149355,21.998997,,,,,,,,,,182.250000,8.090301,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1291
+6.171375,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1292
+6.171398,2.895250,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1293
+6.174312,7.432573,,,,,,,,,,84.500000,11.102418,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1296
+6.181848,8.002330,,,,,,,,,,91.125000,11.120418,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1297
+6.206950,3.203824,,,,,,,,,,26.000000,7.925100,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1298
+6.210283,3.181040,,,,,,,,,,26.000000,7.981863,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1299
+6.213594,21.951862,,,,,,,,,,182.250000,8.107673,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1300
+6.235565,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1301
+6.235586,2.883602,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1302
+6.238487,7.431836,,,,,,,,,,84.500000,11.103519,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1305
+6.246020,7.998106,,,,,,,,,,91.125000,11.126291,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1306
+6.271099,3.201329,,,,,,,,,,26.000000,7.931276,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1307
+6.274432,3.179281,,,,,,,,,,26.000000,7.986279,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1308
+6.277741,21.999893,,,,,,,,,,182.250000,8.089972,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1309
+6.299761,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1310
+6.299779,2.892146,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1311
+6.302690,7.438588,,,,,,,,,,84.500000,11.093440,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1314
+6.310231,7.992442,,,,,,,,,,91.125000,11.134176,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1315
+6.335291,3.216048,,,,,,,,,,26.000000,7.894977,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1316
+6.338636,3.182576,,,,,,,,,,26.000000,7.978011,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1317
+6.341948,22.004470,,,,,,,,,,182.250000,8.088289,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1318
+6.363973,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1319
+6.363997,2.887890,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1320
+6.366904,7.432316,,,,,,,,,,84.500000,11.102802,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1323
+6.374439,7.994809,,,,,,,,,,91.125000,11.130880,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1324
+6.399487,3.211761,,,,,,,,,,26.000000,7.905515,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1325
+6.402830,3.182993,,,,,,,,,,26.000000,7.976965,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1326
+6.406142,21.994806,,,,,,,,,,182.250000,8.091843,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1327
+6.428157,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1328
+6.428181,2.881041,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1329
+6.431081,7.428540,,,,,,,,,,84.500000,11.108445,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1332
+6.438610,8.004122,,,,,,,,,,91.125000,11.117929,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1333
+6.463674,3.203536,,,,,,,,,,26.000000,7.925812,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1334
+6.467010,3.174129,,,,,,,,,,26.000000,7.999242,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1335
+6.470315,21.943447,,,,,,,,,,182.250000,8.110782,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1336
+6.492278,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1337
+6.492297,2.895538,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1338
+6.495211,7.421276,,,,,,,,,,84.500000,11.119318,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1341
+6.502734,8.001561,,,,,,,,,,91.125000,11.121487,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1342
+6.527827,3.211056,,,,,,,,,,26.000000,7.907251,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1343
+6.531170,3.177424,,,,,,,,,,26.000000,7.990946,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1344
+6.534474,22.061429,,,,,,,,,,182.250000,8.067406,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1345
+6.556555,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1346
+6.556578,2.899826,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1347
+6.559496,7.430556,,,,,,,,,,84.500000,11.105432,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1350
+6.567028,7.998233,,,,,,,,,,91.125000,11.126115,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1351
+6.592105,3.206608,,,,,,,,,,26.000000,7.918219,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1352
+6.595441,3.170417,,,,,,,,,,26.000000,8.008607,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1353
+6.598741,21.978582,,,,,,,,,,182.250000,8.097816,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1354
+6.620739,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1355
+6.620759,2.890419,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1356
+6.623667,7.436092,,,,,,,,,,84.500000,11.097164,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1359
+6.631204,7.992186,,,,,,,,,,91.125000,11.134533,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1360
+6.656291,3.199537,,,,,,,,,,26.000000,7.935719,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1361
+6.659623,3.193745,,,,,,,,,,26.000000,7.950110,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1362
+6.662945,21.962614,,,,,,,,,,182.250000,8.103704,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1363
+6.684928,0.004320,,,,,,,,,,0.031250,7.064254,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1364
+6.684947,2.892850,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1365
+6.687858,7.429116,,,,,,,,,,84.500000,11.107584,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1368
+6.695388,7.991289,,,,,,,,,,91.125000,11.135783,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1369
+6.720433,3.208240,,,,,,,,,,26.000000,7.914191,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1370
+6.723775,3.183217,,,,,,,,,,26.000000,7.976404,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1371
+6.727088,21.989367,,,,,,,,,,182.250000,8.093844,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1372
+6.749098,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1373
+6.749117,2.882610,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1374
+6.752017,7.462492,,,,,,,,,,84.500000,11.057905,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1377
+6.759584,8.002169,,,,,,,,,,91.125000,11.120642,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1378
+6.784700,3.210896,,,,,,,,,,26.000000,7.907645,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1379
+6.788042,3.192401,,,,,,,,,,26.000000,7.953457,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1380
+6.791364,22.008981,,,,,,,,,,182.250000,8.086631,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1381
+6.813392,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1382
+6.813416,2.897426,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1383
+6.816331,7.416860,,,,,,,,,,84.500000,11.125939,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1386
+6.823850,8.001241,,,,,,,,,,91.125000,11.121932,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1387
+6.848946,3.201584,,,,,,,,,,26.000000,7.930645,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1388
+6.852291,3.168209,,,,,,,,,,26.000000,8.014189,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1389
+6.855589,21.991319,,,,,,,,,,182.250000,8.093126,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1390
+6.877600,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1391
+6.877619,2.900339,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1392
+6.880535,7.425788,,,,,,,,,,84.500000,11.112562,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1395
+6.888061,7.988922,,,,,,,,,,91.125000,11.139082,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1396
+6.913110,3.223025,,,,,,,,,,26.000000,7.877886,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1397
+6.916462,3.167569,,,,,,,,,,26.000000,8.015808,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1398
+6.919758,22.044598,,,,,,,,,,182.250000,8.073566,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1399
+6.941824,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1400
+6.941848,2.904755,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1401
+6.944770,7.423645,,,,,,,,,,84.500000,11.115770,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1404
+6.952300,8.034745,,,,,,,,,,91.125000,11.075555,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1405
+6.977401,3.209808,,,,,,,,,,26.000000,7.910325,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1406
+6.980745,3.173169,,,,,,,,,,26.000000,8.001662,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1407
+6.984047,22.002006,,,,,,,,,,182.250000,8.089195,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1408
+7.006070,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1409
+7.006096,2.889875,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1410
+7.009004,7.428733,,,,,,,,,,84.500000,11.108157,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1413
+7.016533,7.989306,,,,,,,,,,91.125000,11.138547,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1414
+7.041596,3.217233,,,,,,,,,,26.000000,7.892069,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1415
+7.044946,3.173265,,,,,,,,,,26.000000,8.001420,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1416
+7.048255,21.998102,,,,,,,,,,182.250000,8.090631,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1417
+7.070273,0.004288,,,,,,,,,,0.031250,7.116973,"Pageable","Device","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy HtoD]",1418
+7.070291,2.885426,86528,1,1,160,1,1,128,4.687500,0,,,,,"Tesla V100-DGXS-32GB (0)","1","7","bgemm_6_conv2d_5_fused_hfuse",1419
+7.073194,7.424636,,,,,,,,,,84.500000,11.114286,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1422
+7.080720,7.995866,,,,,,,,,,91.125000,11.129408,"Device","Pageable","Tesla V100-DGXS-32GB (0)","1","7","[CUDA memcpy DtoH]",1423

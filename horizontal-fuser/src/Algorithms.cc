@@ -316,7 +316,7 @@ tuple<string, map<string, string>, GridDim, BlockDim> coarseInterleavePattern(ve
 //---------------------------------------------------------------------------
 tuple<string, map<string, string>, GridDim, BlockDim> coarseInterleaveWithoutSMPattern(vector<string> &Kernels, map<string, KernelInfo> &KernelInfoMap)
 {
-  int MinOption = 256;
+  int MinOption = 128;
   // Calculate ratio for each kernel
   map<string, int> BlockRatios;
   int MinRatio = -1;

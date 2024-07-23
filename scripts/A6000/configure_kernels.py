@@ -13,6 +13,32 @@ tvm_kernels_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__
 sys.path.append(tvm_kernels_module_path)
 
 import tvm_schedules
+
+# #-------------------------- TEMP ----------------------------------
+# from tvm import te
+# from tvm import topi
+# #-----------------------------------------------------------------------------------------------
+# @auto_scheduler.register_workload
+# def bgemm_workload(batch_size, M, K, N):
+#     A   = te.placeholder((batch_size, M, K), name="A")
+#     B   = te.placeholder((batch_size, N, K), name="B")
+
+#     with tvm.target.Target("cuda"):
+#         out = topi.cuda.batch_matmul(A, B, (batch_size, M, N), "float32", False, True)
+
+#     return A, B, out
+# #-----------------------------------------------------------------------------------------------
+# @auto_scheduler.register_workload
+# def conv2d_workload(N, H, W, CO, CI, KH, KW, stride, padding):
+#     data   = te.placeholder((N, CI, H, W), name="data")
+#     kernel = te.placeholder((CO, CI, KH, KW), name="kernel")
+
+#     with tvm.target.Target("cuda"):
+#         out = topi.cuda.conv2d_nchw(data, kernel, stride, padding, 1 ,"float32")
+
+#     return data, kernel, out
+# #-------------------------- TEMP ----------------------------------
+
 #-----------------------------------------------------------------------------------------------
 # Tuning trials
 trials = 900
@@ -38,7 +64,13 @@ def auto_tuning(func, args, log_file):
         measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
         verbose=2,
     )
-    task.tune(tune_option)
+    # tune_option = auto_scheduler.TuningOptions(
+    #     num_measure_trials=trials,
+    #     runner=auto_scheduler.RPCRunner("A6000", "127.0.0.1", 9190),
+    #     measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
+    #     verbose=2,
+    # )
+    # task.tune(tune_option)
 
     return task
 #-----------------------------------------------------------------------------------------------
@@ -124,21 +156,23 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
 
     # Schedule & tuning kernel if needed
     for kname in kernel_list:
-        kargs = infos[kname]
-        log   = "%s/%s.json" % (test_suite_path, kname)
+        kargs    = infos[kname]
+        log_file = os.path.join(test_suite_path, "log", f"{kname}.json")
 
         if kname.startswith("bgemm"):
             shape = tvm_schedules.get_bgemm_shape(*kargs)
             if tuning:
-                task      = auto_tuning(tvm_schedules.bgemm_workload, kargs, log)
-                sch, args = task.apply_best(log)
+                task      = auto_tuning(tvm_schedules.bgemm_workload, kargs, log_file)
+                # task      = auto_tuning(bgemm_workload, kargs, log_file)
+                sch, args = task.apply_best(log_file)
             else:
                 sch, args = tvm_schedules.cuda_schedule_bgemm(*kargs)
         elif kname.startswith("conv2d"):
             shape = tvm_schedules.get_conv2d_shape(*kargs)
             if tuning:
-                task      = auto_tuning(tvm_schedules.conv2d_workload, kargs, log)
-                sch, args = task.apply_best(log)
+                task      = auto_tuning(tvm_schedules.conv2d_workload, kargs, log_file)
+                # task      = auto_tuning(conv2d_workload, kargs, log_file)
+                sch, args = task.apply_best(log_file)
             else:
                 sch, args = tvm_schedules.cuda_schedule_conv2d(*kargs)
         else:
@@ -148,7 +182,7 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
         # Build & analysis kernel
         target = tvm.target.Target("cuda")
         if tuning:
-            with auto_scheduler.ApplyHistoryBest(log):
+            with auto_scheduler.ApplyHistoryBest(log_file):
                 with tvm.transform.PassContext(opt_level=3, config={"relay.backend.use_auto_scheduler": True,
                                                                     "tir.add_lower_pass": [(1, extract_threads_info_callback)]}):
                     func = tvm.build(sch, args, target)
@@ -193,6 +227,7 @@ def get_test_suite(path, output, eval=True, tuning=False):
     test_suite_path        = os.path.join(os.getcwd(), test_suite_name)
     test_suite_cuda_path   = os.path.join(test_suite_path, "cuda")
     test_suite_config_path = os.path.join(test_suite_path, "config")
+    test_suite_log_path    = os.path.join(test_suite_path, "log")
 
     # Generate test suite directory
     if os.path.exists(test_suite_path):
@@ -202,6 +237,8 @@ def get_test_suite(path, output, eval=True, tuning=False):
     os.mkdir(test_suite_path)
     os.mkdir(test_suite_cuda_path)
     os.mkdir(test_suite_config_path)
+    if tuning:
+        os.mkdir(test_suite_log_path)
 
     # Parse YAML files
     with open(path) as f:

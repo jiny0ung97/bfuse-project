@@ -55,19 +55,19 @@ if __name__ == "__main__":
     command2 = [horizontal_fuser_path, "-b", "-y", fuser_config_path, "-o", fuser_output_path, fuser_fusions_path, fuser_kernels_path, fuser_output_path]
     try:
         print("RUN: " + " ".join(command1))
-        result1 = subprocess.run(command1,
-                                # stdout=subprocess.PIPE,
-                                text=True,
-                                check=True,
-                                # timeout=10,
-                                )
+        # result1 = subprocess.run(command1,
+        #                         # stdout=subprocess.PIPE,
+        #                         text=True,
+        #                         check=True,
+        #                         # timeout=10,
+        #                         )
         print("RUN: " + " ".join(command2))
-        result2 = subprocess.run(command2,
-                                # stdout=subprocess.PIPE,
-                                text=True,
-                                check=True,
-                                # timeout=10,
-                                )
+        # result2 = subprocess.run(command2,
+        #                         # stdout=subprocess.PIPE,
+        #                         text=True,
+        #                         check=True,
+        #                         # timeout=10,
+        #                         )
     except subprocess.CalledProcessError as e:
         logging.error(f"Error occurs while generating fused kernels.")
         exit(1)
@@ -80,12 +80,12 @@ if __name__ == "__main__":
     command = [gen_test_suite_path, output_path]
     try:
         print("RUN: " + " ".join(command))
-        result = subprocess.run(command,
-                                # stdout=subprocess.PIPE,
-                                text=True,
-                                check=True,
-                                # timeout=10,
-                                )
+        # result = subprocess.run(command,
+        #                         # stdout=subprocess.PIPE,
+        #                         text=True,
+        #                         check=True,
+        #                         # timeout=10,
+        #                         )
     except subprocess.CalledProcessError as e:
         logging.error(f"Error occurs while generating benchmark for test-suite.")
         exit(1)

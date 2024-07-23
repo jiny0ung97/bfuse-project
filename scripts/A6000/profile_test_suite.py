@@ -59,30 +59,20 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
     kernel1_size   = len(fusion_sets[0]["Set"])
     kernel2_size   = len(fusion_sets[1]["Set"])
     test_methology = ["kernel1", "kernel2"]
-    test_metrics   = ["stall_constant_memory_dependency",
-                      "stall_exec_dependency",
-                      "stall_inst_fetch",
-                      "stall_memory_dependency",
-                      "stall_memory_throttle",
-                      "stall_not_selected",
-                      "stall_other",
-                      "stall_pipe_busy"
-                      "stall_sync",
-                      "stall_texture"]
 
     metrics_commands = []
-    common_command   = ["ncu", "--metrics", ",".join(test_metrics), "--csv", "-o"]
+    common_command   = ["ncu", "--set", "full", "-o"]
 
     for idx, test_name in enumerate(test_methology):
         if idx == 0:
             for kidx in range(kernel1_size):
-                file_path = os.path.join(metrics_path, f"{idx}_{kidx}_0.csv")
+                file_path = os.path.join(metrics_path, f"{idx}_{kidx}_0")
                 command   = common_command + [file_path]
                 command   = command + [benchmark_path, "-n", str(metrics_trials), str(idx), str(kidx), "0"]
                 metrics_commands.append(command)
         if idx == 1:
             for kidx in range(kernel2_size):
-                file_path = os.path.join(metrics_path, f"{idx}_0_{kidx}.csv")
+                file_path = os.path.join(metrics_path, f"{idx}_0_{kidx}")
                 command   = common_command + [file_path]
                 command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), "0", str(kidx)]
                 metrics_commands.append(command)
@@ -133,6 +123,14 @@ def get_exec_commands(infoYAML, benchmark_path, exec_path):
         if idx == 2 or idx == 3 or idx == 4:
             for kidx1 in range(kernel1_size):
                 for kidx2 in range(kernel2_size):
+                    # temp
+                    if idx == 3:
+                        if (kidx1, kidx2) in [(5, 4), (5, 2), (3, 7), (1, 1), (0, 2), (1, 5), (7, 4),
+                                              (2, 4), (2, 3), (4, 7), (0, 3), (5, 3), (0, 5), (1, 4),
+                                              (5, 7), (2, 7), (2, 2), (0, 7), (1, 3), (0, 4), (1, 7),
+                                              (1, 6), (1, 0), (1, 2), (6, 7), (4, 4), (7, 7)]:
+                            continue
+
                     file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}")
                     command1  = common_command1 + [file_path]
                     command1  = command1 + [benchmark_path, "-n", str(exec_trials), str(idx), str(kidx1), str(kidx2)]
@@ -164,23 +162,23 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
                 print("VALID")
     
     # Profile metrics
-    # if profile_metrics:
-    #     metrics_path = os.path.join(profile_path, "metrics")
-    #     os.mkdir(metrics_path)
+    if profile_metrics:
+        metrics_path = os.path.join(profile_path, "metrics")
+        os.mkdir(metrics_path)
 
-    #     metrics_commands = get_metrics_commands(infoYAML, benchmark_path, metrics_path)
-    #     for idx, command in enumerate(metrics_commands):
-    #         print(f"({idx+1}/{len(metrics_commands)}) Profile metrics...")
-    #         try:
-    #             result = subprocess.run(command,
-    #                                     # stdout=subprocess.PIPE,
-    #                                     text=True,
-    #                                     check=True,
-    #                                     # timeout=10,
-    #                                     )
-    #         except subprocess.CalledProcessError as e:
-    #             logging.error("Error occurs while profiling metrics.")
-    #             exit(1)
+        metrics_commands = get_metrics_commands(infoYAML, benchmark_path, metrics_path)
+        for idx, command in enumerate(metrics_commands):
+            print(f"({idx+1}/{len(metrics_commands)}) Profile metrics...")
+            try:
+                result = subprocess.run(command,
+                                        # stdout=subprocess.PIPE,
+                                        text=True,
+                                        check=True,
+                                        # timeout=10,
+                                        )
+            except subprocess.CalledProcessError as e:
+                logging.error("Error occurs while profiling metrics.")
+                exit(1)
 
     # Profile exectuion
     if profile_exec:

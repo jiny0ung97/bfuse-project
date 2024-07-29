@@ -1,7 +1,7 @@
 import os, sys
 import logging
 
-tvm_kernels_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../tvm-kernels")
+tvm_kernels_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../")
 sys.path.append(tvm_kernels_module_path)
 
 import tvm_schedules

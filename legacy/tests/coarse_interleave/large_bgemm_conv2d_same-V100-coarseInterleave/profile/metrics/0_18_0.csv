@@ -1,0 +1,14 @@
+==24509== NVPROF is profiling process 24509, command: V100_large_bgemm_conv2d_same/benchmark -n 10 0 18 0
+==24509== Some kernel(s) will be replayed on device 0 in order to collect all events/metrics.
+==24509== Profiling application: V100_large_bgemm_conv2d_same/benchmark -n 10 0 18 0
+==24509== Profiling result:
+==24509== Metric result:
+"Device","Kernel","Invocations","Metric Name","Metric Description","Min","Max","Avg"
+"Tesla V100-DGXS-32GB (0)","conv2d1_2",13,"stall_constant_memory_dependency","Issue Stall Reasons (Immediate constant)",0.002833%,0.006583%,0.004151%
+"Tesla V100-DGXS-32GB (0)","conv2d1_2",13,"stall_exec_dependency","Issue Stall Reasons (Execution Dependency)",2.362664%,2.386123%,2.370798%
+"Tesla V100-DGXS-32GB (0)","conv2d1_2",13,"stall_inst_fetch","Issue Stall Reasons (Instructions Fetch)",0.038002%,0.038400%,0.038114%
+"Tesla V100-DGXS-32GB (0)","conv2d1_2",13,"stall_memory_dependency","Issue Stall Reasons (Data Request)",3.973229%,4.491415%,4.239995%
+"Tesla V100-DGXS-32GB (0)","conv2d1_2",13,"stall_memory_throttle","Issue Stall Reasons (Memory Throttle)",79.919141%,80.457881%,80.168949%
+"Tesla V100-DGXS-32GB (0)","conv2d1_2",13,"stall_not_selected","Issue Stall Reasons (Not Selected)",3.017902%,3.079084%,3.043951%
+"Tesla V100-DGXS-32GB (0)","conv2d1_2",13,"stall_other","Issue Stall Reasons (Other)",0.082218%,0.083143%,0.082584%
+"Tesla V100-DGXS-32GB (0)","conv2d1_2",13,"stall_texture","Issue Stall Reasons (Texture)",0.000116%,0.000158%,0.000133%

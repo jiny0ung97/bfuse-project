@@ -44,7 +44,7 @@ RUN cmake .. -G"Ninja"
 RUN ninja
 
 # Install tvm python package
-RUN echo "export TVM_HOME=/root/Settings/tvm" >> /root/.bashrc
+RUN echo "export TVM_HOME=/root/tvm" >> /root/.bashrc
 RUN echo "export PYTHONPATH=\$TVM_HOME/python:\${PYTHONPATH}" >> /root/.bashrc
 
 RUN apt-get install -y python3-pip

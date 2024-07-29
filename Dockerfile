@@ -1,13 +1,14 @@
 FROM nvidia/cuda:12.1.1-devel-ubuntu20.04
+SHELL ["/bin/bash", "-c"]
 
 # Make default directories
-RUN mkdir /root/Downloads /root/Settings
+RUN mkdir /root/downloads
 
 # Install llvm-/clang-16
 RUN apt-get update -y
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common wget apt-utils
 
-WORKDIR /root/Downloads
+WORKDIR /root/downloads
 RUN wget https://apt.llvm.org/llvm.sh
 RUN chmod +x llvm.sh
 RUN ./llvm.sh 16 all
@@ -15,30 +16,30 @@ RUN ./llvm.sh 16 all
 # Install CMake (3.29.3 version)
 RUN apt-get install -y libssl-dev
 
-WORKDIR /root/Downloads
+WORKDIR /root/downloads
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.29.3/cmake-3.29.3.tar.gz -O cmake-3.29.3.tar.gz
 
-WORKDIR /root/Settings
-RUN tar -zxvf /root/Downloads/cmake-3.29.3.tar.gz
+WORKDIR /root
+RUN tar -zxvf /root/downloads/cmake-3.29.3.tar.gz
 
-WORKDIR /root/Settings/cmake-3.29.3
+WORKDIR /root/cmake-3.29.3
 RUN ./bootstrap && make -j8 && make install
 
 # Install tvm
 RUN apt-get update -y
 RUN apt-get install -y python3 python3-dev python3-setuptools gcc libtinfo-dev zlib1g-dev build-essential ninja-build libedit-dev libxml2-dev git
 
-WORKDIR /root/Settings
+WORKDIR /root
 RUN git clone --recursive https://github.com/apache/tvm tvm
 
-WORKDIR /root/Settings/tvm
+WORKDIR /root/tvm
 RUN mkdir build
 RUN cp cmake/config.cmake build
 
 RUN sed -i "s/USE_CUDA OFF/USE_CUDA ON/g" build/config.cmake
 RUN sed -i "s/USE_LLVM OFF/USE_LLVM ON/g" build/config.cmake
 
-WORKDIR /root/Settings/tvm/build
+WORKDIR /root/tvm/build
 RUN cmake .. -G"Ninja"
 RUN ninja
 
@@ -52,14 +53,14 @@ RUN pip3 install --user typing-extensions psutil scipy
 RUN pip3 install --user tornado psutil 'xgboost>=1.1.0' cloudpickle
 
 # Modify tvm (force to unroll explicitly)
-RUN sed -i "s/cfg\[\"unroll_explicit\"\].val/True/g" /root/Settings/tvm/python/tvm/topi/cuda/batch_matmul.py
-RUN sed -i "s/cfg\[\"unroll_explicit\"\].val/True/g" /root/Settings/tvm/python/tvm/topi/cuda/conv2d_direct.py
+RUN sed -i "s/cfg\[\"unroll_explicit\"\].val/True/g" /root/tvm/python/tvm/topi/cuda/batch_matmul.py
+RUN sed -i "s/cfg\[\"unroll_explicit\"\].val/True/g" /root/tvm/python/tvm/topi/cuda/conv2d_direct.py
 
 # Install bfuse-project
-WORKDIR /root/Settings/
+WORKDIR /root
 RUN git clone https://github.com/jiny0ung97/bfuse-project.git bfuse-project
 
-WORKDIR /root/Settings/bfuse-project/horizontal-fuser
+WORKDIR /root/bfuse-project/horizontal-fuser
 RUN cmake -B build
 RUN cmake --build build
 

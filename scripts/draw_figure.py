@@ -172,19 +172,12 @@ def preprocess_datas(infoYAML, profile_path):
         elif idx == 3:
             for kidx1 in range(kernel1_size):
                 for kidx2 in range(kernel2_size):
-                    # temp
-                    if (kidx1, kidx2) in [(5, 4), (5, 2), (3, 7), (1, 1), (0, 2), (1, 5), (7, 4),
-                                            (2, 4), (2, 3), (4, 7), (0, 3), (5, 3), (0, 5), (1, 4),
-                                            (5, 7), (2, 7), (2, 2), (0, 7), (1, 3), (0, 4), (1, 7),
-                                            (1, 6), (1, 0), (1, 2), (6, 7), (4, 4), (7, 7)]:
-                        data_mean = 0
-                    else:
-                        file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
-                        data, _   = parse_csv(file_path)
-                        kname1    = fusion_sets[0]["Set"][kidx1]
-                        kname2    = fusion_sets[1]["Set"][kidx2]
-                        
-                        _, _, data_mean, _ = get_single_statistics(data, f"{kname1}_{kname2}_fused_hfuse")
+                    file_path = os.path.join(profile_path, "exec", f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
+                    data, _   = parse_csv(file_path)
+                    kname1    = fusion_sets[0]["Set"][kidx1]
+                    kname2    = fusion_sets[1]["Set"][kidx2]
+                    
+                    _, _, data_mean, _ = get_single_statistics(data, f"{kname1}_{kname2}_fused_hfuse")
                     hfuse_datas.append(data_mean)
         elif idx == 4:
             for kidx1 in range(kernel1_size):
@@ -226,17 +219,8 @@ def draw_exec_graph(infoYAML, profile_path, output_path):
 
             serial_exec   = kernel1_datas[bi] + kernel2_datas[ci]
             parallel_exec = serial_exec / parallel_datas[bi * len(kernel2) + ci]
-            # hfuse_exec    = serial_exec / hfuse_datas[bi * len(kernel2) + ci]
+            hfuse_exec    = serial_exec / hfuse_datas[bi * len(kernel2) + ci]
             bfuse_exec    = serial_exec / bfuse_datas[bi * len(kernel2) + ci]
-
-            # temp
-            if (bi, ci) in [(5, 4), (5, 2), (3, 7), (1, 1), (0, 2), (1, 5), (7, 4),
-                            (2, 4), (2, 3), (4, 7), (0, 3), (5, 3), (0, 5), (1, 4),
-                            (5, 7), (2, 7), (2, 2), (0, 7), (1, 3), (0, 4), (1, 7),
-                            (1, 6), (1, 0), (1, 2), (6, 7), (4, 4), (7, 7)]:
-                hfuse_exec = 0
-            else:
-                hfuse_exec    = serial_exec / hfuse_datas[bi * len(kernel2) + ci]
             
             parallel.append(parallel_exec)
             hfuse.append(hfuse_exec)

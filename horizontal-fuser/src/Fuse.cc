@@ -101,7 +101,7 @@ void bfuse(const string ProgName, const string FusionConfigPath,
      * THE END
      */
 
-    FusionContext FContext = FusionContext::create(Info, KernelYAML, /**bfuse=*/true);
+    FusionContext FContext = FusionContext::create(Info, KernelYAML, /*bfuse=*/true);
     FusionTool Tool{OptionsParser, FContext};
 
     cout << "(" << I + 1 << "/" << FusionYAML.size() << ")"
@@ -196,7 +196,7 @@ void bfuse(const string ProgName, const string FusionConfigPath,
       utils::recoverFile(S);
     }
 
-    // 6. Save fused kernel's information
+    // 7. Save fused kernel's information
     // -----------------------------------------------------------------
     // Save fused kernel's information.
     Results += Tool.getFuncStr();
@@ -343,7 +343,7 @@ void hfuse(const string ProgName, const string FusionConfigPath,
       utils::recoverFile(S);
     }
 
-    // 6. Save fused kernel's information
+    // 7. Save fused kernel's information
     // -----------------------------------------------------------------
     // Save fused kernel's information.
     Results += Tool.getFuncStr();

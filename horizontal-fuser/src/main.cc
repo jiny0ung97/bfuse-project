@@ -9,11 +9,11 @@
 using namespace std;
 //---------------------------------------------------------------------------
 static string ProgName            = "horizontal-fuser";
-static string OutputPath          = "./";
-static string YAMLOutputPath      = "./";
-static string FusionConfigPath    = "./fusions.json";
-static string KernelConfigPath    = "./kernels.json";
-static string CompileCommandsPath = "./";
+static string OutputPath          = ".";
+static string YAMLOutputPath      = ".";
+static string FusionConfigPath    = "fusions.json";
+static string KernelConfigPath    = "kernels.json";
+static string CompileCommandsPath = ".";
 
 static bool ExecBFuse = false;
 //---------------------------------------------------------------------------
@@ -23,8 +23,8 @@ static void print_help(const char *prog_name)
   cout << "Options:\n";
   cout << " -h                : Print this page.\n";
   cout << " -b                : Process Block-level fusion.                   (default: false)\n";
-  cout << " -y                : Write output yaml to the directory.           (default: ./)\n";
-  cout << " -o                : Write output file to the directory.           (default: ./)\n";
+  cout << " -y                : Write output yaml to the directory.           (default: .)\n";
+  cout << " -o                : Write output file to the directory.           (default: .)\n";
   cout << "\n";
   cout << "fusion_config      : YAML file about fusion configuration.\n";
   cout << "kernel_config      : YAML file about kernel configuration.\n";
@@ -94,3 +94,4 @@ int main(int argc, char* argv[])
 
   return 0;
 }
+//---------------------------------------------------------------------------

@@ -51,6 +51,7 @@ RUN apt-get install -y python3-pip
 RUN pip3 install --user numpy decorator attrs
 RUN pip3 install --user typing-extensions psutil scipy
 RUN pip3 install --user tornado psutil 'xgboost>=1.1.0' cloudpickle
+RUN pip3 install --user pytest
 
 # Modify tvm (force to unroll explicitly)
 RUN sed -i "s/cfg\[\"unroll_explicit\"\].val/True/g" /root/tvm/python/tvm/topi/cuda/batch_matmul.py

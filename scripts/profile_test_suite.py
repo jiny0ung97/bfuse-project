@@ -7,7 +7,7 @@ import yaml
 import subprocess
 #-----------------------------------------------------------------------------------------------
 # Settings
-metrics_trials = 10
+metrics_trials = 1
 exec_trials    = 30
 #-----------------------------------------------------------------------------------------------
 def get_valid_commands(infoYAML, benchmark_path):

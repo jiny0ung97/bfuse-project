@@ -92,7 +92,8 @@ def evaluation(func, data_shapes):
     c_tvm = tvm.nd.empty(output_shape, device=dev)
 
     # Evaluate execution time.
-    evaluator = func.time_evaluator(func.entry_name, dev, min_repeat_ms=10)
+    # evaluator = func.time_evaluator(func.entry_name, dev, min_repeat_ms=10)
+    evaluator = func.time_evaluator(func.entry_name, dev, number=1, repeat=1)
 
     return np.median(evaluator(a_tvm, b_tvm, c_tvm).results) * 1000
 #-----------------------------------------------------------------------------------------------

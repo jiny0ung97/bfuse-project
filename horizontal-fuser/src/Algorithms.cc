@@ -316,29 +316,30 @@ tuple<string, map<string, string>, GridDim, BlockDim> coarseInterleavePattern(ve
 //---------------------------------------------------------------------------
 tuple<string, map<string, string>, GridDim, BlockDim> coarseInterleaveWithoutSMPattern(vector<string> &Kernels, map<string, KernelInfo> &KernelInfoMap)
 {
-  int MinOption = 128;
+  int MinOption = 1;
   // Calculate ratio for each kernel
   map<string, int> BlockRatios;
-  int MinRatio = -1;
-  for (auto &KName : Kernels) {
-    auto &KInfo        = KernelInfoMap.at(KName);
-    int GridDimSize    = KInfo.GridDim_.size();
-    BlockRatios[KName] = GridDimSize;
+  // int MinRatio = -1;
+  // for (auto &KName : Kernels) {
+  //   auto &KInfo        = KernelInfoMap.at(KName);
+  //   int GridDimSize    = KInfo.GridDim_.size();
+  //   BlockRatios[KName] = GridDimSize;
 
-    if (MinRatio == -1) {
-      MinRatio = GridDimSize;  
-    } else {
-      MinRatio = MinRatio < GridDimSize ? MinRatio : GridDimSize;
-    }
-  }
+  //   if (MinRatio == -1) {
+  //     MinRatio = GridDimSize;  
+  //   } else {
+  //     MinRatio = MinRatio < GridDimSize ? MinRatio : GridDimSize;
+  //   }
+  // }
 
-  MinRatio = int(MinRatio / MinOption);
-  MinRatio = MinRatio > 0 ? MinRatio : 1;
+  // MinRatio = int(MinRatio / MinOption);
+  // MinRatio = MinRatio > 0 ? MinRatio : 1;
 
   int MinQuot = -1;
   for (auto &KName : Kernels) {
     auto &KInfo        = KernelInfoMap.at(KName);
-    int BlockRatio     = int(BlockRatios.at(KName) / MinRatio);
+    // int BlockRatio     = int(BlockRatios.at(KName) / MinRatio);
+    int BlockRatio     = MinOption;
     int Quot           = int(KInfo.GridDim_.size() / BlockRatio);
     BlockRatios[KName] = BlockRatio;
 

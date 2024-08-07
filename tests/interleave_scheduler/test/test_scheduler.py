@@ -2,147 +2,135 @@
 
 import re
 import sys
+import math
 
-def method1():
-    # Colors
-    RED   = "\033[31m" # 0
-    BLUE  = "\033[34m" # 1
-    RESET = "\033[0m" # reset
+def check(idx):
+    if idx < 131072 and idx % 2 >= 0 and idx % 2 < 1:
+        kernel_id = 0
+    elif idx < 131072 and idx % 2 >= 1 and idx % 2 < 2:
+        kernel_id = 1
+    else:
+        print("error")
+        exit()
 
-    max_block  = 0
-    max_sm     = 0
-    max_length = 70
-    max_iter   = 10000
-    sm_num     = 82 # RTX 3090
-    file       = sys.argv[1]
+    # if idx < 131072 and idx % 2 >= 0 and idx % 2 < 1:
+    #     kernel_id = 0
+    # elif idx < 131072 and idx % 2 >= 1 and idx % 2 < 2:
+    #     kernel_id = 1
+    # else:
+    #     print(f"error : {idx}")
+    #     exit()
 
-    with open(file) as f:
-        lines = f.readlines()
+    return kernel_id
 
-        # Initialize lists
-        sm_lists = []
-        for idx1 in range(0, max_length):
-            tmp_list = []
-            for idx2 in range(0, sm_num):
-                tmp_list.append(-1)
-            sm_lists.append(tmp_list)
+# Colors
+RED   = "\033[31m" # 0
+BLUE  = "\033[34m" # 1
+RESET = "\033[0m" # reset
 
-        for iter, line in enumerate(lines):
-            block  = re.search(r"Block: \d*", line)
-            sm     = re.search(r"SM: \d*", line)
+max_block  = 0
+max_sm     = 0
+min_block  = math.inf
+min_sm     = math.inf
+max_length = 70
+max_iter   = 4000
+sm_num     = 82 # RTX 3090
+file       = sys.argv[1]
 
-            block_id  = int(block.group().split(" ")[1])
-            sm_id     = int(sm.group().split(" ")[1])
+with open(file) as f:
+    lines = f.readlines()
 
-            if block_id > max_block:
-                max_block = block_id
-            if sm_id > max_sm:
-                max_sm = sm_id
+    # Initialize lists
+    sm_lists = []
+    for idx1 in range(0, max_length):
+        tmp_list = []
+        for idx2 in range(0, sm_num):
+            tmp_list.append(-1)
+        sm_lists.append(tmp_list)
 
-            for idx in range(0, max_length):
-                if sm_lists[idx][sm_id] == -1:
-                    sm_lists[idx][sm_id] = block_id
-                    break
-                elif sm_lists[idx][sm_id] > block_id:
-                    tmp = sm_lists[idx][sm_id]
-                    sm_lists[idx][sm_id] = block_id
-                    block_id = tmp
+    for iter, line in enumerate(lines):
+        block  = re.search(r"Block: \d*", line)
+        sm     = re.search(r"SM: \d*", line)
 
-            if iter == max_iter:
+        block_id  = int(block.group().split(" ")[1])
+        sm_id     = int(sm.group().split(" ")[1])
+
+        if block_id > max_block:
+            max_block = block_id
+        if block_id < min_block:
+            min_block = block_id
+        if sm_id > max_sm:
+            max_sm = sm_id
+        if sm_id < min_sm:
+            min_sm = sm_id
+
+        for idx in range(0, max_length):
+            if sm_lists[idx][sm_id] == -1:
+                sm_lists[idx][sm_id] = block_id
                 break
+            elif sm_lists[idx][sm_id] > block_id:
+                tmp = sm_lists[idx][sm_id]
+                sm_lists[idx][sm_id] = block_id
+                block_id = tmp
 
-        # Print Kernel configurations
-        print(f"Max Block: {max_block}")
-        print(f"Max SM:    {max_sm}")
+        if iter == max_iter:
+            break
 
-        # Print allocated blocks
-        for list in sm_lists:
-            for e in list:
-                if e < 172032 and e % 336 >= 0 and e % 336 < 128:
-                    color     = RED
-                    kernel_id = 0
-                elif e < 172032 and e % 336 >= 128 and e % 336 < 336:
-                    color     = BLUE
-                    kernel_id = 1
-                else:
-                    print("error")
-                    exit()
-                
-                print(color + str(kernel_id) + RESET, end="")
-                # print(color + str(e) + RESET, end=" ")
-            print("", end="\n")
+    # Statistics
+    max_rate   = 0
+    min_rate   = math.inf
+    max_rate_0 = 0
+    max_rate_1 = 0
+    min_rate_0 = 0
+    min_rate_1 = 0
+    mean_diff  = 0
+    for sm_idx in range(0, max_sm):
+        rate_0 = 0
+        rate_1 = 0
+        for idx in range(0, max_length):
+            if sm_lists[idx][sm_idx] == -1:
+                continue
+            if check(sm_lists[idx][sm_idx]) == 0:
+                rate_0 += 1
+            elif check(sm_lists[idx][sm_idx]) == 1:
+                rate_1 += 1
 
-def method2():
-    # Colors
-    RED   = "\033[31m" # 0
-    BLUE  = "\033[34m" # 1
-    RESET = "\033[0m" # reset
+        if abs(rate_0 - rate_1) > abs(max_rate):
+            max_rate   = abs(rate_0 - rate_1)
+            max_rate_0 = rate_0
+            max_rate_1 = rate_1
+        if abs(rate_0 - rate_1) < abs(min_rate):
+            min_rate   = abs(rate_0 - rate_1)
+            min_rate_0 = rate_0
+            min_rate_1 = rate_1
+        
+        mean_diff += abs(rate_0 - rate_1) / (rate_0 + rate_1)
+    
+    max_rate_a = max_rate_0 / (max_rate_0 + max_rate_1)
+    max_rate_b = max_rate_1 / (max_rate_0 + max_rate_1)
+    min_rate_a = min_rate_0 / (min_rate_0 + min_rate_1)
+    min_rate_b = min_rate_1 / (min_rate_0 + min_rate_1)
+    mean_diff /= max_sm
 
-    max_block  = 0
-    max_sm     = 0
-    max_length = 70
-    max_iter   = 10000
-    sm_num     = 82 # RTX 3090
-    file       = sys.argv[1]
+    # Print Kernel configurations
+    # print(f"Blocks: {min_block} ~ {max_block}")
+    print(f"SMs:    {min_sm} ~ {max_sm}")
+    print(f"Max Diff.:  {abs(max_rate_a - max_rate_b):.2f} ({max_rate_a:.2f} : {max_rate_b:.2f})")
+    print(f"Min Diff.:  {abs(min_rate_a - min_rate_b):.2f} ({min_rate_a:.2f} : {min_rate_b:.2f})")
+    print(f"Mean Diff.: {mean_diff:.2f}")
 
-    with open(file) as f:
-        lines = f.readlines()
-
-        # Initialize lists
-        sm_lists = []
-        for idx1 in range(0, max_length):
-            tmp_list = []
-            for idx2 in range(0, sm_num):
-                tmp_list.append(" ")
-            sm_lists.append(tmp_list)
-
-        for iter, line in enumerate(lines):
-            block  = re.search(r"Block: \d*", line)
-            sm     = re.search(r"SM: \d*", line)
-            # kernel = re.search(r"Kernel: \d*", line)
-
-            block_id  = int(block.group().split(" ")[1])
-            sm_id     = int(sm.group().split(" ")[1])
-            # kernel_id = int(kernel.group().split(" ")[1])
-
-            if block_id > max_block:
-                max_block = block_id
-            if sm_id > max_sm:
-                max_sm = sm_id
-
-            # if kernel_id == 0:
-            #     color = RED
-            # elif kernel_id == 1:
-            #     color = BLUE
-            # else:
-            #     print("error: Undefined kernel id")
-            #     exit(1)
-            if block_id < 172032 and block_id % 336 >= 0 and block_id % 336 < 128:
+    # Print allocated blocks
+    for list in sm_lists:
+        for e in list:
+            if e == -1:
+                continue
+            if check(e) == 0:
                 color     = RED
                 kernel_id = 0
-            elif block_id < 172032 and block_id % 336 >= 128 and block_id % 336 < 336:
+            elif check(e) == 1:
                 color     = BLUE
                 kernel_id = 1
-            else:
-                print("error")
-
-            for idx in range(0, max_length):
-                if sm_lists[idx][sm_id] == " ":
-                    # sm_lists[idx][sm_id] = color + str(block_id) + RESET
-                    sm_lists[idx][sm_id] = color + str(kernel_id) + RESET
-                    break
-
-            if iter == max_iter:
-                break
-
-        # Print Kernel configurations
-        print(f"Max Block: {max_block}")
-        print(f"Max SM:    {max_sm}")
             
-        # Print allocated blocks
-        for list in sm_lists:
-            for e in list:
-                print(e, end="")
-            print("", end="\n")
-
-method1()
+            print(color + str(kernel_id) + RESET, end="")
+            # print(color + str(e) + RESET, end=" ")
+        print("", end="\n")

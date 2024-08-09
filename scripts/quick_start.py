@@ -123,7 +123,8 @@ if __name__ == "__main__":
     print("[5/6] ========================= Profile the benchmark =========================")
     profile_test_suite_path = os.path.join(cur_path, "profile_test_suite.py")
 
-    command = [profile_test_suite_path, "-vme", output_path]
+    # command = [profile_test_suite_path, "-vme", output_path]
+    command = [profile_test_suite_path, "-ve", output_path]
     try:
         print("RUN: " + " ".join(command))
         result = subprocess.run(command,

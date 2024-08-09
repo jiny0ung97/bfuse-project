@@ -256,7 +256,8 @@ def draw_exec_graph(infoYAML, profile_path, output_path):
         axes[bi].set_xticks(index, axes_m, fontsize=3)
 
         # Set limitation of y axis
-        axes[bi].set_ylim(0, math.ceil(max(hfuse + bfuse)))
+        # axes[bi].set_ylim(0, math.ceil(max(hfuse + bfuse)))
+        axes[bi].set_ylim(0, 2)
 
         # Set major & minor yticks
         axes[bi].yaxis.set_major_locator(ticker.MultipleLocator(1))

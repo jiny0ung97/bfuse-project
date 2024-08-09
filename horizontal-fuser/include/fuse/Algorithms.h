@@ -19,6 +19,9 @@ coarseInterleavePattern(std::vector<std::string> &Kernels, std::map<std::string,
 std::tuple<std::string, std::map<std::string, std::string>, contexts::GridDim, contexts::BlockDim>
 coarseInterleaveWithoutSMPattern(std::vector<std::string> &Kernels, std::map<std::string, contexts::KernelInfo> &KernelInfoMap);
 //---------------------------------------------------------------------------
+std::tuple<std::string, std::map<std::string, std::string>, contexts::GridDim, contexts::BlockDim>
+coarseInterleaveWithoutSMPattern2(std::vector<std::string> &Kernels, std::map<std::string, contexts::KernelInfo> &KernelInfoMap);
+//---------------------------------------------------------------------------
 } // namespace algorithms
 } // namespace fuse
 //---------------------------------------------------------------------------

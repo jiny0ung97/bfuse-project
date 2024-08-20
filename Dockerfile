@@ -75,3 +75,6 @@ RUN echo "deb http://developer.download.nvidia.com/devtools/repos/ubuntu$(source
 RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
 RUN apt update
 RUN apt install -y nsight-systems-cli
+
+# Add extras/python to PYTHONPATH
+RUN echo "export PYTHONPATH=/opt/nvidia/nsight-compute/2023.1.1/extras/python:\${PYTHONPATH}" >> /root/.bashrc

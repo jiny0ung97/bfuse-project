@@ -9,37 +9,38 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import scipy.stats as stats
 #-----------------------------------------------------------------------------------------------
-# conv2d_0  - issue rate: 5.4,  stall reason: 10.52(MIO),  throughput: 86.45/86.45
-# conv2d_1  - issue rate: 3.6,  stall reason: 21.29(MIO),  throughput: 98.42/98.42
-# conv2d_2  - issue rate: 3.6,  stall reason: 20.81(MIO),  throughput: 98.23/98.23
-# conv2d_3  - issue rate: 24.9, stall reason: 54.06(MIO),  throughput: 13.90/73.82
-# conv2d_4  - issue rate: 32.1, stall reason: 78.99(MIO),  throughput: 15.97/86.38
-# conv2d_5  - issue rate: 9.0,  stall reason: 17.40(MIO),  throughput: 21.58/82.36
-# conv2d_6  - issue rate: 6.6,  stall reason: 12.09(MIO),  throughput: 29.02/84.08
-# conv2d_7  - issue rate: 2.6,  stall reason: 9.60(MIO),   throughput: 95.98/95.95
-# conv2d_8  - issue rate: 8.5,  stall reason: 15.89(Long), throughput: 24.87/77.65
-# conv2d_9  - issue rate: 2.5,  stall reason: 4.95(Long),  throughput: 59.25/78.40
-# conv2d_10 - issue rate: 8.6,  stall reason: 12.79(MIO),  throughput: 23.14/72.95
-# conv2d_11 - issue rate: 2.4,  stall reason: 2.60(MIO),   throughput: 55.99/91.07
-# conv2d_12 - issue rate: 2.4,  stall reason: 4.20(MIO),   throughput: 77.38/85.80
-# conv2d_13 - issue rate: 3.5,  stall reason: 5.64(Long),  throughput: 71.12/85.26
-# conv2d_14 - issue rate: 3.1,  stall reason: 5.47(MIO),   throughput: 56.90/94.54
-# conv2d_15 - issue rate: 7.0,  stall reason: 17.02/(MIO), throughput: 82.71/86.38
-# conv2d_16 - issue rate: 17.9, stall reason: 41.63(MIO),  throughput: 31.16/91.49
-# conv2d_17 - issue rate: 20.2, stall reason: 33.81(MIO),  throughput: 24.55/98.75
-# conv2d_18 - issue rate: 13.6, stall reason: 19.67(Long), throughput: 36.46/98.56
-# conv2d_19 - issue rate: 30.4, stall reason: 60.12(MIO),  throughput: 14.01/75.55
-# conv2d_20 - issue rate: 3.2,  stall reason: 10.30(Long), throughput: 52.83/91.92
-# conv2d_21 - issue rate: 4.0,  stall reason: 15.84(MIO),  throughput: 58.73/99.03
-# conv2d_22 - issue rate: 2.7,  stall reason: 3.86(Long),  throughput: 58.44/81.96
-# conv2d_23 - issue rate: 4.0,  stall reason: 16.18(MIO),  throughput: 58.76/99.09
-# conv2d_24 - issue rate: 2.9,  stall reason: 18.33(MIO),  throughput: 95.41/95.41
-# conv2d_25 - issue rate: 2.8,  stall reason: 4.13(Long),  throughput: 57.62/80.81
-# conv2d_26 - issue rate: 4.3,  stall reason: 22.19(MIO),  throughput: 55.38/93.37
-# conv2d_27 - issue rate: 2.8,  stall reason: 3.84(MIO0),  throughput: 56.41/79.05
-# conv2d_28 - issue rate: 4.3,  stall reason: 22.57(MIO),  throughput: 55.37/93.35
-# conv2d_29 - issue rate: 2.8,  stall reason: 3.70(Long),  throughput: 55.82/78.22
+# conv2d_0  - issue rate: 5.4,  stall: 10.52, (MIO, ),  throughput: 86.45/86.45, utilization(LSU): 86.30
+# conv2d_1  - issue rate: 3.6,  stall: 21.29, (MIO, ),  throughput: 98.42/98.42, utilization(LSU): 98.43
+# conv2d_2  - issue rate: 3.6,  stall: 20.81, (MIO, ),  throughput: 98.23/98.23, utilization(LSU): 98.23
+# conv2d_3  - issue rate: 24.9, stall: 54.06, (MIO, ),  throughput: 13.90/73.82, utilization(LSU): 13.90
+# conv2d_4  - issue rate: 32.1, stall: 78.99, (MIO, ),  throughput: 15.97/86.38, utilization(LSU): 15.97
+# conv2d_5  - issue rate: 9.0,  stall: 17.40, (MIO, ),  throughput: 21.58/82.36, utilization(LSU): 21.60
+# conv2d_6  - issue rate: 6.6,  stall: 12.09, (MIO, ),  throughput: 29.02/84.08, utilization(LSU): 29.05
+# conv2d_7  - issue rate: 2.6,  stall: 9.60,  (MIO, ),   throughput: 95.98/95.95, utilization(LSU): 96.05
+# conv2d_8  - issue rate: 8.5,  stall: 15.89, (Long, ), throughput: 24.87/77.65, utilization(LSU): 24.88
+# conv2d_9  - issue rate: 2.5,  stall: 4.95,  (Long, ),  throughput: 59.25/78.40, utilization(LSU): 59.34
+# conv2d_10 - issue rate: 8.6,  stall: 12.79, (MIO, ),  throughput: 23.14/72.95, utilization(LSU): 23.15
+# conv2d_11 - issue rate: 2.4,  stall: 2.60,  (MIO, ),   throughput: 55.99/91.07, utilization(LSU): 56.17
+# conv2d_12 - issue rate: 2.4,  stall: 4.20,  (MIO, ),   throughput: 77.38/85.80, utilization(LSU): 77.55
+# conv2d_13 - issue rate: 3.5,  stall: 5.64,  (Long, ),  throughput: 71.12/85.26, utilization(LSU): 71.18
+# conv2d_14 - issue rate: 3.1,  stall: 5.47,  (MIO, ),   throughput: 56.90/94.54, utilization(LSU): 57.15
+# conv2d_15 - issue rate: 7.0,  stall: 17.02, (MIO, ), throughput: 82.71/86.38, utilization(LSU): 82.72
+# conv2d_16 - issue rate: 17.9, stall: 41.63, (MIO, ),  throughput: 31.16/91.49, utilization(LSU): 31.17
+# conv2d_17 - issue rate: 20.2, stall: 33.81, (MIO, ),  throughput: 24.55/98.75, utilization(LSU): 24.55
+# conv2d_18 - issue rate: 13.6, stall: 19.67, (Long, ), throughput: 36.46/98.56, utilization(LSU): 36.46
+# conv2d_19 - issue rate: 30.4, stall: 60.12, (MIO, ),  throughput: 14.01/75.55, utilization(LSU): 14.01
+# conv2d_20 - issue rate: 3.2,  stall: 10.30, (Long, ), throughput: 52.83/91.92, utilization(LSU): 52.89
+# conv2d_21 - issue rate: 4.0,  stall: 15.84, (MIO, ),  throughput: 58.73/99.03, utilization(LSU): 58.83
+# conv2d_22 - issue rate: 2.7,  stall: 3.86,  (Long, ),  throughput: 58.44/81.96, utilization(LSU): 58.55
+# conv2d_23 - issue rate: 4.0,  stall: 16.18, (MIO, ),  throughput: 58.76/99.09, utilization(LSU): 58.83
+# conv2d_24 - issue rate: 2.9,  stall: 18.33, (MIO, ),  throughput: 95.41/95.41, utilization(LSU): 95.60
+# conv2d_25 - issue rate: 2.8,  stall: 4.13,  (Long, ),  throughput: 57.62/80.81, utilization(LSU): 57.78
+# conv2d_26 - issue rate: 4.3,  stall: 22.19, (MIO, ),  throughput: 55.38/93.37, utilization(LSU): 55.44
+# conv2d_27 - issue rate: 2.8,  stall: 3.84, 3.45(MIO, Long),  throughput: 56.41/79.05, utilization(LSU): 56.50
+# conv2d_28 - issue rate: 4.3,  stall: 22.57, 5.31(MIO, Long),  throughput: 55.37/93.35, utilization(LSU): 55.43
+# conv2d_29 - issue rate: 2.8,  stall: 3.70, 3.57(Long, MIO),  throughput: 55.82/78.22, utilization(LSU): 55.98
 metric_datas = [
     {"issue": 5.4, "stall": [10.52, "MIO"], "throughput": [86.45, 86.45]},
     {"issue": 3.6, "stall": [21.29, "MIO"], "throughput": [98.42, 98.42]},
@@ -255,79 +256,71 @@ def preprocess_datas(infoYAML, profile_path):
 
     return kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas
 #-----------------------------------------------------------------------------------------------
-def draw_cases(func, name, kernel1, kernel2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas):
-    materials = []
-    parallel  = []
-    hfuse     = []
-    bfuse     = []
-    analysis  = []
-
-    for bi in range(len(kernel1)):
-        for ci in range(len(kernel2)):
-            serial_exec   = kernel1_datas[bi] + kernel2_datas[ci]
-            parallel_exec = serial_exec / parallel_datas[bi * len(kernel2) + ci]
-            hfuse_exec    = serial_exec / hfuse_datas[bi * len(kernel2) + ci]
-            bfuse_exec    = serial_exec / bfuse_datas[bi * len(kernel2) + ci]
-
-            materials.append("%s x %s" % (kernel1[bi], kernel2[ci]))
-            if func(bfuse_exec):
-                parallel.append(parallel_exec)
-                hfuse.append(hfuse_exec)
-                bfuse.append(bfuse_exec)
-                analysis.append([bi, ci])
-            else:
-                parallel.append(0)
-                hfuse.append(0)
-                bfuse.append(0)
-
+def print_metric_cases(name, analysis):
     print(f"================================================== {name.upper()} CASES ==================================================")
 
-    cases            = []
-    issue_diffs      = []
-    stall_diffs      = []
-    throughput_diffs = []
+    cases       = []
+    issues      = []
+    stalls      = []
+    throughputs = []
+    bfuse_perf  = []
 
-    for [bi, ci] in analysis:
+    for bi, ci, bfuse_exec in analysis:
         # case A x B
         cases.append([bi, ci])
 
         # Issue rate utilization
-        issue_diff = abs(metric_datas[bi]["issue"] - metric_datas[ci]["issue"])
-        issue_diffs.append(issue_diff)
+        issue = [metric_datas[bi]["issue"], metric_datas[ci]["issue"]]
+        issues.append(issue)
 
         # Stall reasons
-        if metric_datas[bi]["stall"][1] == metric_datas[ci]["stall"][1]:
-            stall_diff = [
-                abs(metric_datas[bi]["stall"][0] - metric_datas[ci]["stall"][0]),
-                metric_datas[bi]["stall"][1]
-                ]
-        else:
-            stall_diff = [0, "NaN"]
-        stall_diffs.append(stall_diff)
+        stall = [[metric_datas[bi]["stall"][0], metric_datas[bi]["stall"][1]],
+                 [metric_datas[ci]["stall"][0], metric_datas[ci]["stall"][1]]]
+        stalls.append(stall)
 
         # Throughput
-        throughput_diff = [
-            abs(metric_datas[bi]["throughput"][0] - metric_datas[ci]["throughput"][0]),
-            abs(metric_datas[bi]["throughput"][1] - metric_datas[ci]["throughput"][1]),
-            ]
-        throughput_diffs.append(throughput_diff)
+        throughput = [[metric_datas[bi]["throughput"][0], metric_datas[bi]["throughput"][1]],
+                      [metric_datas[ci]["throughput"][0], metric_datas[ci]["throughput"][1]]]
+        throughputs.append(throughput)
+
+        # BFuse performance
+        bfuse_perf.append(bfuse_exec)
 
     # Print Datas
-    # print("<Cases>")
-    # for c, i, s, t in zip(cases, issue_diffs, stall_diffs, throughput_diffs):
-    #     print(f"case (conv2d_{c[0]} x conv2d_{c[1]}): ")
-    #     print(f" - issue diff: {i:.2f}, stall diff: {s[0]:.2f}({s[1]}), throughput diff: {t[0]:.2f}/{t[1]:.2f}")
-
-    # Print statistics
-    stall_diffs = [e[0] for e in stall_diffs if e[1] != "NaN"]
-
+    print("<Cases>")
+    print(f"total num: {len(cases)}")
     print("")
-    print("<Statistics>")
-    print(f"issue      | max: {np.max(issue_diffs):.2f}, min: {np.min(issue_diffs):.2f}, avg: {np.mean(issue_diffs):.2f}")
-    print(f"stall      | max: {np.max(stall_diffs):.2f}, min: {np.min(stall_diffs):.2f}, avg: {np.mean(stall_diffs):.2f}")
-    print(f"throughput | max: {np.max(throughput_diffs[0]):.2f}/{np.max(throughput_diffs[1]):.2f}, min: {np.min(throughput_diffs[0]):.2f}/{np.max(throughput_diffs[1]):.2f}, avg: {np.mean(throughput_diffs[0]):.2f}/{np.max(throughput_diffs[1]):.2f}")
-    print("")
+    for idx, (c, i, s, t) in enumerate(zip(cases, issues, stalls, throughputs)):
+        if idx >= 5:
+            print("Too many cases...")
+            break
 
+        issue_0   = f"{i[0]:.2f}"
+        issue_1   = f"{i[1]:.2f}"
+        stall_0   = f"{s[0][0]:.2f}"
+        stall_1   = f"{s[1][0]:.2f}"
+        compute_0 = f"{t[0][0]:.2f}"
+        compute_1 = f"{t[1][0]:.2f}"
+        memory_0  = f"{t[0][1]:.2f}"
+        memory_1  = f"{t[1][1]:.2f}"
+
+        issue_diff = f"{i[0] - i[1]:.2f}"
+        if s[0][1] == s[1][1]:
+            stall_diff   = f"{i[0] - i[1]:.2f}"
+            stall_reason = s[0][1]
+        else:
+            stall_diff   = "NaN"
+            stall_reason = "DIFF"
+        compute_diff = f"{t[0][0] - t[1][0]:.2f}"
+        memory_diff  = f"{t[0][1] - t[1][1]:.2f}"
+
+        print(f"case (conv2d_{c[0]} x conv2d_{c[1]}): ")
+        print(f" - conv2d_{c[0]:<2d}'s issue: {issue_0:>6s}, stall: {stall_0:>6s}({s[0][1]:>4s}), throughput: {compute_0:>6s}/{memory_0:>6s}")
+        print(f" - conv2d_{c[1]:<2d}'s issue: {issue_1:>6s}, stall: {stall_1:>6s}({s[1][1]:>4s}), throughput: {compute_1:>6s}/{memory_1:>6s}")
+        print(f" - differences issue: {issue_diff:>6s}, stall: {stall_diff:>6s}({stall_reason:>4s}), throughput: {compute_diff:>6s}/{memory_diff:>6s}")
+        print(f" - bfuse perf: {bfuse_perf[idx]:.2f}")
+#-----------------------------------------------------------------------------------------------
+def draw_png(name, kernel1, kernel2, materials, parallel, hfuse, bfuse):
     # Settings
     if len(kernel1) > 1:
         f, axes = plt.subplots(nrows=len(kernel1), ncols=1, sharex=False, sharey=True)
@@ -373,6 +366,55 @@ def draw_cases(func, name, kernel1, kernel2, kernel1_datas, kernel2_datas, paral
     exec_figure = os.path.join(output_path, f"{name}.png")
     plt.savefig(exec_figure, dpi=500)
 #-----------------------------------------------------------------------------------------------
+def analysis_correlation(analysis):
+    issue_diffs = []
+    bfuse_execs = []
+    for bi, ci, bfuse_exec in analysis:
+        issue_diff = abs(metric_datas[bi]["issue"] - metric_datas[ci]["issue"])
+        issue_diffs.append(issue_diff)
+        bfuse_execs.append(bfuse_exec)
+
+    cor, p_value = stats.pearsonr(issue_diffs, bfuse_execs)
+
+    print("")
+    print("<Correlation Coefficient>")
+    print(f"Correlation: {cor:.4f}")
+    print(f"P-value    : {p_value:.4f}")
+#-----------------------------------------------------------------------------------------------
+def draw_cases(func, name, kernel1, kernel2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas):
+    materials = []
+    parallel  = []
+    hfuse     = []
+    bfuse     = []
+    analysis  = []
+
+    for bi in range(len(kernel1)):
+        for ci in range(len(kernel2)):
+            serial_exec   = kernel1_datas[bi] + kernel2_datas[ci]
+            parallel_exec = serial_exec / parallel_datas[bi * len(kernel2) + ci]
+            hfuse_exec    = serial_exec / hfuse_datas[bi * len(kernel2) + ci]
+            bfuse_exec    = serial_exec / bfuse_datas[bi * len(kernel2) + ci]
+
+            materials.append("%s x %s" % (kernel1[bi], kernel2[ci]))
+            if func(bfuse_exec):
+                parallel.append(parallel_exec)
+                hfuse.append(hfuse_exec)
+                bfuse.append(bfuse_exec)
+                analysis.append([bi, ci, bfuse_exec])
+            else:
+                parallel.append(0)
+                hfuse.append(0)
+                bfuse.append(0)
+
+    # Print metric cases
+    print_metric_cases(name, analysis)
+
+    # Analysis metrics' correalation
+    analysis_correlation(analysis)
+
+    # Draw figure
+    # draw_png(name, kernel1, kernel2, materials, parallel, hfuse, bfuse)
+#-----------------------------------------------------------------------------------------------
 def draw_exec_graph(infoYAML, profile_path, output_path):
     # Parse YAML
     fusion_sets = infoYAML["FusionSet"]
@@ -392,11 +434,11 @@ def draw_exec_graph(infoYAML, profile_path, output_path):
     # Draw low cases
     draw_cases(lambda x: x < 0.8, "low", kernel1, kernel2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
 
-    # Draw middle cases
+    # # Draw middle cases
     draw_cases(lambda x: x >= 0.8 and x < 1.2, "middle", kernel1, kernel2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
 
-    # Draw hight cases
-    draw_cases(lambda x: x >= 1.2, "high", kernel1, kernel2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
+    # # Draw hight cases
+    draw_cases(lambda x: x >= 1.4, "high", kernel1, kernel2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
 #-----------------------------------------------------------------------------------------------
 def draw_metrics_graph(infoYAML, profile_path, output_path):
     pass

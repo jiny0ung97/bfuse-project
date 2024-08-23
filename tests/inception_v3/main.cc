@@ -176,7 +176,8 @@ int main(int argc, char **argv)
   initialize_kernel2(I2_shape, F2_shape, O2_shape);
 
   /* Run few warmup iterations... */
-  for (size_t i = 0; i < 3; i++)
+  // for (size_t i = 0; i < 3; i++)
+  for (size_t i = 0; i < 0; i++)
   {
     zero_tensor(O1, O1_shape);
     zero_tensor(O2, O2_shape);

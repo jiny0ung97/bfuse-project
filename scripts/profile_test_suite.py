@@ -58,7 +58,7 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
 
     kernel1_size   = len(fusion_sets[0]["Set"])
     kernel2_size   = len(fusion_sets[1]["Set"])
-    test_methology = ["kernel1", "kernel2"]
+    test_methology = ["kernel1", "kernel2", "parallel", "hfuse", "bfuse"]
 
     metrics_commands = []
     common_command   = ["ncu", "--set", "full", "-o"]
@@ -76,6 +76,13 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
                 command   = common_command + [file_path]
                 command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), "0", str(kidx)]
                 metrics_commands.append(command)
+        if idx == 4:
+            for kidx1 in range(kernel1_size):
+                for kidx2 in range(kernel2_size):
+                    file_path = os.path.join(metrics_path, f"{idx}_{kidx1}_{kidx2}")
+                    command   = common_command + [file_path]
+                    command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), str(kidx1), str(kidx2)]
+                    metrics_commands.append(command)
     
     return metrics_commands
 #-----------------------------------------------------------------------------------------------
@@ -238,10 +245,11 @@ if __name__ == "__main__":
     # Create profile data directory
     profile_path = os.path.join(file_path, "profile")
     if os.path.exists(profile_path):
-        logging.error("\"%s\" alreay exists." % profile_path)
-        exit(1)
-
-    os.mkdir(profile_path)
+        # logging.error("\"%s\" alreay exists." % profile_path)
+        # exit(1)
+        pass
+    else:
+        os.mkdir(profile_path)
 
     # Get profile data with benchmark
     get_profile_data(yaml_info, benchmark_path, profile_path, valid, profile_metrics, profile_exec)

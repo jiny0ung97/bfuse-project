@@ -204,10 +204,16 @@ def preprocess_metrics(infoYAML):
 
     kernel1_metrics = []
     kernel2_metrics = []
-    metrics_list    = ["smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio",
+    bfuse_metrics   = []
+    metrics_list    = ["smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio", # 0
                        "smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio",
                        "smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio",
                        "smsp__average_warps_issue_stalled_tex_throttle_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_wait_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio",
+                        "l1tex__t_sector_hit_rate.pct", # 7
+                       "l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum", # 8
                        ]
 
     for i0 in range(kernel1_size):
@@ -234,7 +240,22 @@ def preprocess_metrics(infoYAML):
             metrics.append(ncu_action[m])
         kernel2_metrics.append(metrics)
 
-    return metrics_list, kernel1_metrics, kernel2_metrics
+    for i0 in range(kernel1_size):
+        temp_list = []
+        for i1 in range(kernel2_size):
+            report_path = os.path.join("metrics", f"4_{i0}_{i1}.ncu-rep")
+            ncu_context = ncu_report.load_report(report_path)
+
+            ncu_range  = ncu_context.range_by_idx(0)
+            ncu_action = ncu_range.action_by_idx(0)
+
+            metrics = []
+            for m in metrics_list:
+                metrics.append(ncu_action[m])
+            temp_list.append(metrics)
+        bfuse_metrics.append(temp_list)
+
+    return metrics_list, kernel1_metrics, kernel2_metrics, bfuse_metrics
 #-----------------------------------------------------------------------------------------------
 def preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas):
     # Parse YAML
@@ -275,37 +296,124 @@ def preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_da
 
     return parallel, hfuse, bfuse, analysis
 #-----------------------------------------------------------------------------------------------
-def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics):
+def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, bfuse_metrics):
     paralel, hfuse, bfuse, analysis = preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
-    for bi, ci, bfuse_exec in analysis:
-        metric_diffs = []
-        for idx in range(len(kernel1_metrics[bi])):
-            diff = f"{abs(kernel1_metrics[bi][idx].value() - kernel2_metrics[ci][idx].value()):.2f}"
-            metric_diffs.append(f" - {kernel1_metrics[bi][idx].name():100s} diff: {diff:5s} ({kernel1_metrics[bi][idx].unit()})")
 
     print(f"================================================== {name.upper()} CASES ==================================================")
+    print(f"Total num: {len(analysis)}")
     for idx, [bi, ci, bfuse_exec] in enumerate(analysis):
         if idx >= 10:
             print("Too many cases...")
             break
-        
-        print(f"case (conv2d_{bi} x conv2d_{ci}): ")
-        for diff in metric_diffs:
-            print(diff)
+
+        # Kernel1
+        kernel1_math_throttle = f"{kernel1_metrics[bi][0].value():.2f}"
+        kernel1_lg_throttle   = f"{kernel1_metrics[bi][1].value():.2f}"
+        kernel1_mio_throttle  = f"{kernel1_metrics[bi][2].value():.2f}"
+        kernel1_tex_throttle  = f"{kernel1_metrics[bi][3].value():.2f}"
+        kernel1_math_depend   = f"{kernel1_metrics[bi][4].value():.2f}"
+        kernel1_lg_depend     = f"{kernel1_metrics[bi][5].value():.2f}"
+        kernel1_mio_depend    = f"{kernel1_metrics[bi][6].value():.2f}"
+        kernel1_L1Tex_hit     = f"{kernel1_metrics[bi][7].value():.2f}"
+        kernel1_bank_conflict = f"{kernel1_metrics[bi][8].value()}"
+
+        # Kernel2
+        kernel2_math_throttle = f"{kernel2_metrics[ci][0].value():.2f}"
+        kernel2_lg_throttle   = f"{kernel2_metrics[ci][1].value():.2f}"
+        kernel2_mio_throttle  = f"{kernel2_metrics[ci][2].value():.2f}"
+        kernel2_tex_throttle  = f"{kernel2_metrics[ci][3].value():.2f}"
+        kernel2_math_depend   = f"{kernel2_metrics[ci][4].value():.2f}"
+        kernel2_lg_depend     = f"{kernel2_metrics[ci][5].value():.2f}"
+        kernel2_mio_depend    = f"{kernel2_metrics[ci][6].value():.2f}"
+        kernel2_L1Tex_hit     = f"{kernel2_metrics[ci][7].value():.2f}"
+        kernel2_bank_conflict = f"{kernel2_metrics[ci][8].value()}"
+
+        # BFuse
+        bfuse_math_throttle = f"{bfuse_metrics[bi][ci][0].value():.2f}"
+        bfuse_lg_throttle   = f"{bfuse_metrics[bi][ci][1].value():.2f}"
+        bfuse_mio_throttle  = f"{bfuse_metrics[bi][ci][2].value():.2f}"
+        bfuse_tex_throttle  = f"{bfuse_metrics[bi][ci][3].value():.2f}"
+        bfuse_math_depend   = f"{bfuse_metrics[bi][ci][4].value():.2f}"
+        bfuse_lg_depend     = f"{bfuse_metrics[bi][ci][5].value():.2f}"
+        bfuse_mio_depend    = f"{bfuse_metrics[bi][ci][6].value():.2f}"
+        bfuse_L1Tex_hit     = f"{bfuse_metrics[bi][ci][7].value():.2f}"
+        bfuse_bank_conflict = f"{bfuse_metrics[bi][ci][8].value()}"
+
+        # Diff
+        diff_metrics = []
+        for idx in range(9):
+            if kernel1_metrics[bi][idx].value() + kernel2_metrics[ci][idx].value() == 0:
+                diff = "NaN"
+            else:
+                diff = f"{(bfuse_metrics[bi][ci][idx].value() / ((kernel1_metrics[bi][idx].value() + kernel2_metrics[ci][idx].value()) / 2) - 1) * 100:.2f}"
+            diff_metrics.append(diff)
+
+        # Unit
+        unit_math_throttle = f"{kernel1_metrics[bi][0].unit()}"
+        unit_lg_throttle   = f"{kernel1_metrics[bi][1].unit()}"
+        unit_mio_throttle  = f"{kernel1_metrics[bi][2].unit()}"
+        unit_tex_throttle  = f"{kernel1_metrics[bi][3].unit()}"
+        unit_math_depend   = f"{kernel1_metrics[bi][4].unit()}"
+        unit_lg_depend     = f"{kernel1_metrics[bi][5].unit()}"
+        unit_mio_depend    = f"{kernel1_metrics[bi][6].unit()}"
+        unit_L1Tex_hit     = f"{kernel1_metrics[bi][7].unit()}"
+        unit_bank_conflict = f"{kernel1_metrics[bi][8].unit()}"
+
+        print(f"case <conv2d_{bi} x conv2d_{ci}>:")
+        print("==== STALL ====")
+        print(f" - MATH throttle stall: {kernel1_math_throttle:>5s}/{kernel2_math_throttle:>5s}/{bfuse_math_throttle:>5s}  ({diff_metrics[0]:>7s}%) ({unit_math_throttle})")
+        print(f" - LG throttle stall:   {kernel1_lg_throttle:>5s}/{kernel2_lg_throttle:>5s}/{bfuse_lg_throttle:>5s}  ({diff_metrics[1]:>7s}%) ({unit_lg_throttle})")
+        print(f" - MIO throttle stall:  {kernel1_mio_throttle:>5s}/{kernel2_mio_throttle:>5s}/{bfuse_mio_throttle:>5s}  ({diff_metrics[2]:>7s}%) ({unit_mio_throttle})")
+        print(f" - TEX throttle stall:  {kernel1_tex_throttle:>5s}/{kernel2_tex_throttle:>5s}/{bfuse_tex_throttle:>5s}  ({diff_metrics[3]:>7s}%) ({unit_tex_throttle})")
+        print(f" - MATH depend stall:   {kernel1_math_depend:>5s}/{kernel2_math_depend:>5s}/{bfuse_math_depend:>5s}  ({diff_metrics[4]:>7s}%) ({unit_math_depend})")
+        print(f" - LG depend stall:     {kernel1_lg_depend:>5s}/{kernel2_lg_depend:>5s}/{bfuse_lg_depend:>5s}  ({diff_metrics[5]:>7s}%) ({unit_lg_depend})")
+        print(f" - MIO depend stall:    {kernel1_mio_depend:>5s}/{kernel2_mio_depend:>5s}/{bfuse_mio_depend:>5s}  ({diff_metrics[6]:>7s}%) ({unit_mio_depend})")
+        print("==== MEMORY ====")
+        print(f" - L1/Tex Cache Hit:            {kernel1_L1Tex_hit:>13s}/{kernel2_L1Tex_hit:>13s}/{bfuse_L1Tex_hit:>13s}  ({diff_metrics[7]:>7s}%) ({unit_L1Tex_hit})")
+        print(f" - Shared Memory Bank Conflict: {kernel1_bank_conflict:>13s}/{kernel2_bank_conflict:>13s}/{bfuse_bank_conflict:>13s}  ({diff_metrics[8]:>7s}%) ({unit_bank_conflict})")
+        print("==== Performance ====")
+        print(f" - Improvement: {bfuse_exec:.2f}x")
 #-----------------------------------------------------------------------------------------------
 def analyze_report(infoYAML):
     # Preprocess datas
     kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas = preprocess_datas(infoYAML)
-    metrics_list, kernel1_metrics, kernel2_metrics = preprocess_metrics(infoYAML)
+    metrics_list, kernel1_metrics, kernel2_metrics, bfuse_metrics = preprocess_metrics(infoYAML)
 
     # Case low
-    analyze_cond(infoYAML, "low", lambda x: x < 0.8, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics)
+    analyze_cond(infoYAML, "low", lambda x: x < 0.8, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, bfuse_metrics)
 
     # Case middle
-    analyze_cond(infoYAML, "middle", lambda x: x >= 0.8 and x < 1.2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics)
+    analyze_cond(infoYAML, "middle", lambda x: x >= 0.9 and x < 1.1, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, bfuse_metrics)
 
     # Case high
-    analyze_cond(infoYAML, "high", lambda x: x >= 1.2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics)
+    analyze_cond(infoYAML, "high", lambda x: x >= 1.4, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, bfuse_metrics)
+#-----------------------------------------------------------------------------------------------
+def print_metrics(infoYAML):
+    # Parse YAML
+    fusion_sets = infoYAML["FusionSet"]
+    kernel_info = infoYAML["KernelInfo"]
+
+    # Check the given sets are valid
+    if len(fusion_sets) != 2:
+        loggging.error("Number of fusion sets are only 2.")
+        exit(1)
+
+    kernel1_size   = len(fusion_sets[0]["Set"])
+    kernel2_size   = len(fusion_sets[1]["Set"])
+
+    report_path = os.path.join("metrics", f"0_0_0.ncu-rep")
+    ncu_context = ncu_report.load_report(report_path)
+
+    ncu_range  = ncu_context.range_by_idx(0)
+    ncu_action = ncu_range.action_by_idx(0)
+
+    for name in ncu_action.metric_names():
+        metric = ncu_action[name]
+
+        # if metric.metric_type() == ncu_report.IMetric.MetricType_COUNTER:
+        # if metric.metric_type() == ncu_report.IMetric.MetricType_RATIO:
+        # if metric.metric_type() == ncu_report.IMetric.MetricType_THROUGHPUT:
+        print(f"{metric.name():130s}: {metric.description()} ({metric.unit()})")
 #-----------------------------------------------------------------------------------------------
 if __name__ == "__main__":
 
@@ -329,6 +437,9 @@ if __name__ == "__main__":
     # Parse YAML files
     with open(info_file) as f:
         yaml_info = yaml.safe_load(f)
+
+    # Print metrics
+    # print_metrics(yaml_info)
 
     # Analyze ncu report results
     analyze_report(yaml_info)

@@ -66,7 +66,7 @@ RUN cmake -B build
 RUN cmake --build build
 
 # Install bfuse-project python package
-RUN pip3 install --user pyyaml matplotlib
+RUN pip3 install --user pyyaml matplotlib scipy
 
 # Install NVIDIA Nsight Systems
 RUN apt update

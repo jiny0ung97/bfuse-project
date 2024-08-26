@@ -64,21 +64,22 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
     common_command   = ["ncu", "--set", "full", "-o"]
 
     for idx, test_name in enumerate(test_methology):
-        if idx == 0:
-            for kidx in range(kernel1_size):
-                file_path = os.path.join(metrics_path, f"{idx}_{kidx}_0")
-                command   = common_command + [file_path]
-                command   = command + [benchmark_path, "-n", str(metrics_trials), str(idx), str(kidx), "0"]
-                metrics_commands.append(command)
-        if idx == 1:
-            for kidx in range(kernel2_size):
-                file_path = os.path.join(metrics_path, f"{idx}_0_{kidx}")
-                command   = common_command + [file_path]
-                command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), "0", str(kidx)]
-                metrics_commands.append(command)
-        if idx == 4:
-            for kidx1 in range(kernel1_size):
-                for kidx2 in range(kernel2_size):
+        # if idx == 0:
+        #     for kidx in range(kernel1_size):
+        #         file_path = os.path.join(metrics_path, f"{idx}_{kidx}_0")
+        #         command   = common_command + [file_path]
+        #         command   = command + [benchmark_path, "-n", str(metrics_trials), str(idx), str(kidx), "0"]
+        #         metrics_commands.append(command)
+        # if idx == 1:
+        #     for kidx in range(kernel2_size):
+        #         file_path = os.path.join(metrics_path, f"{idx}_0_{kidx}")
+        #         command   = common_command + [file_path]
+        #         command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), "0", str(kidx)]
+        #         metrics_commands.append(command)
+        # if idx == 4:
+        if idx == 3:
+            for kidx1 in range(4, kernel1_size):
+                for kidx2 in range(kidx1, kernel2_size):
                     file_path = os.path.join(metrics_path, f"{idx}_{kidx1}_{kidx2}")
                     command   = common_command + [file_path]
                     command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), str(kidx1), str(kidx2)]

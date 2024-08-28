@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
-import os
+import os, shutil
 import logging
 import yaml, csv
+import math
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -217,6 +218,7 @@ def preprocess_metrics(infoYAML):
                        "smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio",
                         "l1tex__t_sector_hit_rate.pct", # 7
                        "l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum", # 8
+                       "smsp__inst_executed.avg", # 9
                        ]
 
     for i0 in range(kernel1_size):
@@ -320,10 +322,12 @@ def preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_da
 def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics):
     paralel, hfuse, bfuse, analysis = preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
 
+    metric_statistics = [[] for _ in range(9)]
+    bfuse_statistics  = [[] for _ in range(9)]
     print(f"================================================== {name.upper()} CASES ==================================================")
-    print(f"Total num: {len(analysis)}")
     for idx, [bi, ci, bfuse_exec] in enumerate(analysis):
-        if idx >= 10:
+        if idx >= 5:
+            print("")
             print("Too many cases...")
             break
 
@@ -336,7 +340,7 @@ def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
         kernel1_lg_depend     = f"{kernel1_metrics[bi][5].value():.2f}"
         kernel1_mio_depend    = f"{kernel1_metrics[bi][6].value():.2f}"
         kernel1_L1Tex_hit     = f"{kernel1_metrics[bi][7].value():.2f}"
-        kernel1_bank_conflict = f"{kernel1_metrics[bi][8].value()}"
+        kernel1_bank_conflict = f"{kernel1_metrics[bi][8].as_uint64()}"
 
         # Kernel2
         kernel2_math_throttle = f"{kernel2_metrics[ci][0].value():.2f}"
@@ -347,7 +351,7 @@ def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
         kernel2_lg_depend     = f"{kernel2_metrics[ci][5].value():.2f}"
         kernel2_mio_depend    = f"{kernel2_metrics[ci][6].value():.2f}"
         kernel2_L1Tex_hit     = f"{kernel2_metrics[ci][7].value():.2f}"
-        kernel2_bank_conflict = f"{kernel2_metrics[ci][8].value()}"
+        kernel2_bank_conflict = f"{kernel2_metrics[ci][8].as_uint64()}"
 
         # HFuse
         if bi <= ci:
@@ -359,7 +363,7 @@ def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
             hfuse_lg_depend     = f"{hfuse_metrics[bi][ci][5].value():.2f}"
             hfuse_mio_depend    = f"{hfuse_metrics[bi][ci][6].value():.2f}"
             hfuse_L1Tex_hit     = f"{hfuse_metrics[bi][ci][7].value():.2f}"
-            hfuse_bank_conflict = f"{hfuse_metrics[bi][ci][8].value()}"
+            hfuse_bank_conflict = f"{hfuse_metrics[bi][ci][8].as_uint64()}"
         else:
             hfuse_math_throttle = f"{hfuse_metrics[ci][bi][0].value():.2f}"
             hfuse_lg_throttle   = f"{hfuse_metrics[ci][bi][1].value():.2f}"
@@ -369,7 +373,7 @@ def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
             hfuse_lg_depend     = f"{hfuse_metrics[ci][bi][5].value():.2f}"
             hfuse_mio_depend    = f"{hfuse_metrics[ci][bi][6].value():.2f}"
             hfuse_L1Tex_hit     = f"{hfuse_metrics[ci][bi][7].value():.2f}"
-            hfuse_bank_conflict = f"{hfuse_metrics[ci][bi][8].value()}"
+            hfuse_bank_conflict = f"{hfuse_metrics[ci][bi][8].as_uint64()}"
 
         # BFuse
         bfuse_math_throttle = f"{bfuse_metrics[bi][ci][0].value():.2f}"
@@ -380,7 +384,7 @@ def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
         bfuse_lg_depend     = f"{bfuse_metrics[bi][ci][5].value():.2f}"
         bfuse_mio_depend    = f"{bfuse_metrics[bi][ci][6].value():.2f}"
         bfuse_L1Tex_hit     = f"{bfuse_metrics[bi][ci][7].value():.2f}"
-        bfuse_bank_conflict = f"{bfuse_metrics[bi][ci][8].value()}"
+        bfuse_bank_conflict = f"{bfuse_metrics[bi][ci][8].as_uint64()}"
 
         # Diff
         diff_metrics = []
@@ -389,29 +393,40 @@ def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
             ci_value    = kernel2_metrics[ci][idx].value()
             bfuse_value = bfuse_metrics[bi][ci][idx].value()
 
+            if idx >= 0 and idx < 7:
+                if bi_value == 0 and ci_value == 0:
+                    diff = "NaN"
+                else:
+                    bi_inst = kernel1_metrics[bi][9].value()
+                    ci_inst = kernel2_metrics[ci][9].value()
+                    result  = bfuse_value / ((bi_value * bi_inst + ci_value * ci_inst) / (bi_inst + ci_inst))
+                    diff    = f"{result:.2f}"
+                    metric_statistics[idx].append(result)
             if idx == 7:
                 if bi_value == 0 and ci_value == 0:
                     diff = "NaN"
                 elif bi_value == 0:
                     diff2 = bfuse_value / ci_value
                     diff  = f"{diff2:.2f}"
+                    metric_statistics[idx].append(diff2)
                 elif ci_value == 0:
                     diff1 = bfuse_value / bi_value
                     diff  = f"{diff1:.2f}"
+                    metric_statistics[idx].append(diff1)
                 else:
-                    diff1 = bfuse_value / bi_value
-                    diff2 = bfuse_value / ci_value
-                    diff = f"{gmean([diff1, diff2]):.2f}"
+                    result = bfuse_value / ((bi_value + ci_value) / 2)
+                    diff = f"{result:.2f}"
+                    metric_statistics[idx].append(result)
             elif idx == 8:
                 if bi_value + ci_value == 0:
                     diff = "NaN"
                 else:
-                    diff = f"{(bfuse_metrics[bi][ci][idx].value() / (kernel1_metrics[bi][idx].value() + kernel2_metrics[ci][idx].value())):.2f}"
+                    result = bfuse_value / (bi_value + ci_value)
+                    diff   = f"{result:.2f}"
+                    metric_statistics[idx].append(result)
             else:
-                if bi_value + ci_value == 0:
-                    diff = "NaN"
-                else:
-                    diff = f"{(bfuse_metrics[bi][ci][idx].value() / ((kernel1_metrics[bi][idx].value() + kernel2_metrics[ci][idx].value()) / 2)):.2f}"
+                pass
+            bfuse_statistics[idx].append(bfuse_value)
             diff_metrics.append(diff)
 
         # Unit
@@ -425,6 +440,7 @@ def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
         unit_L1Tex_hit     = f"{kernel1_metrics[bi][7].unit()}"
         unit_bank_conflict = f"{kernel1_metrics[bi][8].unit()}"
 
+        # Print
         print(f"case <conv2d_{bi} x conv2d_{ci}>:")
         print("==== STALL ====")
         print(f" - MATH throttle stall: {kernel1_math_throttle:>5s}/{kernel2_math_throttle:>5s}/{hfuse_math_throttle:>5s}/{bfuse_math_throttle:>5s}  ({diff_metrics[0]:>5s}x) ({unit_math_throttle})")
@@ -439,13 +455,249 @@ def analyze_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
         print(f" - Shared Memory Bank Conflict: {kernel1_bank_conflict:>13s}/{kernel2_bank_conflict:>13s}/{hfuse_bank_conflict:>13s}/{bfuse_bank_conflict:>13s}  ({diff_metrics[8]:>5s}x) ({unit_bank_conflict})")
         print("==== Performance ====")
         print(f" - Improvement: {bfuse_exec:.2f}x")
+
+    # Print statistics
+    max_perf = 0
+    min_perf = float("inf")
+    for _, _, bfuse_exec in analysis:
+        if bfuse_exec > max_perf:
+            max_perf = bfuse_exec
+        if bfuse_exec < min_perf:
+            min_perf = bfuse_exec
+
+    bfuse_math_throttle_mean = f"{np.mean(bfuse_statistics[0]):.2f}"
+    bfuse_lg_throttle_mean   = f"{np.mean(bfuse_statistics[1]):.2f}"
+    bfuse_mio_throttle_mean  = f"{np.mean(bfuse_statistics[2]):.2f}"
+    bfuse_tex_throttle_mean  = f"{np.mean(bfuse_statistics[3]):.2f}"
+    bfuse_math_depend_mean   = f"{np.mean(bfuse_statistics[4]):.2f}"
+    bfuse_lg_depend_mean     = f"{np.mean(bfuse_statistics[5]):.2f}"
+    bfuse_mio_depend_mean    = f"{np.mean(bfuse_statistics[6]):.2f}"
+    bfuse_L1Tex_hit_mean     = f"{np.mean(bfuse_statistics[7]):.2f}"
+    bfuse_bank_conflict_mean = f"{np.mean(bfuse_statistics[8]):.2f}"
+
+    math_throttle_mean = f"{np.mean(metric_statistics[0]):.2f}"
+    lg_throttle_mean = f"{np.mean(metric_statistics[1]):.2f}"
+    mio_throttle_mean = f"{np.mean(metric_statistics[2]):.2f}"
+    tex_throttle_mean = f"{np.mean(metric_statistics[3]):.2f}"
+    math_depend_mean = f"{np.mean(metric_statistics[4]):.2f}"
+    lg_depend_mean = f"{np.mean(metric_statistics[5]):.2f}"
+    mio_depend_mean = f"{np.mean(metric_statistics[6]):.2f}"
+    L1Tex_hit_mean = f"{np.mean(metric_statistics[7]):.2f}"
+    bank_conflict_mean = f"{np.mean(metric_statistics[8]):.2f}"
+
+    print("-------- STATISTICS --------")
+    print(f"Total num: {len(analysis)}")
+    print(f"Max perf:  {max_perf:.2f}x")
+    print(f"Min perf:  {min_perf:.2f}x")
+    print("==== STALL ====")
+    print(f" - MATH throttle stall: {bfuse_math_throttle_mean:>5s} ({math_throttle_mean:>5s}x)")
+    print(f" - LG throttle stall:   {bfuse_lg_throttle_mean:>5s} ({lg_throttle_mean:>5s}x)")
+    print(f" - MIO throttle stall:  {bfuse_mio_throttle_mean:>5s} ({mio_throttle_mean:>5s}x)")
+    print(f" - TEX throttle stall:  {bfuse_tex_throttle_mean:>5s} ({tex_throttle_mean:>5s}x)")
+    print(f" - MATH depend stall:   {bfuse_math_depend_mean:>5s} ({math_depend_mean:>5s}x)")
+    print(f" - LG depend stall:     {bfuse_lg_depend_mean:>5s} ({lg_depend_mean:>5s}x)")
+    print(f" - MIO depend stall:    {bfuse_mio_depend_mean:>5s} ({mio_depend_mean:>5s}x)")
+    print("==== MEMORY ====")
+    print(f" - L1/Tex Cache Hit:            {bfuse_L1Tex_hit_mean:>5s} ({L1Tex_hit_mean:>5s}x)")
+    print(f" - Shared Memory Bank Conflict: {bfuse_bank_conflict_mean} ({bank_conflict_mean}x)")
 #-----------------------------------------------------------------------------------------------
-def draw_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics):
+def pattern_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics):
+    paralel, hfuse, bfuse, analysis = preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
+
+    metrics_name = ["math_throttle",
+                    "lg_throttle",
+                    "mio_throttle",
+                    "tex_throttle",
+                    "math_depend",
+                    "lg_depend",
+                    "mio_depend",
+                    "L1Tex_hit",
+                    "bank_conflict",
+                    ]
+
+    kernel1_list = []
+    kernel2_list = []
+    bfuse_list   = []
+    diff_list    = []
+    for bi, ci, bfuse_exec in analysis:
+        k1    = []
+        k2    = []
+        bfuse = []
+        diff  = []
+        for idx in range(len(metrics_name)):
+            k1_value    = kernel1_metrics[bi][idx].value()
+            k2_value    = kernel2_metrics[ci][idx].value()
+            bfuse_value = bfuse_metrics[bi][ci][idx].value()
+
+            k1.append(k1_value)
+            k2.append(k2_value)
+            bfuse.append(bfuse_value)
+
+            if k1_value == 0 and k2_value == 0:
+                diff.append(float("nan"))
+                continue
+
+            if idx >= 0 and idx < 7:
+                k1_inst = kernel1_metrics[bi][9].value()
+                k2_inst = kernel2_metrics[ci][9].value()
+                result  = bfuse_value / ((k1_value * k1_inst + k2_value * k2_inst) / (k1_inst + k2_inst))
+            elif idx == 7:
+                result = bfuse_value / ((k1_value + k2_value) / 2)
+            elif idx == 8:
+                result = bfuse_value / (k1_value + k2_value)
+            else:
+                logging.error("Unable to reach here..!")
+                exit(1)
+
+            diff.append(result)
+        
+        kernel1_list.append(k1)
+        kernel2_list.append(k2)
+        bfuse_list.append(bfuse)
+        diff_list.append(diff)
+
+    # Find pattern
+    for idx, name in enumerate(metrics_name):
+        candidate = [[] for _ in range(len(metrics_name))]
+        cases     = []
+        for i, e in enumerate(diff_list):
+            # # if e.index(min(e[:3] + [1] + e[4:7])) != idx:
+            # if e[idx] > 1.0:
+            #     continue
+
+            for j in range(len(metrics_name)):
+                if e[j] == float("nan"):
+                    continue
+                candidate[j].append(e[j])
+            cases.append(i)
+            
+        print(f"--------<'{name.upper()}' BEST CASES>--------")
+        print(f"Total num: {len(cases)}/{len(diff_list)} ({len(cases) / len(diff_list) * 100:.2f}%)")
+        if len(cases) == 0:
+            print("==== NO CASES ====")
+            continue
+
+        perf_list = []
+        for c in cases:
+            perf_list.append(analysis[c][2])
+        mean_result = []
+        for cand in candidate:
+            mean_result.append(f"{np.mean(cand):.2f}")
+            # mean_result.append(f"{np.average(cand, weights=perf_list):.2f}")
+
+        print(f"Perf max: {np.max(perf_list):.2f}x")
+        print(f"Perf min: {np.min(perf_list):.2f}x")
+        print(f"Perf avr: {np.mean(perf_list):.2f}x")
+        print(f"Perf std: {np.std(perf_list):.2f}")
+        print("==== STALL ====")
+        print(f" - MATH throttle stall: {mean_result[0]:>5s}x")
+        print(f" - LG throttle stall:   {mean_result[1]:>5s}x")
+        print(f" - MIO throttle stall:  {mean_result[2]:>5s}x")
+        print(f" - TEX throttle stall:  {mean_result[3]:>5s}x")
+        print(f" - MATH depend stall:   {mean_result[4]:>5s}x")
+        print(f" - LG depend stall:     {mean_result[5]:>5s}x")
+        print(f" - MIO depend stall:    {mean_result[6]:>5s}x")
+        print("==== MEMORY ====")
+        print(f" - L1/Tex Cache Hit:            {mean_result[7]:>5s}x")
+        print(f" - Shared Memory Bank Conflict: {mean_result[8]:>5s}x")
+
+        if idx < 7:
+            plt.title(f"{name}")
+            sort_idx         = sorted(range(len(perf_list)), key=lambda k : perf_list[k])
+            sorted_perf_list = [perf_list[k] for k in sort_idx]
+            # for i, cand in enumerate(candidate[:7]):
+            for i, cand in enumerate(candidate):
+                if i == 3: # Tex throttle
+                    continue
+                sorted_cand_list = [cand[k] for k in sort_idx]
+
+                if i < 3:
+                    pi = i+1
+                else:
+                    pi = i
+                plt.subplot(math.ceil(len(candidate) / 3), 3, pi)
+                plt.plot(sorted_perf_list, sorted_cand_list, label=f"{metrics_name[i]}", linewidth=0.5)
+                plt.axhline(1, color="red", linestyle="--", linewidth=0.5)
+                plt.legend(ncol=2, fontsize=5)
+                if i == 8:
+                    plt.ylim([0, 10])
+            plt.savefig(f"figure/pattern-{name}.png", dpi=500)
+            plt.close()
+#-----------------------------------------------------------------------------------------------
+def get_metrics_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics):
+    paralel, hfuse, bfuse, analysis = preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
+    
+    metrics1 = [[] for _ in range(9)]
+    metrics2 = [[] for _ in range(9)]
+    for bi, ci, bfuse_exec in analysis:
+        # Sort in ascending order
+        for idx in range(9):
+            if kernel1_metrics[bi][idx].value() > kernel2_metrics[ci][idx].value():
+                metrics1[idx].append(kernel2_metrics[ci][idx].value())
+                metrics2[idx].append(kernel1_metrics[bi][idx].value())
+            else:
+                metrics1[idx].append(kernel1_metrics[bi][idx].value())
+                metrics2[idx].append(kernel2_metrics[ci][idx].value())
+        # if kernel1_metrics[bi][1].value() > kernel2_metrics[ci][1].value(): # LG throttle
+        #     for idx in range(9):
+        #         metrics1[idx].append(kernel2_metrics[ci][idx].value())
+        #         metrics2[idx].append(kernel1_metrics[bi][idx].value())
+        # else:
+        #     for idx in range(9):
+        #         metrics1[idx].append(kernel1_metrics[bi][idx].value())
+        #         metrics2[idx].append(kernel2_metrics[ci][idx].value())
+
+    return metrics1, metrics2
+#-----------------------------------------------------------------------------------------------
+def draw_plot(infoYAML, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics):
+
+    # low
+    metrics1_low, metrics2_low = get_metrics_cond(infoYAML, "low", lambda x: x < 0.8, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+    # middle
+    metrics1_middle, metrics2_middle = get_metrics_cond(infoYAML, "middle", lambda x: x >= 0.8 and x < 1.2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+    # high
+    metrics1_high, metrics2_high = get_metrics_cond(infoYAML, "high", lambda x: x >= 1.2, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+
+    metrics_name = ["math_throttle", "lg_throttle", "mio_throttle", "tex_throttle",
+                    "math_depend", "lg_depend", "mio_depend", "l1_tex_cache_hit", "bank_conflict"]
+    
+    # for idx in range(9):
+    #     print(metrics_name[idx])
+    #     for i in range(len(metrics1[idx])):
+    #         print(f"{metrics1[idx][i]:.2f}", end=" ")
+    #     print("")
+    #     for i in range(len(metrics2[idx])):
+    #         print(f"{metrics2[idx][i]:.2f}", end=" ")
+    #     print("")
+    #     print("")
+
+    # plt.style.use('default')
+    # plt.rcParams['figure.figsize'] = (4, 3)
+    # plt.rcParams['font.size']      = 12
+
+    for idx in range(9):
+        ax1 = plt.subplot(1, 3, 1)
+        plt.boxplot([metrics1_low[idx], metrics2_low[idx]], showfliers=False)
+        plt.xlabel("low")
+
+        ax2 = plt.subplot(1, 3, 2, sharey=ax1)
+        plt.boxplot([metrics1_middle[idx], metrics2_middle[idx]], showfliers=False)
+        plt.xlabel("middle")
+
+        ax3 = plt.subplot(1, 3, 3, sharey=ax1)
+        plt.boxplot([metrics1_high[idx], metrics2_high[idx]], showfliers=False)
+        plt.xlabel("high")
+
+        plt.tight_layout()
+        plt.savefig(f"figure/plot-{metrics_name[idx]}.png", dpi=500)
+        plt.close()
+#-----------------------------------------------------------------------------------------------
+def draw_heatmap_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics):
     paralel, hfuse, bfuse, analysis = preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
 
     # Draw stall heatmap
     print("Draw heatmap...")
-    metrics_name = ["MATH throttle", "LG throttle", "MIO throttle", "TEX throttle"]
+    metrics_name = ["MATH_throttle", "LG_throttle", "MIO_throttle", "TEX_throttle"]
     for idx in range(4):
         bi_max_value = 0.
         ci_max_value = 0.
@@ -491,7 +743,8 @@ def draw_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas
             #     diff1 = bfuse_metrics[bi][ci][idx].value() / kernel1_metrics[bi][idx].value()
             #     diff2 = bfuse_metrics[bi][ci][idx].value() / kernel2_metrics[ci][idx].value()
             #     diff = gmean([diff1, diff2])
-            diff = bfuse_value / ((bi_value + ci_value) / 2)
+            diff = bfuse_value
+            # diff = bfuse_value / ((bi_value + ci_value) / 2)
 
             bi_idx = int((bi_value - bi_min_value) / bi_unit)
             ci_idx = int((ci_value - ci_min_value) / ci_unit)
@@ -525,23 +778,40 @@ def draw_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas
         ax.set_xticklabels(ci_index)
         ax.set_yticklabels(bi_index)
 
-        plt.savefig(f"heatmap-{metrics_name[idx]}.png", dpi=500)
+        plt.savefig(f"figure/heatmap-{name}-{metrics_name[idx]}.png", dpi=500)
+        plt.close()
 #-----------------------------------------------------------------------------------------------
 def analyze_report(infoYAML):
     # Preprocess datas
     kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas = preprocess_datas(infoYAML)
     metrics_list, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics = preprocess_metrics(infoYAML)
 
-    # Case low
-    analyze_cond(infoYAML, "low", lambda x: x < 0.8, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+    # # Case low-2
+    # analyze_cond(infoYAML, "low-2", lambda x: x < 0.6, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
 
-    # Case middle
-    analyze_cond(infoYAML, "middle", lambda x: x >= 0.9 and x < 1.1, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+    # # Case low-1
+    # analyze_cond(infoYAML, "low-1", lambda x: x >= 0.6 and x < 0.9, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
 
-    # Case high
-    analyze_cond(infoYAML, "high", lambda x: x >= 1.4, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+    # # Case middle
+    # analyze_cond(infoYAML, "middle", lambda x: x >= 0.9 and x < 1.1, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
 
-    draw_cond(infoYAML, "all", lambda x: True, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+    # # Case high-1
+    # analyze_cond(infoYAML, "high-1", lambda x: x >= 1.1 and x < 1.4, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+
+    # # Case high-2
+    # analyze_cond(infoYAML, "high-2", lambda x: x >= 1.4, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+
+    # # Case all
+    # analyze_cond(infoYAML, "all", lambda x: True, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+
+    # Find pattern
+    pattern_cond(infoYAML, "all", lambda x: True, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+
+    # # Draw boxplot all
+    # draw_plot(infoYAML, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+
+    # # Draw heatmap all
+    # draw_heatmap_cond(infoYAML, "all", lambda x: True, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
 #-----------------------------------------------------------------------------------------------
 def print_metrics(infoYAML):
     # Parse YAML

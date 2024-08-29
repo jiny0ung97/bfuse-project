@@ -7,7 +7,7 @@ import math
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import gmean
+from scipy.stats import gmean, norm
 import ncu_report
 #-----------------------------------------------------------------------------------------------
 # Settings
@@ -216,9 +216,32 @@ def preprocess_metrics(infoYAML):
                        "smsp__average_warps_issue_stalled_wait_per_issue_active.ratio",
                        "smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio",
                        "smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio",
-                        "l1tex__t_sector_hit_rate.pct", # 7
+                       "l1tex__t_sector_hit_rate.pct", # 7
                        "l1tex__data_bank_conflicts_pipe_lsu_mem_shared.sum", # 8
-                       "smsp__inst_executed.avg", # 9
+                       "smsp__average_warp_latency_per_inst_issued.ratio", # 9
+                       "l1tex__t_sectors_pipe_lsu_mem_global_op_atom_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_lsu_mem_global_op_atom_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_lsu_mem_global_op_red_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_tex_mem_surface_op_atom_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_tex_mem_surface_op_red_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_hit.sum",
+                       "l1tex__t_sectors_pipe_tex_mem_texture_lookup_hit.sum", # 21
+                       "smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_branch_resolving_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_dispatch_stall_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_drain_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_imc_miss_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_membar_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_misc_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_selected_per_issue_active.ratio",
+                       "smsp__average_warps_issue_stalled_sleeping_per_issue_active.ratio", # 32
                        ]
 
     for i0 in range(kernel1_size):
@@ -540,7 +563,12 @@ def pattern_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
             if idx >= 0 and idx < 7:
                 k1_inst = kernel1_metrics[bi][9].value()
                 k2_inst = kernel2_metrics[ci][9].value()
-                result  = bfuse_value / ((k1_value * k1_inst + k2_value * k2_inst) / (k1_inst + k2_inst))
+                # result  = bfuse_value / ((k1_value * k1_inst + k2_value * k2_inst) / (k1_inst + k2_inst))
+                bfuse_inst = bfuse_metrics[bi][ci][9].value()
+                k1_value    = np.sum([e.value() for i, e in enumerate(kernel1_metrics[bi][:4])])
+                k2_value    = np.sum([e.value() for i, e in enumerate(kernel2_metrics[ci][:4])])
+                bfuse_value = np.sum([e.value() for i, e in enumerate(bfuse_metrics[bi][ci][:4])])
+                result  = (bfuse_value * bfuse_inst) / (k1_value * k1_inst + k2_value * k2_inst)
             elif idx == 7:
                 result = bfuse_value / ((k1_value + k2_value) / 2)
             elif idx == 8:
@@ -557,7 +585,7 @@ def pattern_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
         diff_list.append(diff)
 
     # Find pattern
-    for idx, name in enumerate(metrics_name):
+    for idx, name in enumerate(metrics_name[:1]):
         candidate = [[] for _ in range(len(metrics_name))]
         cases     = []
         for i, e in enumerate(diff_list):
@@ -585,6 +613,7 @@ def pattern_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
             mean_result.append(f"{np.mean(cand):.2f}")
             # mean_result.append(f"{np.average(cand, weights=perf_list):.2f}")
 
+        # Print statistics
         print(f"Perf max: {np.max(perf_list):.2f}x")
         print(f"Perf min: {np.min(perf_list):.2f}x")
         print(f"Perf avr: {np.mean(perf_list):.2f}x")
@@ -601,28 +630,301 @@ def pattern_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_da
         print(f" - L1/Tex Cache Hit:            {mean_result[7]:>5s}x")
         print(f" - Shared Memory Bank Conflict: {mean_result[8]:>5s}x")
 
-        if idx < 7:
-            plt.title(f"{name}")
-            sort_idx         = sorted(range(len(perf_list)), key=lambda k : perf_list[k])
-            sorted_perf_list = [perf_list[k] for k in sort_idx]
-            # for i, cand in enumerate(candidate[:7]):
-            for i, cand in enumerate(candidate):
-                if i == 3: # Tex throttle
-                    continue
-                sorted_cand_list = [cand[k] for k in sort_idx]
+        # Draw bfuse perf breakdown
+        title_font = {'fontsize': 5, 'fontweight': 'bold'}
+        # plt.title(f"{name}")
+        for i, cand in enumerate(candidate):
+            if i == 3: # Tex throttle
+                continue
 
-                if i < 3:
-                    pi = i+1
+            if i < 3:
+                pi = i + 1
+            else:
+                pi = i
+            plt.subplot(math.ceil(len(metrics_name) / 3), 3, pi)
+            plt.title(f"{metrics_name[i]}", fontdict=title_font)
+            if i == 7:
+                plt.scatter(perf_list, cand, s=0.5**2, c="#FF7F00")
+            else:
+                plt.scatter(perf_list, cand, s=0.5**2)
+            plt.axhline(1, color="red", linestyle="--", linewidth=0.5)
+            # if i == 8:
+            #     plt.ylim([0, 10])
+            # plt.ylim([0, 3])
+            plt.tick_params(axis='x', labelsize=5)
+            plt.tick_params(axis='y', labelsize=5)
+        
+        plt.subplot(math.ceil(len(metrics_name) / 3), 3, len(metrics_name))
+        plt.title("Histogram", fontdict=title_font)
+        plt.hist(perf_list, bins=100, linewidth=0.5, color="green")
+        plt.tick_params(axis='x', labelsize=5)
+        plt.tick_params(axis='y', labelsize=5)
+        plt.tight_layout()
+        # plt.savefig(f"figure/figure_1-{name}.png", dpi=500)
+        plt.savefig(f"figure/figure_1.png", dpi=500)
+        plt.close()
+
+        # Draw kernel1/2 breakdown
+        for i, m_name in enumerate(metrics_name):
+            if i == 3: # Tex throttle
+                continue
+            
+            data_1 = []
+            data_2 = []
+            diffs  = []
+            for c in cases:
+                value_1 = kernel1_list[c][i]
+                value_2 = kernel2_list[c][i]
+                if value_1 > value_2:
+                    value_1, value_2 = value_2, value_1
+                data_1.append(value_1)
+                data_2.append(value_2)
+                if value_1 + value_2 == 0:
+                    diffs.append(0)
                 else:
-                    pi = i
-                plt.subplot(math.ceil(len(candidate) / 3), 3, pi)
-                plt.plot(sorted_perf_list, sorted_cand_list, label=f"{metrics_name[i]}", linewidth=0.5)
-                plt.axhline(1, color="red", linestyle="--", linewidth=0.5)
-                plt.legend(ncol=2, fontsize=5)
-                if i == 8:
-                    plt.ylim([0, 10])
-            plt.savefig(f"figure/pattern-{name}.png", dpi=500)
-            plt.close()
+                    diffs.append(abs(value_1 - value_2))
+
+            if i < 3:
+                pi = i + 1
+            else:
+                pi = i
+            plt.subplot(math.ceil(len(metrics_name) / 3), 3, pi)
+            plt.title(f"{m_name}", fontdict=title_font)
+            # plt.scatter(perf_list, data_1, s=0.5**2)
+            # plt.scatter(perf_list, data_2, s=0.5**2, c="#FF7F00")
+            plt.scatter(perf_list, diffs, s=0.5**2)
+            plt.tick_params(axis='x', labelsize=5)
+            plt.tick_params(axis='y', labelsize=5)
+        
+        plt.subplot(math.ceil(len(metrics_name) / 3), 3, len(metrics_name))
+        plt.title("Histogram", fontdict=title_font)
+        plt.hist(perf_list, bins=100, linewidth=0.5, color="green")
+        plt.tick_params(axis='x', labelsize=5)
+        plt.tick_params(axis='y', labelsize=5)
+        plt.tight_layout()
+        # plt.savefig(f"figure/figure_2-{name}.png", dpi=500)
+        plt.savefig(f"figure/figure_2.png", dpi=500)
+        plt.close()
+#-----------------------------------------------------------------------------------------------
+def pattern_cond2(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics):
+    paralel, hfuse, bfuse, analysis = preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
+
+    metrics_name = ["math_throttle",
+                    "lg_throttle",
+                    "mio_throttle",
+                    "tex_throttle",
+                    "math_depend",
+                    "lg_depend",
+                    "mio_depend",
+                    "L1Tex_hit",
+                    "bank_conflict",
+                    ]
+
+    kernel1_list = []
+    kernel2_list = []
+    bfuse_list   = []
+    diff_list    = []
+    for bi, ci, bfuse_exec in analysis:
+        k1    = []
+        k2    = []
+        bfuse = []
+        diff  = []
+        for idx in range(len(kernel1_metrics[0])):
+            k1_value    = kernel1_metrics[bi][idx].value()
+            k2_value    = kernel2_metrics[ci][idx].value()
+            bfuse_value = bfuse_metrics[bi][ci][idx].value()
+
+            k1.append(k1_value)
+            k2.append(k2_value)
+            bfuse.append(bfuse_value)
+
+        for idx in range(len(metrics_name)):
+            k1_value    = kernel1_metrics[bi][idx].value()
+            k2_value    = kernel2_metrics[ci][idx].value()
+            bfuse_value = bfuse_metrics[bi][ci][idx].value()
+
+            if k1_value == 0 and k2_value == 0:
+                diff.append(float("nan"))
+                continue
+
+            if idx >= 0 and idx < 4:
+                k1_inst = kernel1_metrics[bi][9].value()
+                k2_inst = kernel2_metrics[ci][9].value()
+                bfuse_inst = bfuse_metrics[bi][ci][9].value()
+                k1_value    = np.sum([e.value() for e in kernel1_metrics[bi][:4]])
+                k2_value    = np.sum([e.value() for e in kernel2_metrics[ci][:4]])
+                bfuse_value = np.sum([e.value() for e in bfuse_metrics[bi][ci][:4]])
+                result  = (bfuse_value * bfuse_inst) / (k1_value * k1_inst + k2_value * k2_inst)
+            elif idx >= 4 and idx < 7:
+                k1_inst = kernel1_metrics[bi][9].value()
+                k2_inst = kernel2_metrics[ci][9].value()
+                bfuse_inst = bfuse_metrics[bi][ci][9].value()
+                k1_value    = np.sum([e.value() for e in kernel1_metrics[bi][4:7]])
+                k2_value    = np.sum([e.value() for e in kernel2_metrics[ci][4:7]])
+                bfuse_value = np.sum([e.value() for e in bfuse_metrics[bi][ci][4:7]])
+                result  = (bfuse_value * bfuse_inst) / (k1_value * k1_inst + k2_value * k2_inst)
+            elif idx == 7:
+                k1_value    = np.sum([e.value() for e in kernel1_metrics[bi][10:22]])
+                k2_value    = np.sum([e.value() for e in kernel2_metrics[ci][10:22]])
+                bfuse_value = np.sum([e.value() for e in bfuse_metrics[bi][ci][10:22]])
+                result = bfuse_value / (k1_value + k2_value)
+            elif idx == 8:
+                result = bfuse_value / (k1_value + k2_value)
+            else:
+                logging.error("Unable to reach here..!")
+                exit(1)
+
+            diff.append(result)
+        
+        kernel1_list.append(k1)
+        kernel2_list.append(k2)
+        bfuse_list.append(bfuse)
+        diff_list.append(diff)
+
+    # Find pattern
+    for idx, name in enumerate(metrics_name[:1]):
+        candidate = [[] for _ in range(len(metrics_name))]
+        cases     = []
+        for i, e in enumerate(diff_list):
+            # # if e.index(min(e[:3] + [1] + e[4:7])) != idx:
+            # if e[idx] > 1.0:
+            #     continue
+
+            for j in range(len(metrics_name)):
+                if e[j] == float("nan"):
+                    continue
+                candidate[j].append(e[j])
+            cases.append(i)
+            
+        print(f"--------<'{name.upper()}' BEST CASES>--------")
+        print(f"Total num: {len(cases)}/{len(diff_list)} ({len(cases) / len(diff_list) * 100:.2f}%)")
+        if len(cases) == 0:
+            print("==== NO CASES ====")
+            continue
+
+        perf_list = []
+        for c in cases:
+            perf_list.append(analysis[c][2])
+        mean_result = []
+        for cand in candidate:
+            mean_result.append(f"{np.mean(cand):.2f}")
+            # mean_result.append(f"{np.average(cand, weights=perf_list):.2f}")
+
+        # Print statistics
+        print(f"Perf max: {np.max(perf_list):.2f}x")
+        print(f"Perf min: {np.min(perf_list):.2f}x")
+        print(f"Perf avr: {np.mean(perf_list):.2f}x")
+        print(f"Perf std: {np.std(perf_list):.2f}")
+        print("==== STALL ====")
+        print(f" - MATH throttle stall: {mean_result[0]:>5s}x")
+        print(f" - LG throttle stall:   {mean_result[1]:>5s}x")
+        print(f" - MIO throttle stall:  {mean_result[2]:>5s}x")
+        print(f" - TEX throttle stall:  {mean_result[3]:>5s}x")
+        print(f" - MATH depend stall:   {mean_result[4]:>5s}x")
+        print(f" - LG depend stall:     {mean_result[5]:>5s}x")
+        print(f" - MIO depend stall:    {mean_result[6]:>5s}x")
+        print("==== MEMORY ====")
+        print(f" - L1/Tex Cache Hit:            {mean_result[7]:>5s}x")
+        print(f" - Shared Memory Bank Conflict: {mean_result[8]:>5s}x")
+
+        # Draw bfuse perf breakdown
+        title_font = {'fontsize': 5, 'fontweight': 'bold'}
+        # plt.title(f"{name}")
+        for i, cand in enumerate(candidate):
+            if i == 3: # Tex throttle
+                continue
+
+            if i < 3:
+                pi = i + 1
+            else:
+                pi = i
+            plt.subplot(math.ceil(len(metrics_name) / 3), 3, pi)
+            plt.title(f"{metrics_name[i]}", fontdict=title_font)
+            if i == 7:
+                plt.scatter(perf_list, cand, s=0.5**2, c="#FF7F00")
+            else:
+                plt.scatter(perf_list, cand, s=0.5**2)
+            plt.axhline(1, color="red", linestyle="--", linewidth=0.5)
+            if i == 8:
+                plt.ylim([0, 10])
+            # plt.ylim([0, 3])
+            plt.tick_params(axis='x', labelsize=5)
+            plt.tick_params(axis='y', labelsize=5)
+        
+        plt.subplot(math.ceil(len(metrics_name) / 3), 3, len(metrics_name))
+        plt.title("Histogram", fontdict=title_font)
+        plt.hist(perf_list, bins=100, linewidth=0.5, color="green")
+        plt.tick_params(axis='x', labelsize=5)
+        plt.tick_params(axis='y', labelsize=5)
+        plt.tight_layout()
+        # plt.savefig(f"figure/figure_1-{name}.png", dpi=500)
+        plt.savefig(f"figure/figure_1.png", dpi=500)
+        plt.close()
+
+        # Draw kernel1/2 breakdown
+        for i, m_name in enumerate(metrics_name):
+            if i == 3: # Tex throttle
+                continue
+
+            diffs  = []
+            for c in cases:
+                if i >= 0 and i < 4:
+                    # k1_inst = kernel1_list[c][9]
+                    # k2_inst = kernel2_list[c][9]
+                    k1_total = np.sum([e for e in (kernel1_list[c][:4] + kernel1_list[c][4:7] + kernel1_list[c][22:33])])
+                    k2_total = np.sum([e for e in (kernel2_list[c][:4] + kernel2_list[c][4:7] + kernel2_list[c][22:33])])
+                    value_1 = np.sum([e for e in kernel1_list[c][:4]]) / k1_total * 100
+                    value_2 = np.sum([e for e in kernel2_list[c][:4]]) / k2_total * 100
+                    # result  = abs(value_1 * k1_inst - value_2 * k2_inst)
+                    result  = abs(value_1 - value_2)
+                    diffs.append(result)
+                elif i >= 4 and i < 7:
+                    # k1_inst = kernel1_list[c][9]
+                    # k2_inst = kernel2_list[c][9]
+                    k1_total = np.sum([e for e in (kernel1_list[c][:4] + kernel1_list[c][4:7] + kernel1_list[c][22:33])])
+                    k2_total = np.sum([e for e in (kernel2_list[c][:4] + kernel2_list[c][4:7] + kernel2_list[c][22:33])])
+                    value_1 = np.sum([e for e in kernel1_list[c][4:7]]) / k1_total * 100
+                    value_2 = np.sum([e for e in kernel2_list[c][4:7]]) / k2_total * 100
+                    # result  = abs(value_1 * k1_inst - value_2 * k2_inst)
+                    result  = abs(value_1 - value_2)
+                    diffs.append(result)
+                elif i == 7:
+                    # value_1 = np.sum([e for e in kernel1_list[c][10:22]])
+                    # value_2 = np.sum([e for e in kernel2_list[c][10:22]])
+                    value_1 = kernel1_list[c][7]
+                    value_2 = kernel2_list[c][7]
+                    result  = abs(value_1 - value_2)
+                    diffs.append(result)
+                elif i == 8:
+                    value_1 = kernel1_list[c][8]
+                    value_1 = kernel2_list[c][8]
+                    result  = abs(value_1 - value_2)
+                    diffs.append(result)
+                else:
+                    logging.error("Unable to reach here..!")
+                    exit(1)
+
+            if i < 3:
+                pi = i + 1
+            else:
+                pi = i
+            plt.subplot(math.ceil(len(metrics_name) / 3), 3, pi)
+            plt.title(f"{m_name}", fontdict=title_font)
+            plt.scatter(perf_list, diffs, s=0.5**2)
+            plt.tick_params(axis='x', labelsize=5)
+            plt.tick_params(axis='y', labelsize=5)
+            if i != 8:
+                plt.ylim([0, 100])
+        
+        plt.subplot(math.ceil(len(metrics_name) / 3), 3, len(metrics_name))
+        plt.title("Histogram", fontdict=title_font)
+        plt.hist(perf_list, bins=100, linewidth=0.5, color="green")
+        plt.tick_params(axis='x', labelsize=5)
+        plt.tick_params(axis='y', labelsize=5)
+        plt.tight_layout()
+        # plt.savefig(f"figure/figure_2-{name}.png", dpi=500)
+        plt.savefig(f"figure/figure_2.png", dpi=500)
+        plt.close()
 #-----------------------------------------------------------------------------------------------
 def get_metrics_cond(infoYAML, name, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics):
     paralel, hfuse, bfuse, analysis = preprocess_by_cond(infoYAML, cond, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas)
@@ -805,7 +1107,7 @@ def analyze_report(infoYAML):
     # analyze_cond(infoYAML, "all", lambda x: True, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
 
     # Find pattern
-    pattern_cond(infoYAML, "all", lambda x: True, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
+    pattern_cond2(infoYAML, "all", lambda x: True, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)
 
     # # Draw boxplot all
     # draw_plot(infoYAML, kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas, kernel1_metrics, kernel2_metrics, hfuse_metrics, bfuse_metrics)

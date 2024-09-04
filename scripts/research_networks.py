@@ -4,6 +4,38 @@ import tvm
 from tvm import relay, auto_scheduler
 import tvm.relay.testing
 
+from huggingface_hub import login
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForMaskedLM
+import torch, onnx
+
+#-------------------------------------------------------------------------------#
+def download_network(name, batch_size, seq_len, dtype="float32"):
+    # Settings
+    access_token = "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"
+
+    # login huggingface
+    login(access_token)
+
+    # Input data
+    inputs = torch.ones(batch_size, seq_len, dtype=torch.int64)
+
+    if name.startswith("llama"):
+        # meta-llama/Meta-Llama-3-8B
+        tokenizer  = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B")
+        model      = AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B", torch_dtype=torch.float32)
+        model_name = "Meta-Llama-3-8B-%d-%d.onnx" % (batch_size, seq_len)
+    elif name.startswith("gpt"):
+        # openai-community/gpt2
+        tokenizer  = AutoTokenizer.from_pretrained("openai-community/gpt2")
+        model      = AutoModelForCausalLM.from_pretrained("openai-community/gpt2", torch_dtype=torch.float32)
+        model_name = "gpt2-%d-%d.onnx" % (batch_size, seq_len)
+    elif name.startswith("bert"):
+        # google-bert/bert-base-uncased
+        tokenizer  = AutoTokenizer.from_pretrained("google-bert/bert-base-uncased")
+        model      = AutoModelForMaskedLM.from_pretrained("google-bert/bert-base-uncased", torch_dtype=torch.float32)
+        model_name = "bet-base-uncased-%d-%d.onnx" % (batch_size, seq_len)
+
+    torch.onnx.export(model, inputs, model_name, False, input_names=["input_ids"])
 #-------------------------------------------------------------------------------#
 def get_network(name, batch_size, layout="NHWC", dtype="float32"):
     """Get the symbol definition and random weight of a network"""
@@ -75,12 +107,16 @@ def get_network(name, batch_size, layout="NHWC", dtype="float32"):
 def main():
 
     # Define the neural network and compilation target
-    network    = "inception_v3"
-    batch_size = 1024
+    # network    = "inception_v3"
+    network    = "bert"
+    # batch_size = 1024
+    batch_size = 8
     layout     = "NCHW"
     target     = tvm.target.Target("cuda")
     dtype      = "float32"
     file       = "%s.txt" % (network)
+    seq_len    = 512
+    download_network(network, batch_size, seq_len)
 
     #################################################################
     # Extract Search Tasks
@@ -93,14 +129,14 @@ def main():
     # latency of a task and :code:`weight[t]` is the weight of the task.
     # The task scheduler will just optimize this objective.
 
-    # Extract tasks from the network
-    print("Extract tasks...")
-    mod, params, input_shape, output_shape = get_network(network, batch_size, layout, dtype=dtype)
+    # # Extract tasks from the network
+    # print("Extract tasks...")
+    # mod, params, input_shape, output_shape = get_network(network, batch_size, layout, dtype=dtype)
 
-    with open(file, "w+") as f:
-        f.write(str(mod))
+    # with open(file, "w+") as f:
+    #     f.write(str(mod))
 
-    tasks, task_weights = auto_scheduler.extract_tasks(mod["main"], params, target)
+    # tasks, task_weights = auto_scheduler.extract_tasks(mod["main"], params, target)
 
     # with open(file, "w+") as f:
     #     for idx, task in enumerate(tasks):

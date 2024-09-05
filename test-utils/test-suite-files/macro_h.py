@@ -1,10 +1,10 @@
 import os, sys
 import logging
 
-tvm_kernels_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../")
+tvm_kernels_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../scripts")
 sys.path.append(tvm_kernels_module_path)
 
-import tvm_schedules
+from configure_kernels import get_bgemm_shape, get_conv2d_shape
 #-----------------------------------------------------------------------------------------------
 def get_shape_decl_str(infoYAML):
     # Parse YAML
@@ -13,7 +13,7 @@ def get_shape_decl_str(infoYAML):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(0)
 
     shape_decl_str = ""
@@ -23,13 +23,13 @@ def get_shape_decl_str(infoYAML):
         kargs = kernel_info[kname]
 
         if kname.startswith("bgemm"):
-            shape = tvm_schedules.get_bgemm_shape(*kargs)
+            shape = get_bgemm_shape(*kargs)
 
             shape_decl_str += f"static int kernel1_I_shape_{idx}[] = {{{shape[0][0]}, {shape[0][1]}, {shape[0][2]}, 1}};\n"
             shape_decl_str += f"static int kernel1_F_shape_{idx}[] = {{{shape[1][0]}, {shape[1][1]}, {shape[1][2]}, 1}};\n"
             shape_decl_str += f"static int kernel1_O_shape_{idx}[] = {{{shape[2][0]}, {shape[2][1]}, {shape[2][2]}, 1}};\n"
         elif kname.startswith("conv2d"):
-            shape = tvm_schedules.get_conv2d_shape(*kargs)
+            shape = get_conv2d_shape(*kargs)
 
             shape_decl_str += f"static int kernel1_I_shape_{idx}[] = {{{shape[0][0]}, {shape[0][1]}, {shape[0][2]}, {shape[0][3]}}};\n"
             shape_decl_str += f"static int kernel1_F_shape_{idx}[] = {{{shape[1][0]}, {shape[1][1]}, {shape[1][2]}, {shape[1][3]}}};\n"
@@ -45,13 +45,13 @@ def get_shape_decl_str(infoYAML):
         kargs = kernel_info[kname]
 
         if kname.startswith("bgemm"):
-            shape = tvm_schedules.get_bgemm_shape(*kargs)
+            shape = get_bgemm_shape(*kargs)
 
             shape_decl_str += f"static int kernel2_I_shape_{idx}[] = {{{shape[0][0]}, {shape[0][1]}, {shape[0][2]}, 1}};\n"
             shape_decl_str += f"static int kernel2_F_shape_{idx}[] = {{{shape[1][0]}, {shape[1][1]}, {shape[1][2]}, 1}};\n"
             shape_decl_str += f"static int kernel2_O_shape_{idx}[] = {{{shape[2][0]}, {shape[2][1]}, {shape[2][2]}, 1}};\n"
         elif kname.startswith("conv2d"):
-            shape = tvm_schedules.get_conv2d_shape(*kargs)
+            shape = get_conv2d_shape(*kargs)
 
             shape_decl_str += f"static int kernel2_I_shape_{idx}[] = {{{shape[0][0]}, {shape[0][1]}, {shape[0][2]}, {shape[0][3]}}};\n"
             shape_decl_str += f"static int kernel2_F_shape_{idx}[] = {{{shape[1][0]}, {shape[1][1]}, {shape[1][2]}, {shape[1][3]}}};\n"
@@ -70,7 +70,7 @@ def get_dim_decl_str(infoYAML, kernelsYAML):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(0)
 
     dim_decl_str = ""
@@ -103,7 +103,7 @@ def get_fuse_dim_decl_str(infoYAML, hfuseYAML, bfuseYAML):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(0)
 
     hfuse_kernels = []
@@ -145,7 +145,7 @@ def get_fuse_func_decl_str(infoYAML):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(0)
 
     kernels       = []
@@ -193,7 +193,7 @@ def get_kernel_macro_str(infoYAML):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(0)
 
     kernel_macro_str = ""
@@ -246,7 +246,7 @@ def get_fuse_macro_str(infoYAML):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(0)
 
     fuse_macro_str = ""

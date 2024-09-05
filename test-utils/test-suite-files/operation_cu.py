@@ -1,3 +1,5 @@
+import logging
+
 #-----------------------------------------------------------------------------------------------
 def get_kernel_exec_str(infoYAML):
     # Parse YAML
@@ -5,7 +7,7 @@ def get_kernel_exec_str(infoYAML):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(0)
 
     kernel1_exec_str = ""

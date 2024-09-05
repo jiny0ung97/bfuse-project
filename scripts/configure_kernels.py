@@ -45,7 +45,6 @@ def conv2d_module(N, H, W, CO, CI, KH, KW, strides, padding, dtype="float32"):
     weight = relax.Var("weight", relax.TensorStructInfo([CO, CI, KH, KW], dtype=dtype))
 
     BB = relax.BlockBuilder()
-    print(N, H, W, CO, CI, KH, KW, strides, padding, dtype)
     with BB.function("default_kernel", [x, weight]):
         gv = BB.emit_te(tvm.topi.nn.conv2d, x, weight, dilation=1, strides=strides, padding=padding)
         BB.emit_func_output(gv)

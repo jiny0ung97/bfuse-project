@@ -62,7 +62,7 @@ if __name__ == "__main__":
     with open(main_cc_path, "w+") as f:
         f.write(main_cc.get_main_cc(yaml_info))
     with open(Makefile_path, "w+") as f:
-        f.write(Makefile.get_Makefile_src())
+        f.write(Makefile.get_Makefile_src(yaml_info))
     with open(operation_cu_path, "w+") as f:
         f.write(operation_cu.get_operation_cu(yaml_info))
     with open(operation_h_path, "w+") as f:

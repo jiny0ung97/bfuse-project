@@ -94,17 +94,17 @@ if __name__ == "__main__":
     # cd ${test_suite_name} && make && cd ..
     print("[4/6] ========================= Make benchmark =========================")
     tmp_path = os.getcwd()
-    # command1 = ["sed", "-i", "s/arch=compute_70,code=sm_70/arch=compute_80,code=sm_80/g", "Makefile"]
+    command1 = ["sed", "-i", "s/arch=compute_70,code=sm_70/arch=compute_80,code=sm_80/g", "Makefile"]
     command2 = ["make"]
     try:
         os.chdir(output_path)
-        print("RUN: " + " ".join(command1))
-        result1 = subprocess.run(command1,
-                                 # stdout=subprocess.PIPE,
-                                 text=True,
-                                 check=True,
-                                 # timeout=10,
-                                 )
+        # print("RUN: " + " ".join(command1))
+        # result1 = subprocess.run(command1,
+        #                          # stdout=subprocess.PIPE,
+        #                          text=True,
+        #                          check=True,
+        #                          # timeout=10,
+        #                          )
         print("RUN: " + " ".join(command2))
         result2 = subprocess.run(command2,
                                  # stdout=subprocess.PIPE,
@@ -137,12 +137,12 @@ if __name__ == "__main__":
         exit(1)
 
     # Draw profile results
-    # ./draw_figure.py -o ${test_suite_name} ${test_suite_name}
+    # ./analyze_test_suite.py -i -o ${test_suite_name} ${test_suite_name}
     print("[6/6] ========================= Draw profile results =========================")
-    draw_figure_path = os.path.join(cur_path, "draw_figure.py")
+    draw_figure_path = os.path.join(cur_path, "analyze_test_suite.py")
     result_path      = os.path.join(output_path, "profile")
 
-    command = [draw_figure_path, "-o", result_path, output_path]
+    command = [draw_figure_path, "-i", "-o", result_path, output_path]
     try:
         print("RUN: " + " ".join(command))
         result = subprocess.run(command,

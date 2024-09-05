@@ -199,16 +199,24 @@ void bfuse(const string ProgName, const string FusionConfigPath,
     // 7. Save fused kernel's information
     // -----------------------------------------------------------------
     // Save fused kernel's information.
-    Results += Tool.getFuncStr();
+    // Results += Tool.getFuncStr();
+    string Result = Tool.getFuncStr();
     FusedKernelYAML[FContext.FusedKernelName_] = KernelInfo(FContext.FusedKernelName_,
                                                             true,
                                                             FContext.FusedGridDim_,
                                                             FContext.FusedBlockDim_,
                                                             32,
                                                             -1);
+    
+    string FileName = "";
+    for (auto &KName : Info.Kernels_) {
+      FileName += KName + "_";
+    }
+    FileName += "bfuse.cu";
+    utils::writeFile(OutputPath, FileName, Result);
   }
 
-  utils::writeFile(OutputPath, "bfuse_kernels.cu", Results);
+  // utils::writeFile(OutputPath, "bfuse_kernels.cu", Results);
   utils::writeYAMLInfo<map<string, KernelInfo>>(YAMLOutputPath, "bfuse_kernels.yaml", FusedKernelYAML);
 }
 //---------------------------------------------------------------------------
@@ -346,16 +354,24 @@ void hfuse(const string ProgName, const string FusionConfigPath,
     // 7. Save fused kernel's information
     // -----------------------------------------------------------------
     // Save fused kernel's information.
-    Results += Tool.getFuncStr();
+    // Results += Tool.getFuncStr();
+    string Result = Tool.getFuncStr();
     FusedKernelYAML[FContext.FusedKernelName_] = KernelInfo(FContext.FusedKernelName_,
                                                             true,
                                                             FContext.FusedGridDim_,
                                                             FContext.FusedBlockDim_,
                                                             32,
                                                             -1);
+
+    string FileName = "";
+    for (auto &KName : Info.Kernels_) {
+      FileName += KName + "_";
+    }
+    FileName += "hfuse.cu";
+    utils::writeFile(OutputPath, FileName, Result);
   }
 
-  utils::writeFile(OutputPath, "hfuse_kernels.cu", Results);
+  // utils::writeFile(OutputPath, "hfuse_kernels.cu", Results);
   utils::writeYAMLInfo<map<string, KernelInfo>>(YAMLOutputPath, "hfuse_kernels.yaml", FusedKernelYAML);
 }
 //---------------------------------------------------------------------------

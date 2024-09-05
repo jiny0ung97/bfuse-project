@@ -192,34 +192,40 @@ def preprocess_exec(infoYAML, exec_path):
                 kernel2_datas.append(data_mean)
         elif idx == 2:
             for kidx1 in range(kernel1_size):
-                for kidx2 in range(kernel2_size):
+                temp_list = []
+                for kidx2 in range(kidx1, kernel2_size):
                     file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
                     kname1    = fusion_sets[0]["Set"][kidx1]
                     kname2    = fusion_sets[1]["Set"][kidx2]
 
                     _, _, data_mean, _ = get_parallel_statistics(data, [kname1, kname2])
-                    parallel_datas.append(data_mean)
+                    temp_list.append(data_mean)
+                parallel_datas.append(temp_list)
         elif idx == 3:
             for kidx1 in range(kernel1_size):
-                for kidx2 in range(kernel2_size):
+                temp_list = []
+                for kidx2 in range(kidx1, kernel2_size):
                     file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
                     kname1    = fusion_sets[0]["Set"][kidx1]
                     kname2    = fusion_sets[1]["Set"][kidx2]
                     
                     _, _, data_mean, _ = get_single_statistics(data, f"{kname1}_{kname2}_fused_hfuse")
-                    hfuse_datas.append(data_mean)
+                    temp_list.append(data_mean)
+                hfuse_datas.append(temp_list)
         elif idx == 4:
             for kidx1 in range(kernel1_size):
-                for kidx2 in range(kernel2_size):
+                temp_list = []
+                for kidx2 in range(kidx1, kernel2_size):
                     file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
                     kname1    = fusion_sets[0]["Set"][kidx1]
                     kname2    = fusion_sets[1]["Set"][kidx2]
 
                     _, _, data_mean, _ = get_single_statistics(data, f"{kname1}_{kname2}_fused_bfuse")
-                    bfuse_datas.append(data_mean)
+                    temp_list.append(data_mean)
+                bfuse_datas.append(temp_list)
 
     return kernel1_datas, kernel2_datas, parallel_datas, hfuse_datas, bfuse_datas
 #-----------------------------------------------------------------------------------------------
@@ -359,7 +365,7 @@ def preprocess_metrics(infoYAML, metrics_path):
     # BFuse
     for i1 in range(kernel1_size):
         temp_list = []
-        for i2 in range(kernel2_size):
+        for i2 in range(i1, kernel2_size):
             report_path = os.path.join(metrics_path, f"4_{i1}_{i2}.ncu-rep")
             ncu_context = ncu_report.load_report(report_path)
             ncu_range   = ncu_context.range_by_idx(0)
@@ -391,11 +397,11 @@ def collect_datas_with_condition(infoYAML, exec_path, metrics_path, condition, i
     bfuse    = []
 
     for i1 in range(kernel1_size):
-        for i2 in range(kernel2_size):
+        for i2 in range(i1, kernel2_size):
             serial_data   = kernel1_exec[i1] + kernel2_exec[i2]
-            parallel_data = serial_data / parallel_exec[i1 * kernel2_size + i2]
-            hfuse_data    = serial_data / hfuse_exec[i1 * kernel2_size + i2]
-            bfuse_data    = serial_data / bfuse_exec[i1 * kernel2_size + i2]
+            parallel_data = serial_data / parallel_exec[i1][i2]
+            hfuse_data    = serial_data / hfuse_exec[i1][i2]
+            bfuse_data    = serial_data / bfuse_exec[i1][i2]
 
             if not condition(bfuse_data):
                 continue
@@ -447,7 +453,7 @@ def collect_datas_with_condition(infoYAML, exec_path, metrics_path, condition, i
             kernel2.append({"exec": kernel2_exec[i2], "metrics": kernel2_metrics[i2]})
             # parallel.append({"exec": parallel_exec[i1 * kernel2_size + i2], "metrics": parallel_metrics[i1 * kernel2_size + i2]})
             # hfuse.append({"exec": hfuse_exec[i1 * kernel2_size + i2], "metrics": hfuse_metrics[i1 * kernel2_size + i2]})
-            bfuse.append({"exec": bfuse_exec[i1 * kernel2_size + i2], "metrics": bfuse_metrics[i1][i2]})
+            bfuse.append({"exec": bfuse_exec[i1][i2], "metrics": bfuse_metrics[i1][i2]})
 
     return cases, kernel1, kernel2, parallel, hfuse, bfuse
 #-----------------------------------------------------------------------------------------------

@@ -17,7 +17,7 @@ def get_valid_commands(infoYAML, benchmark_path):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(1)
 
     kernel1_size   = len(fusion_sets[0]["Set"])
@@ -53,7 +53,7 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(1)
 
     kernel1_size   = len(fusion_sets[0]["Set"])
@@ -64,21 +64,20 @@ def get_metrics_commands(infoYAML, benchmark_path, metrics_path):
     common_command   = ["ncu", "--set", "full", "-o"]
 
     for idx, test_name in enumerate(test_methology):
-        # if idx == 0:
-        #     for kidx in range(kernel1_size):
-        #         file_path = os.path.join(metrics_path, f"{idx}_{kidx}_0")
-        #         command   = common_command + [file_path]
-        #         command   = command + [benchmark_path, "-n", str(metrics_trials), str(idx), str(kidx), "0"]
-        #         metrics_commands.append(command)
-        # if idx == 1:
-        #     for kidx in range(kernel2_size):
-        #         file_path = os.path.join(metrics_path, f"{idx}_0_{kidx}")
-        #         command   = common_command + [file_path]
-        #         command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), "0", str(kidx)]
-        #         metrics_commands.append(command)
-        # if idx == 4:
-        if idx == 3:
-            for kidx1 in range(4, kernel1_size):
+        if idx == 0:
+            for kidx in range(kernel1_size):
+                file_path = os.path.join(metrics_path, f"{idx}_{kidx}_0")
+                command   = common_command + [file_path]
+                command   = command + [benchmark_path, "-n", str(metrics_trials), str(idx), str(kidx), "0"]
+                metrics_commands.append(command)
+        if idx == 1:
+            for kidx in range(kernel2_size):
+                file_path = os.path.join(metrics_path, f"{idx}_0_{kidx}")
+                command   = common_command + [file_path]
+                command = command + [benchmark_path, "-n", str(metrics_trials), str(idx), "0", str(kidx)]
+                metrics_commands.append(command)
+        if idx == 4:
+            for kidx1 in range(kernel1_size):
                 for kidx2 in range(kidx1, kernel2_size):
                     file_path = os.path.join(metrics_path, f"{idx}_{kidx1}_{kidx2}")
                     command   = common_command + [file_path]
@@ -94,7 +93,7 @@ def get_exec_commands(infoYAML, benchmark_path, exec_path):
 
     # Check the given sets are valid
     if len(fusion_sets) != 2:
-        loggging.error("Number of fusion sets are only 2.")
+        logging.error("Number of fusion sets are only 2.")
         exit(1)
 
     kernel1_size   = len(fusion_sets[0]["Set"])
@@ -130,7 +129,7 @@ def get_exec_commands(infoYAML, benchmark_path, exec_path):
                 exec_commands.append([command1, command2, command3])
         if idx == 2 or idx == 3 or idx == 4:
             for kidx1 in range(kernel1_size):
-                for kidx2 in range(kernel2_size):
+                for kidx2 in range(kidx1, kernel2_size):
                     file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}")
                     command1  = common_command1 + [file_path]
                     command1  = command1 + [benchmark_path, "-n", str(exec_trials), str(idx), str(kidx1), str(kidx2)]

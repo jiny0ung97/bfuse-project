@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForMasked
 import torch, onnx
 
 #-------------------------------------------------------------------------------#
-def download_network(name, batch_size, seq_len, dtype="float32"):
+def download_network(name, batch_size, seq_len=512, dtype="float32"):
     # Settings
     access_token = "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"
 
@@ -19,7 +19,7 @@ def download_network(name, batch_size, seq_len, dtype="float32"):
     # Input data
     inputs = torch.ones(batch_size, seq_len, dtype=torch.int64)
 
-    if name.startswith("llama"):
+    if name.startswith("Meta-Llama-"):
         # meta-llama/Meta-Llama-3-8B
         tokenizer  = AutoTokenizer.from_pretrained("meta-llama/Meta-Llama-3-8B")
         model      = AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B", torch_dtype=torch.float32)
@@ -29,15 +29,15 @@ def download_network(name, batch_size, seq_len, dtype="float32"):
         tokenizer  = AutoTokenizer.from_pretrained("openai-community/gpt2")
         model      = AutoModelForCausalLM.from_pretrained("openai-community/gpt2", torch_dtype=torch.float32)
         model_name = "gpt2-%d-%d.onnx" % (batch_size, seq_len)
-    elif name.startswith("bert"):
+    elif name.startswith("bert-"):
         # google-bert/bert-base-uncased
         tokenizer  = AutoTokenizer.from_pretrained("google-bert/bert-base-uncased")
         model      = AutoModelForMaskedLM.from_pretrained("google-bert/bert-base-uncased", torch_dtype=torch.float32)
-        model_name = "bet-base-uncased-%d-%d.onnx" % (batch_size, seq_len)
+        model_name = "bert-base-uncased-%d-%d.onnx" % (batch_size, seq_len)
 
     torch.onnx.export(model, inputs, model_name, False, input_names=["input_ids"])
 #-------------------------------------------------------------------------------#
-def get_network(name, batch_size, layout="NHWC", dtype="float32"):
+def get_network(name, batch_size, seq_len=512, layout="NHWC", dtype="float32"):
     """Get the symbol definition and random weight of a network"""
 
     # auto-scheduler prefers NHWC layout
@@ -94,6 +94,13 @@ def get_network(name, batch_size, layout="NHWC", dtype="float32"):
             dtype=dtype,
             image_shape=image_shape,
         )
+    elif name.startswith("Meta-Llama-") or name.startswith("gpt") or name.startswith("bert-"):
+        onnx_path  = "%s-%d-%d.onnx" % (name, batch_size, seq_len)
+        onnx_model = onnx.load(onnx_path)
+
+        input_name = "input_ids"
+        shape_dict = {input_name: (batch_size, seq_len)}
+        mod, params = tvm.relay.frontend.from_onnx(onnx_model, shape_dict)
     # elif name.startswith("unet-"):
     #     n_layer = int(name.split("-")[1])
     #     shape   = (1,1,256,256)
@@ -107,16 +114,22 @@ def get_network(name, batch_size, layout="NHWC", dtype="float32"):
 def main():
 
     # Define the neural network and compilation target
-    # network    = "inception_v3"
-    network    = "bert"
+    network    = "resnet-18"
+    # network    = "Meta-Llama-3-8B"
+    # network    = "gpt2"
+    # network    = "bert-base-uncased"
     # batch_size = 1024
-    batch_size = 8
+    batch_size = 1
     layout     = "NCHW"
     target     = tvm.target.Target("cuda")
     dtype      = "float32"
     file       = "%s.txt" % (network)
     seq_len    = 512
-    download_network(network, batch_size, seq_len)
+
+    #################################################################
+    # Download LLM Models
+    # --------------------    
+    # download_network(network, batch_size)
 
     #################################################################
     # Extract Search Tasks
@@ -129,12 +142,12 @@ def main():
     # latency of a task and :code:`weight[t]` is the weight of the task.
     # The task scheduler will just optimize this objective.
 
-    # # Extract tasks from the network
-    # print("Extract tasks...")
-    # mod, params, input_shape, output_shape = get_network(network, batch_size, layout, dtype=dtype)
+    # Extract tasks from the network
+    print("Extract tasks...")
+    mod, params, input_shape, output_shape = get_network(network, batch_size, seq_len, layout, dtype=dtype)
 
-    # with open(file, "w+") as f:
-    #     f.write(str(mod))
+    with open(file, "w+") as f:
+        f.write(str(mod))
 
     # tasks, task_weights = auto_scheduler.extract_tasks(mod["main"], params, target)
 

@@ -1,58 +1,101 @@
 #!/usr/bin/python3
 
+import tvm
+from tvm import auto_scheduler
+
 import yaml, json
 import os, sys
 import argparse
 import numpy as np
 import logging
 
-import tvm
-from tvm import relax
-from tvm import dlight as dl
+tvm_kernels_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test-utils")
+sys.path.append(tvm_kernels_module_path)
+
+import tvm_schedules
+
+# #-------------------------- TEMP ----------------------------------
+# from tvm import te
+# from tvm import topi
+# #-----------------------------------------------------------------------------------------------
+# @auto_scheduler.register_workload
+# def bgemm_workload(batch_size, M, K, N):
+#     A   = te.placeholder((batch_size, M, K), name="A")
+#     B   = te.placeholder((batch_size, N, K), name="B")
+
+#     with tvm.target.Target("cuda"):
+#         out = topi.cuda.batch_matmul(A, B, (batch_size, M, N), "float32", False, True)
+
+#     return A, B, out
+# #-----------------------------------------------------------------------------------------------
+# @auto_scheduler.register_workload
+# def conv2d_workload(N, H, W, CO, CI, KH, KW, stride, padding):
+#     data   = te.placeholder((N, CI, H, W), name="data")
+#     kernel = te.placeholder((CO, CI, KH, KW), name="kernel")
+
+#     with tvm.target.Target("cuda"):
+#         out = topi.cuda.conv2d_nchw(data, kernel, stride, padding, 1 ,"float32")
+
+#     return data, kernel, out
+# #-------------------------- TEMP ----------------------------------
 
 #-----------------------------------------------------------------------------------------------
-def get_bgemm_shape(batch_size, M, K, N):
-    bgemm_A_shape      = (batch_size, M, K)
-    bgemm_B_shape      = (batch_size, N, K)
-    bgemm_output_shape = (batch_size, M, N)
-    
-    return (bgemm_A_shape, bgemm_B_shape, bgemm_output_shape)
-#-----------------------------------------------------------------------------------------------
-def get_conv2d_shape(N, H, W, CO, CI, KH, KW, stride, padding):
-    conv2d_data_shape   = (N, CI, H, W)
-    conv2d_kernel_shape = (CO, CI, KH, KW)
-    conv2d_output_shape = (N, CO,
-                           int((H - KH + 2 * padding) / stride) + 1,
-                           int((W - KW + 2 * padding) / stride) + 1)
-    # conv2d_output_shape = (N, CO,
-    #                        int((H - KH + 2 * padding[0]) / strides[0]) + 1,
-    #                        int((W - KW + 2 * padding[1]) / strides[1]) + 1)
-    
-    return (conv2d_data_shape, conv2d_kernel_shape, conv2d_output_shape)
-#-----------------------------------------------------------------------------------------------
-def batch_matmul_module(batch_size, M, K, N, dtype="float32"):
-    a = relax.Var("a", relax.TensorStructInfo([batch_size, M, K], dtype=dtype))
-    b = relax.Var("b", relax.TensorStructInfo([batch_size, N, K], dtype=dtype))
+# Tuning trials
+trials = 900
 
-    BB = relax.BlockBuilder()
-    with BB.function("default_kernel", [a, b]):
-        gv = BB.emit_te(tvm.topi.nn.batch_matmul, a, b, out_dtype=dtype)
-        BB.emit_func_output(gv)
-    return BB.get()
-#-----------------------------------------------------------------------------------------------
-def conv2d_module(N, H, W, CO, CI, KH, KW, strides, padding, dtype="float32"):
-    x      = relax.Var("x", relax.TensorStructInfo([N, CI, H, W], dtype=dtype))
-    weight = relax.Var("weight", relax.TensorStructInfo([CO, CI, KH, KW], dtype=dtype))
-
-    BB = relax.BlockBuilder()
-    print(N, H, W, CO, CI, KH, KW, strides, padding, dtype)
-    with BB.function("default_kernel", [x, weight]):
-        gv = BB.emit_te(tvm.topi.nn.conv2d, x, weight, dilation=1, strides=strides, padding=padding)
-        BB.emit_func_output(gv)
-    return BB.get()
-#-----------------------------------------------------------------------------------------------
 # Temporal variables
 threads_info = [1, 1, 1, 1, 1, 1]
+#-----------------------------------------------------------------------------------------------
+def auto_tuning(func, args, log_file):
+    # Target
+    target = tvm.target.Target("cuda")
+
+    # Extract search tasks
+    print("Search tasks...")
+    task = tvm.auto_scheduler.SearchTask(func=func,
+                                         args=args,
+                                         target=target,
+                                        )
+
+    # Begin tuning
+    print("Begin tuning...")
+    tune_option = auto_scheduler.TuningOptions(
+        num_measure_trials=trials,
+        measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
+        verbose=2,
+    )
+    # tune_option = auto_scheduler.TuningOptions(
+    #     num_measure_trials=trials,
+    #     runner=auto_scheduler.RPCRunner("A6000", "127.0.0.1", 9190),
+    #     measure_callbacks=[auto_scheduler.RecordToFile(log_file)],
+    #     verbose=2,
+    # )
+    # task.tune(tune_option)
+
+    return task
+#-----------------------------------------------------------------------------------------------
+def evaluation(func, data_shapes):
+    # Target
+    target = tvm.target.Target("cuda")
+
+    # Parameters
+    A_shape      = data_shapes[0]
+    B_shape      = data_shapes[1]
+    output_shape = data_shapes[2]
+
+    a_np = np.random.uniform(size=A_shape).astype(np.float32)
+    b_np = np.random.uniform(size=B_shape).astype(np.float32)
+
+    dev   = tvm.device(str(target))
+    a_tvm = tvm.nd.array(a_np, device=dev)
+    b_tvm = tvm.nd.array(b_np, device=dev)
+    c_tvm = tvm.nd.empty(output_shape, device=dev)
+
+    # Evaluate execution time.
+    # evaluator = func.time_evaluator(func.entry_name, dev, min_repeat_ms=10)
+    evaluator = func.time_evaluator(func.entry_name, dev, number=1, repeat=1)
+
+    return np.median(evaluator(a_tvm, b_tvm, c_tvm).results) * 1000
 #-----------------------------------------------------------------------------------------------
 def extract_threads_info(op):
     global threads_info
@@ -82,54 +125,14 @@ def extract_threads_info_callback(f, mod, ctx):
     tvm.tir.stmt_functor.post_order_visit(f.body, extract_threads_info)
     return f
 #-----------------------------------------------------------------------------------------------
-def compile_module(mod, target, callback_list):
-    # Apply DLight rules
-    with target:
-        mod = tvm.ir.transform.Sequential(
-            [
-                relax.get_pipeline("zero"),
-                dl.ApplyDefaultSchedule(  # pylint: disable=not-callable
-                    dl.gpu.Matmul(),
-                    dl.gpu.GEMV(),
-                    dl.gpu.Reduction(),
-                    dl.gpu.GeneralReduction(),
-                    dl.gpu.Fallback(),
-                ),
-            ]
-        )(mod)
+def get_cuda_code(sch, args):
+    # Target
+    target = tvm.target.Target("cuda")
 
-    builder  = relax.ExecBuilder()
-    pipeline = relax.get_pipeline("default_build")
+    # Get auto-tuned kernel code
+    mod = tvm.build(sch, args, target=target)
 
-    with target:
-        mod = pipeline(mod)
-    mod = relax.vm_build._vmcodegen(builder, mod, "bytecode")
-
-    tir_mod = relax.vm_build._filter_tir(mod)
-    with tvm.transform.PassContext(opt_level=3, config={"tir.add_lower_pass": callback_list}):
-        lib = tvm.build(tir_mod, target=target, runtime=relax.vm_build._autodetect_system_lib_req(target, system_lib=None))
-
-    return lib
-#-----------------------------------------------------------------------------------------------
-def evaluation(mod, data_shapes, target_name="cuda", target_id=0):
-    exec = relax.build(mod, target="cuda")
-    dev  = tvm.device(target_name, target_id)
-    vm   = relax.VirtualMachine(exec, dev)
-
-    # Need to allocate data and params on GPU device
-    A_shape      = data_shapes[0]
-    B_shape      = data_shapes[1]
-    output_shape = data_shapes[2]
-
-    a_np  = np.random.uniform(size=A_shape).astype(np.float32)
-    b_np  = np.random.uniform(size=B_shape).astype(np.float32)
-    a_tvm = tvm.nd.array(a_np, device=dev)
-    b_tvm = tvm.nd.array(b_np, device=dev)
-
-    gpu_out = vm["main"](a_tvm, b_tvm).numpy()
-
-    # TODO: need to collect duration metric
-    return 0
+    return str(mod.imported_modules[0].get_source())
 #-----------------------------------------------------------------------------------------------
 def get_fusion_info(fusion_sets):
     kernel_list = fusion_sets[0]["Set"] + fusion_sets[1]["Set"]
@@ -146,7 +149,7 @@ def get_fusion_info(fusion_sets):
 
     return kernel_list, fusion_info
 #-----------------------------------------------------------------------------------------------
-def get_kernel_info(kernel_list, infos, test_suite_path, eval):
+def get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning):
     global threads_info
 
     kernel_info = {}
@@ -158,36 +161,50 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval):
         log_file = os.path.join(test_suite_path, "log", f"{kname}.json")
 
         if kname.startswith("bgemm"):
-            shape = get_bgemm_shape(*kargs)
-            mod   = batch_matmul_module(*kargs)
+            shape = tvm_schedules.get_bgemm_shape(*kargs)
+            if tuning:
+                task      = auto_tuning(tvm_schedules.bgemm_workload, kargs, log_file)
+                # task      = auto_tuning(bgemm_workload, kargs, log_file)
+                sch, args = task.apply_best(log_file)
+            else:
+                sch, args = tvm_schedules.cuda_schedule_bgemm(*kargs)
         elif kname.startswith("conv2d"):
-            shape = get_conv2d_shape(*kargs)
-            mod   = conv2d_module(*kargs)
+            shape = tvm_schedules.get_conv2d_shape(*kargs)
+            if tuning:
+                task      = auto_tuning(tvm_schedules.conv2d_workload, kargs, log_file)
+                # task      = auto_tuning(conv2d_workload, kargs, log_file)
+                sch, args = task.apply_best(log_file)
+            else:
+                sch, args = tvm_schedules.cuda_schedule_conv2d(*kargs)
         else:
             logging.ERROR("Function and schedule with given kernel's name do not exist.")
             exit(1)
 
-        # Compile tvm IRModule
+        # Build & analysis kernel
         target = tvm.target.Target("cuda")
-        lib = compile_module(mod, target=target, callback_list=[(1, extract_threads_info_callback)])
-
-        # Get CUDA code
-        code = str(lib.imported_modules[0].get_source())
-        idx  = code.rfind("extern \"C\" __global__")
-        if kname.startswith("bgemm"):
-            code = code[idx:].replace("batch_matmul_kernel", kname)
-        elif kname.startswith("conv2d"):
-            code = code[idx:].replace("conv2d_kernel", kname)
-
-        cuda_code = cuda_code + code
+        if tuning:
+            with auto_scheduler.ApplyHistoryBest(log_file):
+                with tvm.transform.PassContext(opt_level=3, config={"relay.backend.use_auto_scheduler": True,
+                                                                    "tir.add_lower_pass": [(1, extract_threads_info_callback)]}):
+                    func = tvm.build(sch, args, target)
+        else:
+            with tvm.transform.PassContext(opt_level=3, config={"tir.add_lower_pass": [(1, extract_threads_info_callback)]}):
+                func = tvm.build(sch, args, target)
 
         # Store kernel's thread infomation
         kernel_info[kname] = threads_info
+
+        # Get CUDA code
+        code = get_cuda_code(sch, args)
+        idx  = code.rfind("extern \"C\" __global__")
+        code = code[idx:]
+
+        code      = code.replace("default_function_kernel", kname)
+        cuda_code = cuda_code + code
     
         # Evaluate kernel if needed
         if eval:
-            logging.warning("Evaluation is not yet implemented")
-            print("Execution time of %s operator: %.3f ms" % (kname, evaluation(mod, shape)))
+            print("Execution time of %s operator: %.3f ms" % (kname, evaluation(func, shape)))
 
     return kernel_info, cuda_code
 #-----------------------------------------------------------------------------------------------
@@ -204,13 +221,14 @@ def get_compile_commands(test_suite_cuda_path, file):
 
     return compile_commands_json
 #-----------------------------------------------------------------------------------------------
-def get_test_suite(path, output, eval=True):
+def get_test_suite(path, output, eval=True, tuning=False):
     # Settings
     # test_suite_name = ".".join(path.split("/")[-1].split(".")[:-1])
     test_suite_name        = output
     test_suite_path        = os.path.join(os.getcwd(), test_suite_name)
     test_suite_cuda_path   = os.path.join(test_suite_path, "cuda")
     test_suite_config_path = os.path.join(test_suite_path, "config")
+    test_suite_log_path    = os.path.join(test_suite_path, "log")
 
     # Generate test suite directory
     if os.path.exists(test_suite_path):
@@ -220,6 +238,8 @@ def get_test_suite(path, output, eval=True):
     os.mkdir(test_suite_path)
     os.mkdir(test_suite_cuda_path)
     os.mkdir(test_suite_config_path)
+    if tuning:
+        os.mkdir(test_suite_log_path)
 
     # Parse YAML files
     with open(path) as f:
@@ -232,7 +252,7 @@ def get_test_suite(path, output, eval=True):
     kernel_list, fusion_info = get_fusion_info(sets)
 
     # Get kernel info & CUDA kernel code
-    kernel_info, cuda_code = get_kernel_info(kernel_list, infos, test_suite_path, eval)
+    kernel_info, cuda_code = get_kernel_info(kernel_list, infos, test_suite_path, eval, tuning)
 
     # Get compile commands
     file = "kernels.cu"
@@ -307,6 +327,8 @@ if __name__ == "__main__":
     parser.add_argument("config", action="store", help="config file path for generate test suite")
     parser.add_argument("-e", action="store_true", default=False, dest="eval",
                         help="run evaluation with test suite kernels")
+    parser.add_argument("-t", action="store_true", default=False, dest="tuning",
+                        help="use auto-tuning to generate test suite (a.k.a Ansor)")
     parser.add_argument("-o", action="store", default="test-suite", dest="file",
                         help="output file name of generated test-suite")
 
@@ -315,10 +337,11 @@ if __name__ == "__main__":
     config = args.config
     output = args.file
     eval   = args.eval
+    tuning = args.tuning
     
     if not os.path.exists(config):
         logging.error("Given config path \"%s\" doesn't exist." % config)
         exit(1)
 
-    get_test_suite(config, output, eval)
+    get_test_suite(config, output, eval=eval, tuning=tuning)
 #-----------------------------------------------------------------------------------------------

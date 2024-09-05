@@ -30,7 +30,8 @@ RUN apt-get update -y
 RUN apt-get install -y python3 python3-dev python3-setuptools gcc libtinfo-dev zlib1g-dev build-essential ninja-build libedit-dev libxml2-dev git
 
 WORKDIR /root
-RUN git clone --recursive https://github.com/apache/tvm tvm
+# RUN git clone --recursive https://github.com/apache/tvm tvm
+RUN git clone --recursive https://github.com/LeiWang1999/tvm.git tvm
 
 WORKDIR /root/tvm
 RUN mkdir build
@@ -51,7 +52,7 @@ RUN apt-get install -y python3-pip
 RUN pip3 install --user numpy decorator attrs
 RUN pip3 install --user typing-extensions psutil scipy
 RUN pip3 install --user tornado psutil 'xgboost>=1.1.0' cloudpickle
-RUN pip3 install --user pytest
+RUN pip3 install --user pytest pygments>=2.4.0
 
 # Modify tvm (force to unroll explicitly)
 RUN sed -i "s/cfg\[\"unroll_explicit\"\].val/True/g" /root/tvm/python/tvm/topi/cuda/batch_matmul.py
@@ -67,7 +68,6 @@ RUN cmake --build build
 
 # Install bfuse-project python package
 RUN pip3 install --user pyyaml matplotlib scipy
-RUN pip3 install --user huggingface_hub torch
 
 # Install NVIDIA Nsight Systems
 RUN apt update

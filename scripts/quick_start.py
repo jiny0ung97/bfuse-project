@@ -140,7 +140,7 @@ if __name__ == "__main__":
     # ./analyze_test_suite.py -i -o ${test_suite_name} ${test_suite_name}
     print("[6/6] ========================= Draw profile results =========================")
     draw_figure_path = os.path.join(cur_path, "analyze_test_suite.py")
-    result_path      = os.path.join(output_path, "profile")
+    result_path      = os.path.join(output_path, "profile/figure")
 
     command = [draw_figure_path, "-i", "-o", result_path, output_path]
     try:

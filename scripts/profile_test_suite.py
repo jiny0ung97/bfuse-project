@@ -8,7 +8,7 @@ import subprocess
 #-----------------------------------------------------------------------------------------------
 # Settings
 metrics_trials = 1
-exec_trials    = 30
+exec_trials    = 3 + 30 # include 3 of warmups
 #-----------------------------------------------------------------------------------------------
 def get_valid_commands(infoYAML, benchmark_path):
     # Parse YAML
@@ -40,7 +40,7 @@ def get_valid_commands(infoYAML, benchmark_path):
                 valid_commands.append(command)
         if idx == 2 or idx == 3 or idx == 4:
             for kidx1 in range(kernel1_size):
-                for kidx2 in range(kernel2_size):
+                for kidx2 in range(kidx1, kernel2_size):
                     command = common_command + [str(idx), str(kidx1), str(kidx2)]
                     valid_commands.append(command)
     
@@ -198,6 +198,10 @@ def get_profile_data(infoYAML, benchmark_path, profile_path, valid=False, profil
                 except subprocess.CalledProcessError as e:
                     logging.error("Error occurs while profiling executions.")
                     exit(1)
+
+    # Make figure dir
+    figure_path = os.path.join(profile_path, "figure")
+    os.mkdir(figure_path)
 #-----------------------------------------------------------------------------------------------
 if __name__ == "__main__":
 

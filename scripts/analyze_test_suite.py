@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import ncu_report
 #-----------------------------------------------------------------------------------------------
 # Settings
-warmup_trials  = 0
+warmup_trials  = 3
 metrics_trials = 1
 exec_trials    = 30
 

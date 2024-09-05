@@ -17,10 +17,11 @@ def get_kernel_exec_str(infoYAML):
     kernel1_exec_str += "  {\n"
     for idx, kname in enumerate(fusion_sets[0]["Set"]):
         kernel1_exec_str += f"  case {idx}:\n"
-        if kname.startswith("bgemm"):
-            kernel1_exec_str += "    func<<<GridDim, BlockDim>>>(I1_gpu, F1_gpu, O1_gpu);\n"
-        elif kname.startswith("conv2d"):
-            kernel1_exec_str += "    func<<<GridDim, BlockDim>>>(O1_gpu, I1_gpu, F1_gpu);\n"
+        # if kname.startswith("bgemm"):
+        #     kernel1_exec_str += "    func<<<GridDim, BlockDim>>>(I1_gpu, F1_gpu, O1_gpu);\n"
+        # elif kname.startswith("conv2d"):
+        #     kernel1_exec_str += "    func<<<GridDim, BlockDim>>>(O1_gpu, I1_gpu, F1_gpu);\n"
+        kernel1_exec_str += "    func<<<GridDim, BlockDim>>>(I1_gpu, F1_gpu, O1_gpu);\n"
         kernel1_exec_str += "    break;\n"
     kernel1_exec_str += "  }\n"
 
@@ -31,10 +32,11 @@ def get_kernel_exec_str(infoYAML):
     kernel2_exec_str += "  {\n"
     for idx, kname in enumerate(fusion_sets[1]["Set"]):
         kernel2_exec_str += f"  case {idx}:\n"
-        if kname.startswith("bgemm"):
-            kernel2_exec_str += "    func<<<GridDim, BlockDim>>>(I2_gpu, F2_gpu, O2_gpu);\n"
-        elif kname.startswith("conv2d"):
-            kernel2_exec_str += "    func<<<GridDim, BlockDim>>>(O2_gpu, I2_gpu, F2_gpu);\n"
+        # if kname.startswith("bgemm"):
+        #     kernel2_exec_str += "    func<<<GridDim, BlockDim>>>(I2_gpu, F2_gpu, O2_gpu);\n"
+        # elif kname.startswith("conv2d"):
+        #     kernel2_exec_str += "    func<<<GridDim, BlockDim>>>(O2_gpu, I2_gpu, F2_gpu);\n"
+        kernel2_exec_str += "    func<<<GridDim, BlockDim>>>(I2_gpu, F2_gpu, O2_gpu);\n"
         kernel2_exec_str += "    break;\n"
     kernel2_exec_str += "  }\n"
 
@@ -49,14 +51,16 @@ def get_kernel_exec_str(infoYAML):
         parallel_exec_str += "    {\n"
         for idx2, kname2 in enumerate(fusion_sets[1]["Set"]):
             parallel_exec_str += f"    case {idx2}:\n"
-            if kname1.startswith("bgemm"):
-                parallel_exec_str += "      func1<<<GridDim1, BlockDim1, 0, S1>>>(I1_gpu, F1_gpu, O1_gpu);\n"
-            elif kname1.startswith("conv2d"):
-                parallel_exec_str += "      func1<<<GridDim1, BlockDim1, 0, S1>>>(O1_gpu, I1_gpu, F1_gpu);\n"
-            if kname2.startswith("bgemm"):
-                parallel_exec_str += "      func2<<<GridDim2, BlockDim2, 0, S2>>>(I2_gpu, F2_gpu, O2_gpu);\n"
-            elif kname2.startswith("conv2d"):
-                parallel_exec_str += "      func2<<<GridDim2, BlockDim2, 0, S2>>>(O2_gpu, I2_gpu, F2_gpu);\n"
+            # if kname1.startswith("bgemm"):
+            #     parallel_exec_str += "      func1<<<GridDim1, BlockDim1, 0, S1>>>(I1_gpu, F1_gpu, O1_gpu);\n"
+            # elif kname1.startswith("conv2d"):
+            #     parallel_exec_str += "      func1<<<GridDim1, BlockDim1, 0, S1>>>(O1_gpu, I1_gpu, F1_gpu);\n"
+            parallel_exec_str += "      func1<<<GridDim1, BlockDim1, 0, S1>>>(I1_gpu, F1_gpu, O1_gpu);\n"
+            # if kname2.startswith("bgemm"):
+            #     parallel_exec_str += "      func2<<<GridDim2, BlockDim2, 0, S2>>>(I2_gpu, F2_gpu, O2_gpu);\n"
+            # elif kname2.startswith("conv2d"):
+            #     parallel_exec_str += "      func2<<<GridDim2, BlockDim2, 0, S2>>>(O2_gpu, I2_gpu, F2_gpu);\n"
+            parallel_exec_str += "      func2<<<GridDim2, BlockDim2, 0, S2>>>(I2_gpu, F2_gpu, O2_gpu);\n"
             parallel_exec_str += "      break;\n"
         parallel_exec_str += "    }\n"
         parallel_exec_str += "    break;\n"
@@ -73,14 +77,16 @@ def get_kernel_exec_str(infoYAML):
         fuse_exec_str += "    {\n"
         for idx2, kname2 in enumerate(fusion_sets[1]["Set"]):
             fuse_exec_str += f"    case {idx2}:\n"
-            if kname1.startswith("bgemm"):
-                fuse_exec_str += "      func<<<GridDim, BlockDim>>>(I1_gpu, F1_gpu, O1_gpu, "
-            elif kname1.startswith("conv2d"):
-                fuse_exec_str += "      func<<<GridDim, BlockDim>>>(O1_gpu, I1_gpu, F1_gpu, "
-            if kname2.startswith("bgemm"):
-                fuse_exec_str += "I2_gpu, F2_gpu, O2_gpu);\n"
-            elif kname2.startswith("conv2d"):
-                fuse_exec_str += "O2_gpu, I2_gpu, F2_gpu);\n"
+            # if kname1.startswith("bgemm"):
+            #     fuse_exec_str += "      func<<<GridDim, BlockDim>>>(I1_gpu, F1_gpu, O1_gpu, "
+            # elif kname1.startswith("conv2d"):
+            #     fuse_exec_str += "      func<<<GridDim, BlockDim>>>(O1_gpu, I1_gpu, F1_gpu, "
+            fuse_exec_str += "      func<<<GridDim, BlockDim>>>(I1_gpu, F1_gpu, O1_gpu, "
+            # if kname2.startswith("bgemm"):
+            #     fuse_exec_str += "I2_gpu, F2_gpu, O2_gpu);\n"
+            # elif kname2.startswith("conv2d"):
+            #     fuse_exec_str += "O2_gpu, I2_gpu, F2_gpu);\n"
+            fuse_exec_str += "I2_gpu, F2_gpu, O2_gpu);\n"
             fuse_exec_str += "      break;\n"
         fuse_exec_str += "    }\n"
         fuse_exec_str += "    break;\n"

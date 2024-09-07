@@ -16,7 +16,14 @@ def get_bgemm_shape(batch_size, M, K, N):
     bgemm_B_shape      = (batch_size, N, K)
     bgemm_output_shape = (batch_size, M, N)
     
-    return (bgemm_A_shape, bgemm_B_shape, bgemm_output_shape)
+    return bgemm_A_shape, bgemm_B_shape, bgemm_output_shape
+#-----------------------------------------------------------------------------------------------
+def get_dense_shape(batch_size, in_dim, out_dim):
+    dense_data_shape   = (batch_size, in_dim)
+    dense_weight_shape = (out_dim, in_dim)
+    dense_output_shape = (batch_size, out_dim)
+    
+    return dense_data_shape, dense_weight_shape, dense_output_shape
 #-----------------------------------------------------------------------------------------------
 def get_conv2d_shape(N, H, W, CO, CI, KH, KW, stride, padding):
     conv2d_data_shape   = (N, CI, H, W)
@@ -28,7 +35,7 @@ def get_conv2d_shape(N, H, W, CO, CI, KH, KW, stride, padding):
     #                        int((H - KH + 2 * padding[0]) / strides[0]) + 1,
     #                        int((W - KW + 2 * padding[1]) / strides[1]) + 1)
     
-    return (conv2d_data_shape, conv2d_kernel_shape, conv2d_output_shape)
+    return conv2d_data_shape, conv2d_kernel_shape, conv2d_output_shape
 #-----------------------------------------------------------------------------------------------
 def batch_matmul_module(batch_size, M, K, N, dtype="float32"):
     a = relax.Var("a", relax.TensorStructInfo([batch_size, M, K], dtype=dtype))
@@ -37,6 +44,16 @@ def batch_matmul_module(batch_size, M, K, N, dtype="float32"):
     BB = relax.BlockBuilder()
     with BB.function("default_kernel", [a, b]):
         gv = BB.emit_te(tvm.topi.nn.batch_matmul, a, b, out_dtype=dtype)
+        BB.emit_func_output(gv)
+    return BB.get()
+#-----------------------------------------------------------------------------------------------
+def dense_module(batch_size, in_dim, out_dim, dtype="float32"):
+    data   = relax.Var("x", relax.TensorStructInfo([batch_size, in_dim], dtype=dtype))
+    weight = relax.Var("x", relax.TensorStructInfo([out_dim, in_dim], dtype=dtype))
+
+    BB = relax.BlockBuilder()
+    with BB.function("default_kernel", [data, weight]):
+        gv = BB.emit_te(tvm.topi.nn.dense, data, weight, out_dtype=dtype)
         BB.emit_func_output(gv)
     return BB.get()
 #-----------------------------------------------------------------------------------------------
@@ -110,25 +127,28 @@ def compile_module(mod, target, callback_list):
 
     return lib
 #-----------------------------------------------------------------------------------------------
-def evaluation(mod, data_shapes, target_name="cuda", target_id=0):
-    exec = relax.build(mod, target="cuda")
-    dev  = tvm.device(target_name, target_id)
-    vm   = relax.VirtualMachine(exec, dev)
+def evaluation(func, data_shapes):
+    # Target
+    target = tvm.target.Target("cuda")
 
-    # Need to allocate data and params on GPU device
+    # Parameters
     A_shape      = data_shapes[0]
     B_shape      = data_shapes[1]
     output_shape = data_shapes[2]
 
-    a_np  = np.random.uniform(size=A_shape).astype(np.float32)
-    b_np  = np.random.uniform(size=B_shape).astype(np.float32)
+    a_np = np.random.uniform(size=A_shape).astype(np.float32)
+    b_np = np.random.uniform(size=B_shape).astype(np.float32)
+
+    dev   = tvm.device(str(target))
     a_tvm = tvm.nd.array(a_np, device=dev)
     b_tvm = tvm.nd.array(b_np, device=dev)
+    c_tvm = tvm.nd.empty(output_shape, device=dev)
 
-    gpu_out = vm["main"](a_tvm, b_tvm).numpy()
+    # Evaluate execution time.
+    # evaluator = func.time_evaluator(func.entry_name, dev, min_repeat_ms=10)
+    evaluator = func.time_evaluator(func.entry_name, dev, number=1, repeat=1)
 
-    # TODO: need to collect duration metric
-    return 0
+    return np.median(evaluator(a_tvm, b_tvm, c_tvm).results) * 1000
 #-----------------------------------------------------------------------------------------------
 def get_fusion_info(fusion_sets):
     kernel_list = fusion_sets[0]["Set"] + fusion_sets[1]["Set"]
@@ -162,6 +182,9 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval):
         elif kname.startswith("conv2d"):
             shape = get_conv2d_shape(*kargs)
             mod   = conv2d_module(*kargs)
+        elif kname.startswith("dense"):
+            shape = get_dense_shape(*kargs)
+            mod   = dense_module(*kargs)
         else:
             logging.ERROR("Function and schedule with given kernel's name do not exist.")
             exit(1)
@@ -177,6 +200,8 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval):
             code = code[idx:].replace("batch_matmul_kernel", kname)
         elif kname.startswith("conv2d"):
             code = code[idx:].replace("conv2d_kernel", kname)
+        elif kname.startswith("dense"):
+            code = code[idx:].replace("dense_kernel", kname)
 
         cuda_code = cuda_code + code
 
@@ -185,8 +210,7 @@ def get_kernel_info(kernel_list, infos, test_suite_path, eval):
     
         # Evaluate kernel if needed
         if eval:
-            logging.warning("Evaluation is not yet implemented")
-            print("Execution time of %s operator: %.3f ms" % (kname, evaluation(mod, shape)))
+            print("Execution time of %s operator: %.3f ms" % (kname, evaluation(lib, shape)))
 
     return kernel_info, cuda_code
 #-----------------------------------------------------------------------------------------------

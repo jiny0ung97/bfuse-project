@@ -28,7 +28,7 @@ if __name__ == "__main__":
     print("[1/6] ========================= Configure test-suite =========================")
     configure_kernels_path = os.path.join(cur_path, "configure_kernels.py")
 
-    command = [configure_kernels_path, "-o", output_path, exam_path]
+    command = [configure_kernels_path, "-e", "-o", output_path, exam_path]
     try:
         print("RUN: " + " ".join(command))
         result = subprocess.run(command,

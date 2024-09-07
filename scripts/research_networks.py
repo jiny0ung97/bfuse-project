@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import tvm
-from tvm import relay, auto_scheduler
+from tvm import relay
 import tvm.relay.testing
 
 from huggingface_hub import login
@@ -115,9 +115,9 @@ def main():
 
     # Define the neural network and compilation target
     network    = "resnet-18"
-    # network    = "Meta-Llama-3-8B"
-    # network    = "gpt2"
     # network    = "bert-base-uncased"
+    # network    = "gpt2"
+    # network    = "Meta-Llama-3-8B"
     # batch_size = 1024
     batch_size = 1
     layout     = "NCHW"

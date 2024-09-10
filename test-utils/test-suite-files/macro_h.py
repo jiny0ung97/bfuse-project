@@ -4,7 +4,7 @@ import logging
 tvm_kernels_module_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../scripts")
 sys.path.append(tvm_kernels_module_path)
 
-from configure_kernels import get_bgemm_shape, get_conv2d_shape
+from configure_kernels import get_bgemm_shape, get_conv2d_shape, get_dense_shape
 #-----------------------------------------------------------------------------------------------
 def get_shape_decl_str(infoYAML):
     # Parse YAML
@@ -34,6 +34,12 @@ def get_shape_decl_str(infoYAML):
             shape_decl_str += f"static int kernel1_I_shape_{idx}[] = {{{shape[0][0]}, {shape[0][1]}, {shape[0][2]}, {shape[0][3]}}};\n"
             shape_decl_str += f"static int kernel1_F_shape_{idx}[] = {{{shape[1][0]}, {shape[1][1]}, {shape[1][2]}, {shape[1][3]}}};\n"
             shape_decl_str += f"static int kernel1_O_shape_{idx}[] = {{{shape[2][0]}, {shape[2][1]}, {shape[2][2]}, {shape[2][3]}}};\n"
+        elif kname.startswith("dense"):
+            shape = get_dense_shape(*kargs)
+
+            shape_decl_str += f"static int kernel1_I_shape_{idx}[] = {{{shape[0][0]}, {shape[0][1]}, 1, 1}};\n"
+            shape_decl_str += f"static int kernel1_F_shape_{idx}[] = {{{shape[1][0]}, {shape[1][1]}, 1, 1}};\n"
+            shape_decl_str += f"static int kernel1_O_shape_{idx}[] = {{{shape[2][0]}, {shape[2][1]}, 1, 1}};\n"
         else:
             logging.ERROR("Unknown kernel's type.")
             exit(0)
@@ -56,6 +62,12 @@ def get_shape_decl_str(infoYAML):
             shape_decl_str += f"static int kernel2_I_shape_{idx}[] = {{{shape[0][0]}, {shape[0][1]}, {shape[0][2]}, {shape[0][3]}}};\n"
             shape_decl_str += f"static int kernel2_F_shape_{idx}[] = {{{shape[1][0]}, {shape[1][1]}, {shape[1][2]}, {shape[1][3]}}};\n"
             shape_decl_str += f"static int kernel2_O_shape_{idx}[] = {{{shape[2][0]}, {shape[2][1]}, {shape[2][2]}, {shape[2][3]}}};\n"
+        elif kname.startswith("dense"):
+            shape = get_dense_shape(*kargs)
+
+            shape_decl_str += f"static int kernel2_I_shape_{idx}[] = {{{shape[0][0]}, {shape[0][1]}, 1, 1}};\n"
+            shape_decl_str += f"static int kernel2_F_shape_{idx}[] = {{{shape[1][0]}, {shape[1][1]}, 1, 1}};\n"
+            shape_decl_str += f"static int kernel2_O_shape_{idx}[] = {{{shape[2][0]}, {shape[2][1]}, 1, 1}};\n"
         else:
             logging.ERROR("Unknown kernel's type.")
             exit(0)

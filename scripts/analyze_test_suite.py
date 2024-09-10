@@ -8,6 +8,7 @@ import math
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import gmean
 import ncu_report
 #-----------------------------------------------------------------------------------------------
 # Settings
@@ -17,11 +18,11 @@ exec_trials    = 30
 
 # Conditions
 lsu_rate_cond     = 4.5
-lsu_sum_cond_up   = 70
-lsu_sum_cond_down = 50
+lsu_sum_cond_up   = 33
+lsu_sum_cond_down = 0
 fma_rate_cond     = 4.5
-fma_sum_cond_up   = 22
-fma_sum_cond_down = 12.5
+fma_sum_cond_up   = 21
+fma_sum_cond_down = 0
 # lsu_rate_cond     = 4.5
 # lsu_sum_cond_up   = 100
 # lsu_sum_cond_down = 50
@@ -193,11 +194,16 @@ def preprocess_exec(infoYAML, exec_path):
         elif idx == 2:
             for kidx1 in range(kernel1_size):
                 temp_list = []
-                for kidx2 in range(kidx1, kernel2_size):
-                    file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
+                for kidx2 in range(kernel2_size):
+                    if kidx2 < kidx1:
+                        i1, i2 = kidx2, kidx1
+                    else:
+                        i1, i2 = kidx1, kidx2
+                        
+                    file_path = os.path.join(exec_path, f"{idx}_{i1}_{i2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
-                    kname1    = fusion_sets[0]["Set"][kidx1]
-                    kname2    = fusion_sets[1]["Set"][kidx2]
+                    kname1    = fusion_sets[0]["Set"][i1]
+                    kname2    = fusion_sets[1]["Set"][i2]
 
                     _, _, data_mean, _ = get_parallel_statistics(data, [kname1, kname2])
                     temp_list.append(data_mean)
@@ -205,11 +211,16 @@ def preprocess_exec(infoYAML, exec_path):
         elif idx == 3:
             for kidx1 in range(kernel1_size):
                 temp_list = []
-                for kidx2 in range(kidx1, kernel2_size):
-                    file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
+                for kidx2 in range(kernel2_size):
+                    if kidx2 < kidx1:
+                        i1, i2 = kidx2, kidx1
+                    else:
+                        i1, i2 = kidx1, kidx2
+
+                    file_path = os.path.join(exec_path, f"{idx}_{i1}_{i2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
-                    kname1    = fusion_sets[0]["Set"][kidx1]
-                    kname2    = fusion_sets[1]["Set"][kidx2]
+                    kname1    = fusion_sets[0]["Set"][i1]
+                    kname2    = fusion_sets[1]["Set"][i2]
                     
                     _, _, data_mean, _ = get_single_statistics(data, f"{kname1}_{kname2}_fused_hfuse")
                     temp_list.append(data_mean)
@@ -217,11 +228,16 @@ def preprocess_exec(infoYAML, exec_path):
         elif idx == 4:
             for kidx1 in range(kernel1_size):
                 temp_list = []
-                for kidx2 in range(kidx1, kernel2_size):
-                    file_path = os.path.join(exec_path, f"{idx}_{kidx1}_{kidx2}_cuda_gpu_trace.csv")
+                for kidx2 in range(kernel2_size):
+                    if kidx2 < kidx1:
+                        i1, i2 = kidx2, kidx1
+                    else:
+                        i1, i2 = kidx1, kidx2
+
+                    file_path = os.path.join(exec_path, f"{idx}_{i1}_{i2}_cuda_gpu_trace.csv")
                     data, _   = parse_csv(file_path)
-                    kname1    = fusion_sets[0]["Set"][kidx1]
-                    kname2    = fusion_sets[1]["Set"][kidx2]
+                    kname1    = fusion_sets[0]["Set"][i1]
+                    kname2    = fusion_sets[1]["Set"][i2]
 
                     _, _, data_mean, _ = get_single_statistics(data, f"{kname1}_{kname2}_fused_bfuse")
                     temp_list.append(data_mean)
@@ -363,9 +379,14 @@ def preprocess_metrics(infoYAML, metrics_path):
     #     hfuse_metrics.append(temp_list)
 
     # BFuse
-    for i1 in range(kernel1_size):
+    for idx1 in range(kernel1_size):
         temp_list = []
-        for i2 in range(i1, kernel2_size):
+        for idx2 in range(kernel2_size):
+            if idx1 > idx2:
+                i1, i2 = idx2, idx1
+            else:
+                i1, i2 = idx1, idx2
+
             report_path = os.path.join(metrics_path, f"4_{i1}_{i2}.ncu-rep")
             ncu_context = ncu_report.load_report(report_path)
             ncu_range   = ncu_context.range_by_idx(0)
@@ -398,10 +419,16 @@ def collect_datas_with_condition(infoYAML, exec_path, metrics_path, condition, i
 
     for i1 in range(kernel1_size):
         for i2 in range(i1, kernel2_size):
+            if i1 > i2:
+                continue
+
             serial_data   = kernel1_exec[i1] + kernel2_exec[i2]
             parallel_data = serial_data / parallel_exec[i1][i2]
             hfuse_data    = serial_data / hfuse_exec[i1][i2]
             bfuse_data    = serial_data / bfuse_exec[i1][i2]
+
+            if not (bfuse_data - hfuse_data >= 0.4):
+                continue
 
             if not condition(bfuse_data):
                 continue
@@ -444,15 +471,18 @@ def collect_datas_with_condition(infoYAML, exec_path, metrics_path, condition, i
                 sum_lsu  = k1_lsu_weighted + k2_lsu_weighted
                 sum_fma  = k1_fma_weighted + k2_fma_weighted
 
-                if not (1/lsu_rate_cond <= diff_lsu < lsu_rate_cond and lsu_sum_cond_down <= sum_lsu < lsu_sum_cond_up) or \
-                    not (1/fma_rate_cond <= diff_fma < fma_rate_cond and fma_sum_cond_down <= sum_fma < fma_sum_cond_up):
+                # if not (1/lsu_rate_cond <= diff_lsu < lsu_rate_cond and lsu_sum_cond_down <= sum_lsu < lsu_sum_cond_up) or \
+                #     not (1/fma_rate_cond <= diff_fma < fma_rate_cond and fma_sum_cond_down <= sum_fma < fma_sum_cond_up):
+                #     continue
+                if not (lsu_sum_cond_down <= sum_lsu < lsu_sum_cond_up) or \
+                    not (fma_sum_cond_down <= sum_fma < fma_sum_cond_up):
                     continue
 
             cases.append([i1, i2])
             kernel1.append({"exec": kernel1_exec[i1], "metrics": kernel1_metrics[i1]})
             kernel2.append({"exec": kernel2_exec[i2], "metrics": kernel2_metrics[i2]})
-            # parallel.append({"exec": parallel_exec[i1 * kernel2_size + i2], "metrics": parallel_metrics[i1 * kernel2_size + i2]})
-            # hfuse.append({"exec": hfuse_exec[i1 * kernel2_size + i2], "metrics": hfuse_metrics[i1 * kernel2_size + i2]})
+            parallel.append({"exec": parallel_exec[i1][i2], "metrics": None})
+            hfuse.append({"exec": hfuse_exec[i1][i2], "metrics": None})
             bfuse.append({"exec": bfuse_exec[i1][i2], "metrics": bfuse_metrics[i1][i2]})
 
     return cases, kernel1, kernel2, parallel, hfuse, bfuse
@@ -503,6 +533,7 @@ def draw_scatter(figure_name, output_path, metrics_name, metrics_idx, data_pack,
     row = math.ceil(len(metrics_name) / col) + 1
 
     # Draw figure (metrics)
+    # plt.figure(figsize=(15, 15))
     for idx, m_name in enumerate(metrics_name):
         plt.subplot(row, col, idx + 1)
         plt.title(f"{m_name}", fontdict=font)
@@ -569,18 +600,17 @@ def draw_stall_breakdown_scatter(figure_name, output_path, metrics_name, metrics
             k1_value_ = k1_value * k1_weight / (k1_weight + k2_weight)
             k2_value_ = k2_value * k2_weight / (k1_weight + k2_weight)
 
-            if k1_value_ > k2_value_:
-                k1_value_, k2_value_ = k2_value_, k1_value_
-
-            if k1_value_ == 0 and k2_value_ == 0:
-                mean_value = float("nan")
-            else:
-                mean_value = np.average([k1_value, k2_value], weights=[k1_weight, k2_weight])
+            mean_value = np.average([k1_value, k2_value], weights=[k1_weight, k2_weight])
             diff_value = abs(k1_value_ - k2_value_)
-            imp_value = bfuse_value / mean_value
+            if bfuse_value == 0:
+                imp_value = float("nan")
+            else:
+                imp_value = mean_value / bfuse_value
 
-            k1_list[idx].append(k1_value_)
-            k2_list[idx].append(k2_value_)
+            k1_list[idx].append(k1_value)
+            k2_list[idx].append(k2_value)
+            # k1_list[idx].append(k1_value_)
+            # k2_list[idx].append(k2_value_)
             bfuse_list[idx].append(bfuse_value)
             diff_list[idx].append(diff_value)
             mean_list[idx].append(mean_value)
@@ -592,7 +622,7 @@ def draw_stall_breakdown_scatter(figure_name, output_path, metrics_name, metrics
     row = math.ceil(len(metrics_name) / col) + 1
 
     # Draw figure (metrics)
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(15, 15))
     for idx, m_name in enumerate(metrics_name):
         plt.subplot(row, col, idx + 1)
         plt.title(f"{m_name}", fontdict=font)
@@ -600,12 +630,14 @@ def draw_stall_breakdown_scatter(figure_name, output_path, metrics_name, metrics
         #     color = "#FF7F00"
         # else:
         #     color = "#1E90FF"
-        plt.scatter(perf_list, k1_list[idx], c="#FF7F00", s=0.5**2)
-        plt.scatter(perf_list, k2_list[idx], c="#1E90FF", s=0.5**2)
+        # plt.scatter(perf_list, k1_list[idx], c="#FF7F00", s=0.5**2)
+        # plt.scatter(perf_list, k2_list[idx], c="#1E90FF", s=0.5**2)
+        plt.scatter(k1_list[idx], k2_list[idx], c=imp_list[idx], s=1**2, alpha=0.8)
         plt.tick_params(axis="x", labelsize=5)
         plt.tick_params(axis="y", labelsize=5)
-        if ylim_list and ylim_list[idx]:
-            plt.ylim(ylim_list[idx])
+        # if ylim_list and ylim_list[idx]:
+        #     plt.ylim(ylim_list[idx])
+        plt.colorbar(shrink=0.8, aspect=10)
     
     # Draw figure (data distribution)
     plt.subplot(row, col, len(metrics_name) + 1)
@@ -666,6 +698,8 @@ def draw_compute_breakdown_scatter(figure_name, output_path, metrics_name, metri
             diff_value = abs(k1_value_ - k2_value_)
             imp_value  = bfuse_value / mean_value
 
+            # k1_list[idx].append(k1_value)
+            # k2_list[idx].append(k2_value)
             k1_list[idx].append(k1_value_)
             k2_list[idx].append(k2_value_)
             bfuse_list[idx].append(bfuse_value)
@@ -688,28 +722,29 @@ def draw_compute_breakdown_scatter(figure_name, output_path, metrics_name, metri
         else:
             color = "#1E90FF"
         plt.scatter(k1_list[idx], k2_list[idx], c=imp_list[idx], s=1**2, alpha=0.8)
+        # plt.scatter(k1_list[idx], k2_list[idx], c=perf_list, s=1**2, alpha=0.8)
         plt.tick_params(axis="x", labelsize=5)
         plt.tick_params(axis="y", labelsize=5)
         # if ylim_list and ylim_list[idx]:
         #     plt.ylim(ylim_list[idx])
         plt.colorbar(shrink=0.8, aspect=10)
-        total_list = k1_list[idx] + k2_list[idx]
+        # total_list = k1_list[idx] + k2_list[idx]
         if idx == 0:
-            plt.plot([min(total_list), max(total_list)], [min(total_list), max(total_list)], "--", color="red", linewidth=0.5) # y = x
-            plt.plot([min(total_list), max(total_list)], [min(total_list) * 1/lsu_rate_cond, max(total_list) * 1/lsu_rate_cond], "--", color="red", linewidth=0.5) # y = 1/rate_cond * x
-            plt.plot([min(total_list) * 1/lsu_rate_cond, max(total_list) * 1/lsu_rate_cond], [min(total_list), max(total_list)], "--", color="red", linewidth=0.5) # y = rate_cond * x
-            plt.plot([lsu_sum_cond_down, 0], [0, lsu_sum_cond_down], "--", color="red", linewidth=0.5) # x + y = sum_cond_down
+            # plt.plot([min(total_list), max(total_list)], [min(total_list), max(total_list)], "--", color="red", linewidth=0.5) # y = x
+            # plt.plot([min(total_list), max(total_list)], [min(total_list) * 1/lsu_rate_cond, max(total_list) * 1/lsu_rate_cond], "--", color="red", linewidth=0.5) # y = 1/rate_cond * x
+        #     plt.plot([min(total_list) * 1/lsu_rate_cond, max(total_list) * 1/lsu_rate_cond], [min(total_list), max(total_list)], "--", color="red", linewidth=0.5) # y = rate_cond * x
+            # plt.plot([lsu_sum_cond_down, 0], [0, lsu_sum_cond_down], "--", color="red", linewidth=0.5) # x + y = sum_cond_down
             if lsu_sum_cond_up != 100:
                 plt.plot([lsu_sum_cond_up, 0], [0, lsu_sum_cond_up], "--", color="red", linewidth=0.5)     # x + y = sum_cond_up
-            plt.clim(0.6, 1.5)
+            # plt.clim(0.6, 1.5)
         elif idx == 1:
-            plt.plot([min(total_list), max(total_list)], [min(total_list), max(total_list)], "--", color="red", linewidth=0.5) # y = x
-            plt.plot([min(total_list), max(total_list)], [min(total_list) * 1/fma_rate_cond, max(total_list) * 1/fma_rate_cond], "--", color="red", linewidth=0.5) # y = 1/rate_cond * x
-            plt.plot([min(total_list) * 1/fma_rate_cond, max(total_list) * 1/fma_rate_cond], [min(total_list), max(total_list)], "--", color="red", linewidth=0.5) # y = rate_cond * x
-            plt.plot([fma_sum_cond_down, 0], [0, fma_sum_cond_down], "--", color="red", linewidth=0.5) # x + y = sum_cond_down
+        #     plt.plot([min(total_list), max(total_list)], [min(total_list), max(total_list)], "--", color="red", linewidth=0.5) # y = x
+        #     plt.plot([min(total_list), max(total_list)], [min(total_list) * 1/fma_rate_cond, max(total_list) * 1/fma_rate_cond], "--", color="red", linewidth=0.5) # y = 1/rate_cond * x
+        #     plt.plot([min(total_list) * 1/fma_rate_cond, max(total_list) * 1/fma_rate_cond], [min(total_list), max(total_list)], "--", color="red", linewidth=0.5) # y = rate_cond * x
+            # plt.plot([fma_sum_cond_down, 0], [0, fma_sum_cond_down], "--", color="red", linewidth=0.5) # x + y = sum_cond_down
             if fma_sum_cond_up != 100:
                 plt.plot([fma_sum_cond_up, 0], [0, fma_sum_cond_up], "--", color="red", linewidth=0.5)     # x + y = sum_cond_up
-            plt.clim(0.6, 1.5)
+        #     plt.clim(0.6, 1.5)
         # if max(total_list) >= 80:
         #     plt.plot([100, 0], [0, 100], "--", color="red", linewidth=0.5) # x + y = 100
     
@@ -1028,7 +1063,7 @@ def draw_figure(cases, kernel1, kernel2, parallel, hfuse, bfuse, output_path):
 
     data_pack   = list(zip(cases, kernel1, kernel2, bfuse))
     metrics_idx = mIdx
-    draw_inst_breakdwon_hist("Breakdown-Executed_Instruction_Mix", output_path, data_pack, metrics_idx)
+    # draw_inst_breakdwon_hist("Breakdown-Executed_Instruction_Mix", output_path, data_pack, metrics_idx)
     mIdx += 1
 
     #################################################
@@ -1057,8 +1092,13 @@ def draw_figure(cases, kernel1, kernel2, parallel, hfuse, bfuse, output_path):
     ]
     metrics_idx      = [i for i in range(mIdx, mIdx + len(metrics_name))]
     data_pack        = list(zip(cases, kernel1, kernel2, bfuse))
-    low_is_best_list = []
-    # draw_stall_breakdown_scatter("Breakdown-Warp_State_(All_Cycles)", output_path, metrics_name, metrics_idx, data_pack, low_is_best_list)
+    second_list      = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    elapsed_list     = []
+    active_list      = []
+    sum_list         = []
+    low_is_best_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    draw_scatter("Breakdown-Warp_State_(All_Cycles)", output_path, metrics_name, metrics_idx, data_pack, second_list, elapsed_list, active_list, sum_list, low_is_best_list)
+    draw_stall_breakdown_scatter("Breakdown-Kernel-Warp_State_(All_Cycles)", output_path, metrics_name, metrics_idx, data_pack, low_is_best_list)
     mIdx += len(metrics_name)
 
     #################################################
@@ -1090,7 +1130,83 @@ def draw_figure(cases, kernel1, kernel2, parallel, hfuse, bfuse, output_path):
     draw_scatter("Breakdown-Pipe_Utilization_(percent_of_peak_instructions_executed)-scatter", output_path, metrics_name, metrics_idx, data_pack, second_list, elapsed_list, active_list, sum_list, low_is_best_list)
     draw_compute_breakdown_scatter("Breakdown-Kernel-Pipe_Utilization_(percent_of_peak_instructions_executed)-scatter", output_path, metrics_name, metrics_idx, data_pack, second_list, elapsed_list, active_list, sum_list, low_is_best_list)
     mIdx += len(metrics_name)
-    
+#-----------------------------------------------------------------------------------------------
+def draw_speedup_figure(figure_name, cases, kernel1, kernel2, parallel, hfuse, bfuse, output_path):
+    materials_list = []
+    parallel_list  = []
+    hfuse_list     = []
+    bfuse_list     = []
+
+    for idx, [bi, ci] in enumerate(cases):
+            materials_list.append(f"Kernel {bi} x Kernel {ci}")
+
+            serial_exec   = kernel1[idx]["exec"] + kernel2[idx]["exec"]
+            parallel_exec = serial_exec / parallel[idx]["exec"]
+            hfuse_exec    = serial_exec / hfuse[idx]["exec"]
+            bfuse_exec    = serial_exec / bfuse[idx]["exec"]
+            
+            parallel_list.append(parallel_exec)
+            hfuse_list.append(hfuse_exec)
+            bfuse_list.append(bfuse_exec)
+
+    # Draw
+    # plt.figure(figsize=(15, 15))
+
+    idx = 0
+    col_len = 21
+    while idx < len(materials_list):
+        idx_start = idx
+        idx_end   = idx + col_len
+        if idx_end > len(materials_list):
+            idx_end = len(materials_list)
+
+        index  = np.arange(idx_end - idx_start)
+        axes_m = materials_list[idx_start:idx_end]
+        axes_p = parallel_list[idx_start:idx_end]
+        axes_h = hfuse_list[idx_start:idx_end]
+        axes_b = bfuse_list[idx_start:idx_end]
+
+        plt.subplot(math.ceil(len(materials_list) / col_len), 1, math.ceil(idx / col_len) + 1)
+
+        plt.bar(index - 0.2, axes_p, width=0.2, label='parallel')
+        plt.bar(index      , axes_h, width=0.2, label='hfuse')
+        plt.bar(index + 0.2, axes_b, width=0.2, label='bfuse')
+
+        # Draw baseline
+        plt.axhline(y=1, color="r", linewidth=0.5, linestyle="--")
+
+        # # Set ticks
+        # plt.xticks(index, axes_m, fontsize=3)
+
+        # Set limitation of y axis
+        plt.ylim(0, 2)
+
+        plt.ylabel('Speed up', fontsize=3)
+        plt.legend(ncol=1, loc="upper left", fontsize=2)
+
+        idx = idx_end
+        if idx == len(materials_list):
+            # 
+            plt.axvline(x=index[-1] + 1, color="gray", linewidth=0.5, linestyle="--")
+
+            # Geomean
+            plt.bar([index[-1] + 2 - 0.2], gmean(parallel_list), width=0.2, label='parallel')
+            plt.bar([index[-1] + 2      ], gmean(hfuse_list), width=0.2, label='hfuse')
+            plt.bar([index[-1] + 2 + 0.2], gmean(bfuse_list), width=0.2, label='bfuse')
+            break
+
+    # Save figure
+    file_path = os.path.join(output_path, f"{figure_name}.png")
+    plt.tight_layout()
+    plt.savefig(file_path, dpi=500)
+    plt.close()
+
+    print(f"==== {figure_name.upper()} ====")
+    print("---------------------------------------")
+    print(f"parallel | max: {np.max(parallel_list)}, min: {np.min(parallel_list)}, avg: {gmean(parallel_list)}, std: {np.std(parallel_list)}")
+    print(f"hfuse    | max: {np.max(hfuse_list)}, min: {np.min(hfuse_list)}, avg: {gmean(hfuse_list)}, std: {np.std(hfuse_list)}")
+    print(f"bfuse    | max: {np.max(bfuse_list)}, min: {np.min(bfuse_list)}, avg: {gmean(bfuse_list)}, std: {np.std(bfuse_list)}")
+    print("---------------------------------------")
 #-----------------------------------------------------------------------------------------------
 if __name__ == "__main__":
 
@@ -1154,6 +1270,10 @@ if __name__ == "__main__":
 
     # Collect datas with condition
     cases, kernel1, kernel2, parallel, hfuse, bfuse = collect_datas_with_condition(yaml_info, exec_path, metrics_path, lambda x: True, inst_cond, pipe_cond)
+    # cases, kernel1, kernel2, parallel, hfuse, bfuse = collect_datas_with_condition(yaml_info, exec_path, metrics_path, lambda x: x >= 1.1, inst_cond, pipe_cond)
     
-    # draw figure
+    # Draw figure
     draw_figure(cases, kernel1, kernel2, parallel, hfuse, bfuse, output_path)
+
+    # Draw speedup figure
+    draw_speedup_figure("Speed_up", cases, kernel1, kernel2, parallel, hfuse, bfuse, output_path)

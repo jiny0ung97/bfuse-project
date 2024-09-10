@@ -104,13 +104,13 @@ def compile_module(mod, target, callback_list):
         mod = tvm.ir.transform.Sequential(
             [
                 relax.get_pipeline("zero"),
-                dl.ApplyDefaultSchedule(  # pylint: disable=not-callable
-                    dl.gpu.Matmul(),
-                    dl.gpu.GEMV(),
-                    dl.gpu.Reduction(),
-                    dl.gpu.GeneralReduction(),
-                    dl.gpu.Fallback(),
-                ),
+                # dl.ApplyDefaultSchedule(  # pylint: disable=not-callable
+                #     dl.gpu.Matmul(),
+                #     dl.gpu.GEMV(),
+                #     dl.gpu.Reduction(),
+                #     dl.gpu.GeneralReduction(),
+                #     dl.gpu.Fallback(),
+                # ),
             ]
         )(mod)
 
